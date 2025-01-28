@@ -147,7 +147,7 @@ Contains
     Do j = 2, nyg-1
        plane_hat = rhs_p_hat(:,j,:)
        Call fftw_mpi_execute_dft(plan_i,plane_hat,plane)
-       P(2:nxg-2,j,2:nzg-2) = plane/Real(nxp_global*nzp_global,8)
+       P(2:nxg-2,j,2:nzp+1) = plane/Real(nxp_global*nzp_global,8)
     End Do
 
     ! extend values to ghost cells in y
