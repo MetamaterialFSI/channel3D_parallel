@@ -1,0 +1,33 @@
+# src/CMakeLists.txt
+
+# Collect the module source files
+set(SOURCES  
+  global.f90
+  mass_flow.f90
+  interpolation.f90
+  equations.f90
+  boundary_conditions.f90
+  pressure.f90
+  input_output.f90
+  statistics.f90
+  initialization.f90
+  finalization.f90
+  projection.f90
+  time_integration.f90
+  monitor.f90
+  mpi.f90
+)
+
+# Create a library from the modules
+add_library(channel_lib STATIC "${SOURCES}")
+
+# Link MKL to the library
+target_link_libraries(channel_lib PUBLIC MKL::MKL)
+target_link_libraries(channel_lib PUBLIC MPI::MPI_Fortran)
+target_link_libraries(channel_lib PUBLIC FFTW::DoubleMPI)
+
+# target_link_libraries(channel_lib PUBLIC -lifport)
+# target_link_options(channel_lib PUBLIC -lifport)
+
+# Make sure the include directories for the modules are added
+target_include_directories(channel_lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})  # Add the binary directory for .mod files
