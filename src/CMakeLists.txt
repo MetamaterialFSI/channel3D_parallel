@@ -22,8 +22,9 @@ set(SOURCES
 add_library(channel_lib STATIC "${SOURCES}")
 
 # Link MKL to the library
-target_link_libraries(channel_lib PUBLIC MKL::MKL)
+target_link_libraries(channel_lib PUBLIC LAPACK::LAPACK)
 target_link_libraries(channel_lib PUBLIC MPI::MPI_Fortran)
+target_link_libraries(channel_lib PUBLIC FFTW::Double)
 target_link_libraries(channel_lib PUBLIC FFTW::DoubleMPI)
 
 # target_link_libraries(channel_lib PUBLIC -lifport)

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.27)
+cmake_minimum_required(VERSION 3.10)
 
 project(Channel3D VERSION 0.1
 	DESCRIPTION "3D channel flow solver"
@@ -40,8 +40,8 @@ endif()
 # endif()
 
 add_link_options("-fuse-ld=lld") # Necessary to avoid "error adding symbols" error on GitHub runners
-find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})
-find_package(FFTW REQUIRED) # Not necessary if using Intel MKL (but then you would have to remove the include statements in the src files)
+find_package(LAPACK REQUIRED)
+find_package(FFTW REQUIRED)
 find_package(MPI COMPONENTS Fortran REQUIRED)
 
 message(STATUS "CMAKE_Fortran_COMPILER_ID: ${CMAKE_Fortran_COMPILER_ID}")
