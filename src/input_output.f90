@@ -179,7 +179,7 @@ Contains
     If ( myid==0 ) Then
 
        Write(*,*) 'reading ',Trim(Adjustl(filein)),'...'
-       Open(1,file=filein,access='stream',form='unformatted',action='Read')       
+       Open(1,file=filein,access='stream',form='unformatted',action='Read',convert='big_endian')
        
        ! mesh
        Read(1) nx_global_f
@@ -352,7 +352,7 @@ Contains
           
           fname = Trim(Adjustl(fileout))//'.'//Trim(Adjustl(ext))
           Write(*,*) 'writting ',Trim(Adjustl(fname))
-          Open(1,file=fname,access='stream',form='unformatted',action='write')
+          Open(1,file=fname,access='stream',form='unformatted',action='write',convert='big_endian')
           
           ! mesh
           Write(1) Shape(x_global), x_global
