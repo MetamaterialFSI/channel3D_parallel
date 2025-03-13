@@ -1,0 +1,18 @@
+! domain size nx ny nz
+ 34 130 34
+! CFL
+ -0.001
+! viscosity
+ 3.076923076923077e-04 
+! Pressure gradient dPdx, dPdz, x_mass_cte, y_mass_cte (0->use dPdx, 1->constant mass flow)
+ 0.003275394114261 0.000000000000 1 0
+! nsteps, nsave, nstats, nmonitor
+ 10000       1000      10       10 
+! input flow field file
+ 'channel180_minchan.9999000'
+! output flow field file
+ 'channel_output/test'
+! first number for output flow field
+ 0
+! random initial condition 0->no (reads previous file), 1->yes
+ 0
