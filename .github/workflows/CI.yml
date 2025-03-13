@@ -1,0 +1,72 @@
+name: CI
+
+permissions: read-all
+
+on:
+  - workflow_dispatch
+  - push
+  - pull_request
+
+jobs:
+  build_linux_apt_fortran:
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        shell: bash
+    env:
+      LINUX_BASEKIT_URL: https://registrationcenter-download.intel.com/akdlm/IRC_NAS/96aa5993-5b22-4a9b-91ab-da679f422594/intel-oneapi-base-toolkit-2025.0.0.885_offline.sh
+      LINUX_HPCKIT_URL: https://registrationcenter-download.intel.com/akdlm/IRC_NAS/0884ef13-20f3-41d3-baa2-362fc31de8eb/intel-oneapi-hpc-toolkit-2025.0.0.825_offline.sh
+      LINUX_FORTRAN_COMPONENTS: intel-oneapi-compiler-fortran
+      CACHE_NUMBER: 5
+      FC: ifx
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: libfftw3-dev libfftw3-mpi-dev libopenmpi-dev liblapack-dev
+
+    - name: setup Intel apt repo
+      run: .github/workflows/setup_apt_repo_linux.sh
+
+    - name: collect versioned dependencies of apt packages
+      run: .github/workflows/apt_depends.sh $LINUX_FORTRAN_COMPONENTS
+
+    - name: cache Intel oneapi install
+      id: cache-install
+      uses: actions/cache@v3
+      with:
+        path: |
+          /opt/intel/oneapi
+        key: install-${{ env.LINUX_FORTRAN_COMPONENTS }}
+
+    - name: install Intel Fortran
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      run: .github/workflows/install_linux_apt.sh $LINUX_FORTRAN_COMPONENTS
+
+    - name: exclude unused files from cache
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      run: .github/workflows/cache_exclude_linux.sh
+
+    - name: setup Intel OneAPI Compiler environment
+      run: |
+        source /opt/intel/oneapi/setvars.sh
+        printenv >> $GITHUB_ENV
+        echo FC=ifx >> $GITHUB_ENV
+      shell: bash
+
+    - name: Debug Environment
+      run: |
+        echo "Fortran Compiler (ifx): $(which ifx)"
+        echo "CMake Prefix Path: $CMAKE_PREFIX_PATH"
+        echo "PATH: $PATH"
+        echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+
+    - name: CMake Configure 
+      run: cmake -B build -DBUILD_TESTING=ON
+    
+    - name: CMake build
+      run: cmake --build build
+
+    - name: Run Tests
+      run: ctest --test-dir build --output-on-failure
