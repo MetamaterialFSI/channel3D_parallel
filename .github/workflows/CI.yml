@@ -73,6 +73,7 @@ jobs:
       run: ctest --test-dir build --output-on-failure
 
     - name: Test executable
+      shell: bash
       run: |
         cd examples
         mkdir -p channel_output
