@@ -75,4 +75,5 @@ jobs:
     - name: Test executable
       run: |
         cd examples
+        mkdir -p channel_output
         mpirun -n 2 ../build/channel3D < input_parameters
