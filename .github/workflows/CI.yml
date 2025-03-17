@@ -22,10 +22,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
+        with:
+          mpi: openmpi
+
+    - name: Setup FFTW
       run: |
         sudo apt-get update
-        sudo apt-get install -y libfftw3-dev libfftw3-mpi-dev libopenmpi-dev
+        sudo apt-get install -y libfftw3-dev libfftw3-mpi-dev
 
     - name: setup Intel apt repo
       run: .github/workflows/setup_apt_repo_linux.sh
