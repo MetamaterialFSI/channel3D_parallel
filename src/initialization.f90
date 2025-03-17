@@ -30,6 +30,7 @@ Contains
     call Mpi_init(ierr)
     call Mpi_comm_size(MPI_COMM_WORLD, nprocs, ierr)
     call Mpi_comm_rank(MPI_COMM_WORLD,   myid, ierr)
+    print*, 'Rank: ', myid, ' Size: ', nprocs
 
     If (myid==0) Then 
        Write(*,*) '----------------------------------------------------------------------'       
