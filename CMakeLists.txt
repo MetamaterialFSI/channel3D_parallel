@@ -32,13 +32,6 @@ else()
     message(FATAL_ERROR "Invalid value for CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 endif()
 
-
-# get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
-# if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
-#   set (CMAKE_Fortran_FLAGS "<gfortran flags go here>")
-# elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
-# endif()
-
 add_link_options("-fuse-ld=lld") # Necessary to avoid "error adding symbols" error on GitHub runners
 find_package(LAPACK REQUIRED)
 find_package(FFTW REQUIRED)
@@ -46,13 +39,10 @@ find_package(MPI COMPONENTS Fortran REQUIRED)
 
 message(STATUS "CMAKE_Fortran_COMPILER_ID: ${CMAKE_Fortran_COMPILER_ID}")
 message(STATUS "MPI_Fortran_COMPILER: ${MPI_Fortran_COMPILER}")
-message(STATUS "Fortran_COMPILER_NAME): ${Fortran_COMPILER_NAME}")
+message(STATUS "Fortran_COMPILER_NAME: ${Fortran_COMPILER_NAME}")
 message(STATUS "Fortran flags: ${CMAKE_Fortran_FLAGS}")
 message(STATUS "FFTW_INCLUDE_DIRS: ${FFTW_INCLUDE_DIRS}")
 
-#message(STATUS "${MKL_IMPORTED_TARGETS}") #Provides available list of targets based on input
-
-# Include subdirectories
 add_subdirectory(src)
 
 add_executable(channel3D app/main.f90)
