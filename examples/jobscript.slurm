@@ -14,4 +14,4 @@ input_file="input_parameters"
 mkdir channel_output
 
 cd $SLURM_SUBMIT_DIR
-mpirun -np 2 ../build/channel3D < "$input_file" 
+mpirun -np 2 ../build/channel3D "$input_file" 

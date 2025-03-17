@@ -34,7 +34,7 @@ Module global
   Real(Int64) :: pi = 4d0*datan(1d0)  
 
   ! files
-  Character(200) :: filein, fileout
+  Character(200) :: filein, fileout, fileparams
   Integer(Int32) :: nsave, nmonitor
 
   ! set random initial condition

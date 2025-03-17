@@ -20,41 +20,37 @@ Contains
   !----------------------------------------!
   Subroutine read_input_parameters
 
-    Character(200) :: dummy_line
+    Character(200) :: dummy_line, msg
     Real(Int64)    :: Rossby_plus, utau_
+    Integer(Int32) :: ioerr, iounit
+
+    namelist /params/ &
+      nx_global, ny_global, nz_global, &
+      CFL, &
+      nu, &
+      dPdx, dPdz, x_mass_cte, y_mass_cte, &
+      nsteps, nsave, nstats, nmonitor, &
+      filein, fileout, &
+      nstep_init, &
+      random_init
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
+      Write(*,*) 'reading input parameters...'
 
-       Read(*,*) dummy_line
-       Read(*,*) nx_global, ny_global, nz_global
-       
-       Read(*,*) dummy_line
-       Read(*,*) CFL
-       
-       Read(*,*) dummy_line
-       Read(*,*) nu   
-       
-       Read(*,*) dummy_line
-       Read(*,*) dPdx, dPdz, x_mass_cte, y_mass_cte
+      Open(newunit=iounit, file=fileparams, status="old", action="read", iostat=ioerr, iomsg=msg)
+      If (ierr /= 0) then
+          Print *, "Error opening input file. IOSTAT =", ioerr, " IOMSG = ", msg
+          call abort
+      End If
+      Read(iounit, Nml=params, IOSTAT=ioerr, IOMSG=msg)
+      If (ierr /= 0) then
+          Print *, "Error reading namelist. IOSTAT =", ioerr, " IOMSG = ", msg
+          call abort
+      End If
 
-       Read(*,*) dummy_line
-       Read(*,*) nsteps, nsave, nstats, nmonitor
-       
-       Read(*,*) dummy_line
-       Read(*,*) filein
-       
-       Read(*,*) dummy_line
-       Read(*,*) fileout
-
-       Read(*,*) dummy_line
-       Read(*,*) nstep_init
-
-       Read(*,*) dummy_line
-       Read(*,*) random_init
-
-       utau_    = dPdx**0.5d0
-       dPdx_ref = dPdx
+      utau_    = dPdx**0.5d0
+      dPdx_ref = dPdx
        
     End If
 
