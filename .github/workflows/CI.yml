@@ -68,6 +68,11 @@ jobs:
     
     - name: CMake build
       run: cmake --build build
-
-    - name: Run Tests
+    
+    - name: Run Testing Framwork
       run: ctest --test-dir build --output-on-failure
+
+    - name: Test executable
+      run: |
+        cd examples
+        mpirun -n 2 ../build/channel3D < input_parameters
