@@ -105,7 +105,7 @@ Contains
         Do i=1,ny_global
            y_global(i) = Real(i-1,8)*0.3d0
         End Do
-        y_global = 2d0*y_global/Maxval(y_global)-1d0
+        y_global = 2d0*y_global/Maxval(y_global)
 
       Case (1) ! Stretched grid
         If ( myid==0 ) Write(*,*) 'Generating stretched y grid'
