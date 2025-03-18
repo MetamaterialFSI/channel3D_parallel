@@ -1,18 +1,26 @@
-! domain size nx ny nz
- 34 130 34
-! CFL
- -0.001
-! viscosity
- 3.076923076923077e-04 
-! Pressure gradient dPdx, dPdz, x_mass_cte, y_mass_cte (0->use dPdx, 1->constant mass flow)
- 0.003275394114261 0.000000000000 1 0
-! nsteps, nsave, nstats, nmonitor
- 100       100      100       10 
-! input flow field file
- 'channel180_minchan.9999000'
-! output flow field file
- 'channel_output/test'
-! first number for output flow field
- 0
-! random initial condition 0->no (reads previous file), 1->yes
- 1
+&params
+	! domain size
+	nx_global = 34
+	ny_global = 130
+	nz_global = 34
+	! (positive->CFL, negative->timestep size)
+	CFL = -0.001
+	! viscosity
+	nu = 3.076923076923077e-04 
+	! Pressure gradient
+	dPdx = 0.003275394114261
+	dPdz = 0.000000000000 
+	x_mass_cte = 1 ! (0->use dPdx, 1->constant mass flow)
+	y_mass_cte = 0
+	! nsteps, nsave, nstats, nmonitor
+	nsteps = 100
+	nsave = 10
+	nstats = 100
+	nmonitor = 10 
+	filein = 'channel180_minchan.9999000'
+	fileout = 'channel_output/test'
+	! first number for output flow field
+	nstep_init = 0
+	! random initial condition 0->no (reads previous file), 1->yes
+	random_init = 1
+/

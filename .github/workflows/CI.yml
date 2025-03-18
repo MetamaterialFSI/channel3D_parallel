@@ -100,4 +100,4 @@ jobs:
       run: |
         cd examples
         mkdir -p channel_output
-        mpirun -n 2 ../build/channel3D < input_parameters || exit 1
+        mpirun -n 2 ../build/channel3D input_parameters || exit 1

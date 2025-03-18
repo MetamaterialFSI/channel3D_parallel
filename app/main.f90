@@ -40,11 +40,21 @@ Program channel_FD
   Use monitor
   Use statistics
   Use finalization
+  Use mpi
   
   ! prevent implicit typing
   Implicit None
 
-  ! initialize everything and read input file and input flow field
+  ! initialize mpi
+  call Mpi_init(ierr)
+  call Mpi_comm_size(MPI_COMM_WORLD, nprocs, ierr)
+  call Mpi_comm_rank(MPI_COMM_WORLD,   myid, ierr)
+
+  ! read parameters from the input file that is the command line argument
+  Call get_command_argument(1, fileparams)
+  Call read_input_parameters
+
+  ! initialize everything and read input flow field
   Call initialize
 
   ! small summary of input parameters

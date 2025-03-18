@@ -26,12 +26,6 @@ Contains
     Real   (Int64) :: dy1, dy2, det, a, b, c, r, Qflow_ref
     Integer(Int32), Dimension(:,:), Allocatable :: A_kmodes, A_kmodes_local
 
-    !---------------------first initialize MPI-------------------!
-    call Mpi_init(ierr)
-    call Mpi_comm_size(MPI_COMM_WORLD, nprocs, ierr)
-    call Mpi_comm_rank(MPI_COMM_WORLD,   myid, ierr)
-    print*, 'Rank: ', myid, ' Size: ', nprocs
-
     If (myid==0) Then 
        Write(*,*) '----------------------------------------------------------------------'       
        Write(*,*) ' '
@@ -39,10 +33,6 @@ Contains
        Write(*,*) ' '
        Write(*,*) '----------------------------------------------------------------------'
     End If
-
-    !--------------read parameters from standard input-----------!
-    If ( myid==0 ) Write(*,*) 'reading input paramaters...'
-    Call read_input_parameters
 
     ! time
     t = 0d0
