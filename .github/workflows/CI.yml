@@ -27,11 +27,6 @@ jobs:
       with:
         mpi: intelmpi
 
-    - name: Setup FFTW
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libfftw3-dev libfftw3-mpi-dev
-
     - name: setup Intel apt repo
       run: .github/workflows/setup_apt_repo_linux.sh
 
@@ -60,6 +55,19 @@ jobs:
         printenv >> $GITHUB_ENV
         echo FC=ifx >> $GITHUB_ENV
       shell: bash
+
+    - name: install dependencies
+      run: sudo apt-get update && sudo apt-get install -y openmpi-bin openmpi-common libopenmpi-dev wget
+
+    - name: build FFTW from source with MPI
+      shell: bash
+      run: |
+        wget http://www.fftw.org/fftw-3.3.10.tar.gz
+        tar -xzf fftw-3.3.10.tar.gz
+        cd fftw-3.3.10
+        ./configure --enable-mpi --enable-shared --prefix=/usr/local
+        make -j$(nproc)
+        sudo make install
 
     - name: Debug Environment
       run: |
