@@ -56,9 +56,6 @@ jobs:
         echo FC=ifx >> $GITHUB_ENV
       shell: bash
 
-    - name: install dependencies
-      run: sudo apt-get update && sudo apt-get install -y openmpi-bin openmpi-common libopenmpi-dev wget
-
     - name: build FFTW from source with MPI
       shell: bash
       run: |
