@@ -7,7 +7,8 @@
 #SBATCH --job-name=channel_trial
 #SBATCH --output=status.out
 
-module load openmpi
+# module load openmpi
+module load intel-oneapi-mpi
 
 input_file="input_parameters"
 mkdir channel_output

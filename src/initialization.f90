@@ -22,7 +22,7 @@ Contains
   !----------------------------------------!
   Subroutine initialize
     
-    Integer(Int32) :: i, j, k, kk, nzpe, pos, ipos, nze, nzme
+    Integer(Int32) :: i, j, k, kk, nzpe, pos, ipos, nze, nzme, count
     Real   (Int64) :: dy1, dy2, det, a, b, c, r, Qflow_ref
     Integer(Int32), Dimension(:,:), Allocatable :: A_kmodes, A_kmodes_local
 
@@ -30,6 +30,7 @@ Contains
     call Mpi_init(ierr)
     call Mpi_comm_size(MPI_COMM_WORLD, nprocs, ierr)
     call Mpi_comm_rank(MPI_COMM_WORLD,   myid, ierr)
+    print*, 'Rank: ', myid, ' Size: ', nprocs
 
     If (myid==0) Then 
        Write(*,*) '----------------------------------------------------------------------'       
@@ -329,7 +330,8 @@ Contains
           A_kmodes_local( imode_map_fft(i,k), kmode_map_fft(i,k) ) =  A_kmodes_local(imode_map_fft(i,k), kmode_map_fft(i,k) ) + 1
        end Do
     End Do
-    Call MPI_AllReduce(A_kmodes_local,A_kmodes,(mx_global+1)*(mz_global+1),MPI_integer,MPI_sum,MPI_COMM_WORLD,ierr)
+    count = (mx_global+1)*(mz_global+1)
+    Call MPI_AllReduce(A_kmodes_local,A_kmodes,count,MPI_integer,MPI_sum,MPI_COMM_WORLD,ierr)
     If ( Any(A_kmodes>1) .Or. Any(A_kmodes==0) ) Stop 'Error: wrong combination of nx, nz and processors'
     Deallocate(A_kmodes)
     Deallocate(A_kmodes_local)

@@ -1,0 +1,103 @@
+name: CI
+
+permissions: read-all
+
+on:
+  - workflow_dispatch
+  - push
+  - pull_request
+
+jobs:
+  build_linux_apt_fortran:
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        shell: bash
+    env:
+      LINUX_BASEKIT_URL: https://registrationcenter-download.intel.com/akdlm/IRC_NAS/96aa5993-5b22-4a9b-91ab-da679f422594/intel-oneapi-base-toolkit-2025.0.0.885_offline.sh
+      LINUX_HPCKIT_URL: https://registrationcenter-download.intel.com/akdlm/IRC_NAS/0884ef13-20f3-41d3-baa2-362fc31de8eb/intel-oneapi-hpc-toolkit-2025.0.0.825_offline.sh
+      LINUX_FORTRAN_COMPONENTS: intel-oneapi-compiler-fortran
+      CACHE_NUMBER: 5
+      FC: ifx
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MPI
+      uses: mpi4py/setup-mpi@v1
+      with:
+        mpi: intelmpi
+
+    - name: setup Intel apt repo
+      run: .github/workflows/setup_apt_repo_linux.sh
+
+    - name: collect versioned dependencies of apt packages
+      run: .github/workflows/apt_depends.sh $LINUX_FORTRAN_COMPONENTS
+
+    - name: cache Intel oneapi install
+      id: cache-install
+      uses: actions/cache@v3
+      with:
+        path: |
+          /opt/intel/oneapi
+        key: install-${{ env.LINUX_FORTRAN_COMPONENTS }}
+
+    - name: install Intel Fortran
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      run: .github/workflows/install_linux_apt.sh $LINUX_FORTRAN_COMPONENTS
+
+    - name: exclude unused files from cache
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      run: .github/workflows/cache_exclude_linux.sh
+
+    - name: setup Intel OneAPI Compiler environment
+      run: |
+        source /opt/intel/oneapi/setvars.sh
+        printenv >> $GITHUB_ENV
+        echo FC=ifx >> $GITHUB_ENV
+      shell: bash
+
+    - name: Cache FFTW installation
+      id: cache-fftw
+      uses: actions/cache@v3
+      with:
+        path: /opt/fftw3
+        key: fftw-3.3.10-mpi
+
+    - name: Build FFTW from source with MPI
+      if: steps.cache-fftw.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        wget http://www.fftw.org/fftw-3.3.10.tar.gz
+        tar -xzf fftw-3.3.10.tar.gz
+        cd fftw-3.3.10
+        ./configure --enable-mpi --enable-shared --prefix=/opt/fftw3
+        make -j$(nproc)
+        sudo make install
+
+    - name: setup Intel OneAPI Compiler environment
+      shell: bash
+      run: |
+        echo FFTWDIR=/opt/fftw3 >> $GITHUB_ENV
+
+    - name: Debug Environment
+      run: |
+        echo "Fortran Compiler (ifx): $(which ifx)"
+        echo "CMake Prefix Path: $CMAKE_PREFIX_PATH"
+        echo "PATH: $PATH"
+        echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+
+    - name: CMake Configure 
+      run: cmake -B build -DBUILD_TESTING=ON
+    
+    - name: CMake build
+      run: cmake --build build
+    
+    - name: Run Testing Framwork
+      run: ctest --test-dir build --output-on-failure
+
+    - name: Test executable
+      shell: bash
+      run: |
+        cd examples
+        mkdir -p channel_output
+        mpirun -n 2 ../build/channel3D < input_parameters || exit 1
