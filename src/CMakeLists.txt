@@ -15,7 +15,6 @@ set(SOURCES
   projection.f90
   time_integration.f90
   monitor.f90
-  mpi.f90
 )
 
 # Create a library from the modules

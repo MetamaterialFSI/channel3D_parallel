@@ -6,6 +6,7 @@ Module global
   ! General Modules
   Use iso_fortran_env, Only : error_unit, Int32, Int64
   Use, Intrinsic :: iso_c_binding
+  Use mpi
 
   ! prevent implicit typing
   Implicit None
@@ -14,6 +15,16 @@ Module global
   Include 'fftw3-mpi.f03'  
 
   !------------------Declarations-----------------!
+
+  ! declarations
+  Integer(Int32) :: ierr, myid, nprocs, nslices_z
+  Integer        :: istat ( MPI_STATUS_SIZE )
+
+  ! global faces index range for each processor
+  Integer(Int32), Dimension(:), Allocatable ::  k1_global,  k2_global
+
+  ! global centers index range for each processor
+  Integer(Int32), Dimension(:), Allocatable :: kg1_global, kg2_global
 
   ! step number
   Integer(Int32) :: istep, rk_step

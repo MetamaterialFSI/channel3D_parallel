@@ -6,7 +6,7 @@ Module mass_flow
   ! Modules
   Use iso_fortran_env, Only : error_unit, Int32, Int64
   Use global,          Only : nx, nxg, nyg, ny, nzg, yg, y, & 
-                              Qflow_x_0, Qflow_y_0
+                              Qflow_x_0, Qflow_y_0, ierr
   Use mpi 
 
   ! prevent implicit typing
