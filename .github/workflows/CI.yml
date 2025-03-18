@@ -56,7 +56,15 @@ jobs:
         echo FC=ifx >> $GITHUB_ENV
       shell: bash
 
-    - name: build FFTW from source with MPI
+    - name: Cache FFTW installation
+      id: cache-fftw
+      uses: actions/cache@v3
+      with:
+        path: /usr/local
+        key: fftw-3.3.10-mpi
+
+    - name: Build FFTW from source with MPI
+      if: steps.cache-fftw.outputs.cache-hit != 'true'
       shell: bash
       run: |
         wget http://www.fftw.org/fftw-3.3.10.tar.gz
