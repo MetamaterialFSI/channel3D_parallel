@@ -74,6 +74,11 @@ jobs:
         make -j$(nproc)
         sudo make install
 
+    - name: setup Intel OneAPI Compiler environment
+      shell: bash
+      run: |
+        echo FFTWDIR=/opt/fftw3 >> $GITHUB_ENV
+
     - name: Debug Environment
       run: |
         echo "Fortran Compiler (ifx): $(which ifx)"
