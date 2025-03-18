@@ -60,7 +60,7 @@ jobs:
       id: cache-fftw
       uses: actions/cache@v3
       with:
-        path: /usr/local
+        path: /opt/fftw3
         key: fftw-3.3.10-mpi
 
     - name: Build FFTW from source with MPI
@@ -70,7 +70,7 @@ jobs:
         wget http://www.fftw.org/fftw-3.3.10.tar.gz
         tar -xzf fftw-3.3.10.tar.gz
         cd fftw-3.3.10
-        ./configure --enable-mpi --enable-shared --prefix=/usr/local
+        ./configure --enable-mpi --enable-shared --prefix=/opt/fftw3
         make -j$(nproc)
         sudo make install
 
