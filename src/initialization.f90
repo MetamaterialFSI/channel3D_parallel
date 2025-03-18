@@ -145,11 +145,7 @@ Contains
     
     ! read data 
     If ( myid==0 ) Write(*,*) 'preparing initial condition...'
-    If ( random_init==1 ) Then
-       Call init_flow
-    Else
-       Call read_input_data
-    End If
+    Call init_flow
 
     ! definie global grids from x_global, y_global and z_global (face to centers)
     ! local faces

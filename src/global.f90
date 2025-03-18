@@ -37,8 +37,11 @@ Module global
   Character(200) :: filein, fileout, fileparams
   Integer(Int32) :: nsave, nmonitor
 
-  ! set random initial condition
-  Integer(Int32) :: random_init
+  ! initial condition
+  Integer(Int32) :: init_type
+
+  ! grid type
+  Integer(Int32) :: grid_type
 
   ! domain size
   Real(Int64) :: Lx, Lz, Ly, Lxp, Lzp
@@ -178,5 +181,8 @@ Module global
   Real(Int64), Dimension(:,:,:), Allocatable :: Fu1, Fu2, Fu3
   Real(Int64), Dimension(:,:,:), Allocatable :: Fv1, Fv2, Fv3
   Real(Int64), Dimension(:,:,:), Allocatable :: Fw1, Fw2, Fw3
+
+  ! body mode
+  Integer(Int32) :: body_type
   
 End Module global

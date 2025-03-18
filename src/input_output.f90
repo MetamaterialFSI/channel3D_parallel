@@ -32,7 +32,7 @@ Contains
       nsteps, nsave, nstats, nmonitor, &
       filein, fileout, &
       nstep_init, &
-      random_init
+      init_type, grid_type, body_type
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
@@ -70,26 +70,24 @@ Contains
     Call Mpi_bcast (       nsave,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (      nstats,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (    nmonitor,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
-    Call Mpi_bcast ( random_init,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   init_type,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   grid_type,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   body_type,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  x_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  y_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
 
   End Subroutine read_input_parameters
 
-  !------------------------------------------------!
-  !    Generates an initial condition for channel  !
-  !                                                !
-  ! Output: U,V,W                                  !
-  !                                                !
-  !------------------------------------------------!
-  Subroutine init_flow
-  
-    Integer(Int32) :: ll, ii, jj, kk, i, j, k
-    Real   (Int64) :: alpha
+  !--------------------------------------!
+  !    Generates a grid for channel      !
+  !                                      !
+  ! Output: x_global, y_global, z_global !
+  !                                      !
+  !--------------------------------------!
+  Subroutine create_grid
 
-    If (myid==0) Then
-       Write(*,*) 'Generating random initial condition'
-    End If
+    Integer(Int32) :: i
+    Real   (Int64) :: alpha
 
     Do i=1,nx_global
        x_global(i) = Real(i-1,8)*0.2d0
@@ -101,50 +99,88 @@ Contains
     End Do
     z_global = pi*z_global/z_global(nz_global-1)
 
-    Do i=1,ny_global
-       y_global(i) = Real(i-1,8)*0.3d0
-    End Do
-    y_global = 2d0*y_global/Maxval(y_global)-1d0
+    Select Case (grid_type)
+      Case (0) ! Uniform grid
+        If ( myid==0 ) Write(*,*) 'Generating uniform y grid'
+        Do i=1,ny_global
+           y_global(i) = Real(i-1,8)*0.3d0
+        End Do
+        y_global = 2d0*y_global/Maxval(y_global)-1d0
+
+      Case (1) ! Stretched grid
+        If ( myid==0 ) Write(*,*) 'Generating stretched y grid'
+        Do i=1,ny_global
+           y_global(i) = Real(i-1,8)*0.3d0
+        End Do
+        y_global = 2d0*y_global/Maxval(y_global)-1d0
     
-    alpha = 2.6d0
-    Do i=1,ny_global
-       y_global(i) = dtanh(alpha*y_global(i))/dtanh(alpha)
-    End Do
+        alpha = 2.6d0
+        Do i=1,ny_global
+           y_global(i) = dtanh(alpha*y_global(i))/dtanh(alpha)
+        End Do
 
-    y_global = y_global - Minval(y_global)
-    y_global = y_global*2d0/Maxval(y_global)
+        y_global = y_global - Minval(y_global)
+        y_global = y_global*2d0/Maxval(y_global)
+    End Select
 
-    ! U
-    Do jj=1,ny_global
-       U(:,jj,:) = 1.5d0*1.3d0*y_global(jj)*( 2d0-y_global(jj) )
-    end Do
-    Do ii=1,nx_global
-       Do jj=1,nyg_global
-          Do kk=1,nzg
-             U(ii,jj,kk) = U(ii,jj,kk) + 0.5*(rand()-0.5)
-          End Do
-       End Do
-    End Do
+  End Subroutine create_grid
 
-    ! V
-    V = 0d0
-    Do ii=1,nxg_global
-       Do jj=1,ny_global
-          Do kk=1,nzg
-             V(ii,jj,kk) = V(ii,jj,kk) + 0.5*(rand()-0.5)
-          End Do
-       End Do
-    End Do
+  !------------------------------------------------!
+  !    Generates an initial condition for channel  !
+  !                                                !
+  ! Output: U,V,W                                  !
+  !                                                !
+  !------------------------------------------------!
+  Subroutine init_flow
+  
+    Integer(Int32) :: ii, jj, kk
 
-    ! W
-    W = 0d0
-    Do ii=1,nxg_global
-       Do jj=1,ny_global
-          Do kk=1,nz
-             W(ii,jj,kk) = W(ii,jj,kk) + 0.5*(rand()-0.5)
-          End Do
-       End Do
-    End Do
+    Select Case (init_type)
+      Case (0) ! read input data from file
+        If ( myid==0 ) Write(*,*) 'Reading input data'
+        Call read_input_data
+      
+      Case (1) ! create grid and initialize velocity to random values
+        If ( myid==0 ) Write(*,*) 'Generating zero initial condition'
+        Call create_grid
+        U = 0d0; V = 0d0; W = 0d0
+
+      Case (2) ! create grid and initialize velocity to zero
+        If ( myid==0 ) Write(*,*) 'Generating random initial condition'
+        Call create_grid
+
+        ! U
+        Do jj=1,ny_global
+           U(:,jj,:) = 1.5d0*1.3d0*y_global(jj)*( 2d0-y_global(jj) )
+        end Do
+        Do ii=1,nx_global
+           Do jj=1,nyg_global
+              Do kk=1,nzg
+                 U(ii,jj,kk) = U(ii,jj,kk) + 0.5*(rand()-0.5)
+              End Do
+           End Do
+        End Do
+
+        ! V
+        V = 0d0
+        Do ii=1,nxg_global
+           Do jj=1,ny_global
+              Do kk=1,nzg
+                 V(ii,jj,kk) = V(ii,jj,kk) + 0.5*(rand()-0.5)
+              End Do
+           End Do
+        End Do
+
+        ! W
+        W = 0d0
+        Do ii=1,nxg_global
+           Do jj=1,ny_global
+              Do kk=1,nz
+                 W(ii,jj,kk) = W(ii,jj,kk) + 0.5*(rand()-0.5)
+              End Do
+           End Do
+        End Do
+    End Select
 
     If ( myid==0 ) Then
        Write(*,*) 'Max U',MaxVal(U)
