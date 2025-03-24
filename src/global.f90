@@ -184,5 +184,39 @@ Module global
 
   ! body mode
   Integer(Int32) :: body_type
+
+  ! number of uniform grid points on each side of the IB
+  Integer(Int32) :: nd
+
+  ! body points
+  Integer(Int32) :: nb, nxb, nzb
+  Real   (Int64) :: dxb, dzb
+  Real   (Int64), Dimension(:), Allocatable :: xb, yb, zb
+
+  ! body motion
+  Real   (Int64) :: amp, omega
+  Integer(Int32) :: wave_nx
+
+  ! body surface areas
+  Real(Int64), Dimension(:), Allocatable :: sb ! body face areas interpolated to body nodes
+
+  ! body velocity
+  Real(Int64), Dimension(:), Allocatable :: ub
+
+  ! body normals
+  Real(Int64), Dimension(:), Allocatable :: normals, tangents_1, tangents_2
+
+  !immersed body forcing
+  Real(Int64), Dimension(:), Allocatable :: fb
+
+  ! regularization and interpolation support, weights, and indices
+  Integer(Int32) :: suppx, suppy, suppz, nweights
+  Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights
+  Integer(Int32), Dimension(:,:),   Allocatable :: u_x_indices, u_y_indices, u_z_indices
+  Integer(Int32), Dimension(:,:),   Allocatable :: v_x_indices, v_y_indices, v_z_indices
+  Integer(Int32), Dimension(:,:),   Allocatable :: w_x_indices, w_y_indices, w_z_indices
+  Integer(Int32), Dimension(:),     Allocatable :: x_pivot_index, xm_pivot_index
+  Integer(Int32), Dimension(:),     Allocatable :: y_pivot_index, ym_pivot_index
+  Integer(Int32), Dimension(:),     Allocatable :: z_pivot_index, zm_pivot_index
   
 End Module global

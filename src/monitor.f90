@@ -107,6 +107,8 @@ Contains
        Write(*,*) ' '
        Write(*,*) 'Number of processors:',nprocs
 
+       Write(*,*) 'Input parameters file:',Trim(fileparams)
+
        Write(*,*) ' '
        Write(*,*) 'filein:  ',Trim(filein)
        Write(*,*) 'fileout: ',Trim(fileout)
@@ -151,6 +153,20 @@ Contains
        
        Write(*,*) 'zg(1),xz(end) :',zg_global(1), zg_global(nzg_global)
        Write(*,*) 'z (1),z (end) :', z_global(1), z_global ( nz_global)
+
+       Write(*,*) ' '
+       Write(*,*) 'nxb :', nxb
+       Write(*,*) 'nzb :', nzb
+       Write(*,*) 'nb  :', nb
+
+       Write(*,*) ' '
+       Write(*,*) 'dxb / dx :', dxb / dx
+       Write(*,*) 'dzb / dz :', dzb / dz
+
+       Write(*,*) ' '
+       Write(*,*) 'xb(1),xb(nb) :',xb(1), xb(nb)
+       Write(*,*) 'yb(1),yb(nb) :',yb(1), yb(nb)
+       Write(*,*) 'zb(1),zb(nb) :',zb(1), zb(nb)
        
        Write(*,*) ' '
        Write(*,*) '------------------------------------------------------------'
