@@ -40,6 +40,8 @@ Program channel_FD
   Use monitor
   Use statistics
   Use finalization
+  Use immersed_boundary_geometry
+  Use immersed_boundary_operators
   Use mpi
   
   ! prevent implicit typing
@@ -50,36 +52,47 @@ Program channel_FD
   call Mpi_comm_size(MPI_COMM_WORLD, nprocs, ierr)
   call Mpi_comm_rank(MPI_COMM_WORLD,   myid, ierr)
 
-  ! read parameters from the input file that is the command line argument
+  ! get the name of the parameters file from the command line arguments
   Call get_command_argument(1, fileparams)
+
+  ! read the input from the parameters file
   Call read_input_parameters
 
-  ! initialize everything and read input flow field
+  ! initialize flow variables and read input flow field
   Call initialize
+
+  ! initialize IB variables
+  Call initialize_ib_arrays
+
+  ! initialize IB geometry
+  Call setup_IB_geometry 
 
   ! small summary of input parameters
   Call summary
 
+  ! initialize IB operators
+  call setup_IB_operators
+
   ! write snapshot if needed
   Call output_data
-     
+
   ! temporal loop
   Do istep = 1, nsteps
-     
-     ! compute dt based on CFL
-     Call compute_dt
+    
+    ! compute dt based on CFL
+    Call compute_dt
 
-     ! time step
-     Call compute_time_step_RK3
+    ! time step
+    Call compute_time_step_RK3
 
-     ! compute a few statistics
-     Call compute_statistics 
+    ! compute a few statistics
+    Call compute_statistics 
 
-     ! output some key values
-     Call output_monitor
+    ! output some key values
+    Call output_monitor
 
-     ! write snapshot if needed
-     Call output_data
+    ! write snapshot if needed
+    Call output_data
 
   End Do
 

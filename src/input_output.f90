@@ -26,6 +26,7 @@ Contains
 
     namelist /params/ &
       nx_global, ny_global, nz_global, &
+      nxb, nzb, nd, &
       CFL, &
       nu, &
       dPdx, dPdz, x_mass_cte, y_mass_cte, &
@@ -51,6 +52,8 @@ Contains
 
       utau_    = dPdx**0.5d0
       dPdx_ref = dPdx
+
+      Print params
        
     End If
 
@@ -58,6 +61,10 @@ Contains
     Call Mpi_bcast ( nx_global,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( ny_global,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( nz_global,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+
+    Call Mpi_bcast ( nxb,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( nzb,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (  nd,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
 
     Call Mpi_bcast (      CFL,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (       nu,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
@@ -383,7 +390,7 @@ Contains
           Write(ext,'(I8)') istep + nstep_init
           
           fname = Trim(Adjustl(fileout))//'.'//Trim(Adjustl(ext))
-          Write(*,*) 'writting ',Trim(Adjustl(fname))
+          Write(*,*) 'writing ',Trim(Adjustl(fname))
           Open(1,file=fname,access='stream',form='unformatted',action='write',convert='big_endian')
           
           ! mesh
@@ -508,7 +515,7 @@ Contains
        Write(ext,'(I8)') istep + nstep_init
        
        fname = Trim(Adjustl(fileout))//'.'//Trim(Adjustl(ext))//'.stats.txt'
-       Write(*,*) 'writting ',Trim(Adjustl(fname))
+       Write(*,*) 'writing ',Trim(Adjustl(fname))
        Open(3,file=fname,form='formatted',action='write') 
        Write(3,'(A,4F15.8,4I)') '%',t, Retau, utau, nu, nx_global, ny_global, nz_global, istep
        Do jj=1,nyg

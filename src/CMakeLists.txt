@@ -15,6 +15,8 @@ set(SOURCES
   projection.f90
   time_integration.f90
   monitor.f90
+  immersed_boundary_geometry.f90
+  immersed_boundary_operators.f90
 )
 
 # Create a library from the modules

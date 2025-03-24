@@ -10,6 +10,7 @@ Module initialization
   Use mpi
   Use input_output
   Use mass_flow
+  Use immersed_boundary_geometry
 
   ! prevent implicit typing
   Implicit None
@@ -18,7 +19,7 @@ Module initialization
 Contains
 
   !----------------------------------------!
-  !         Initialize everything          !
+  !      Initialize flow variables         !
   !----------------------------------------!
   Subroutine initialize
     
@@ -147,7 +148,7 @@ Contains
     If ( myid==0 ) Write(*,*) 'preparing initial condition...'
     Call init_flow
 
-    ! definie global grids from x_global, y_global and z_global (face to centers)
+    ! define global grids from x_global, y_global and z_global (face to centers)
     ! local faces
     x = x_global
     y = y_global
@@ -422,5 +423,71 @@ Contains
     time1 = MPI_WTIME()
     
   End Subroutine initialize
+
+  Subroutine initialize_ib_arrays
+    !--------------------Initialize main arrays-------------------!    
+    If ( myid==0 ) Write(*,*) 'allocating main IB arrays...'
+    ! Number of body points
+    Call compute_nb
+
+    ! Body coordinates
+    Allocate ( xb (  nb), yb (  nb), zb (  nb) )
+
+    ! Body areas
+    Allocate(sb (nb) )
+
+    ! Body forcing
+    Allocate (fb(3*nb))
+    fb = 0d0
+
+    ! Body velocity
+    Allocate(ub (3 * nb) )
+    ub = 0d0
+
+    ! Body normals and tangents
+    Allocate(normals (3 * nb) )
+    Allocate(tangents_1 (3 * nb) )
+    Allocate(tangents_2 (3 * nb) )
+    normals= 0d0
+    tangents_1= 0d0
+    tangents_2= 0d0
+
+    !--------------------Initialize IB operator variables-------------------!    
+    suppx = 2
+    suppy = 2
+    suppz = 2
+    nweights = (2 * suppx + 1) * (2 * suppy + 1) * (2 * suppz + 1)
+
+    if (nd < suppy) then
+      write(*,*) 'Error: nd should be greater than or equal to suppy. Currently, nd = ', nd, ' and suppy = ', suppy
+      stop
+    end if
+
+    Allocate ( x_pivot_index  (nb) )
+    Allocate ( xm_pivot_index (nb) )
+    Allocate ( y_pivot_index  (nb) )
+    Allocate ( ym_pivot_index (nb) )
+    Allocate ( z_pivot_index  (nb) )
+    Allocate ( zm_pivot_index (nb) )
+    
+    Allocate ( u_weights  ( nweights, nb) )
+    Allocate ( u_x_indices( nweights, nb) )
+    Allocate ( u_y_indices( nweights, nb) )
+    Allocate ( u_z_indices( nweights, nb) )
+    
+    Allocate ( v_weights  ( nweights, nb) )
+    Allocate ( v_x_indices( nweights, nb) )
+    Allocate ( v_y_indices( nweights, nb) )
+    Allocate ( v_z_indices( nweights, nb) )
+    
+    Allocate ( w_weights  ( nweights, nb) )
+    Allocate ( w_x_indices( nweights, nb) )
+    Allocate ( w_y_indices( nweights, nb) )
+    Allocate ( w_z_indices( nweights, nb) )
+
+    !-------------------------Done--------------------------------!
+    Call Mpi_barrier(MPI_COMM_WORLD,ierr)
+
+  End Subroutine
   
 End Module initialization
