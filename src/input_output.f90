@@ -104,7 +104,7 @@ Contains
     Do i=1,nz_global
        z_global(i) = Real(i-1,8)*0.1d0
     End Do
-    z_global = pi*z_global/z_global(nz_global-1)
+    z_global = 1d0*z_global/z_global(nz_global-1)
 
     Select Case (grid_type)
       Case (0) ! Uniform grid
@@ -120,7 +120,7 @@ Contains
            y_global(i) = Real(i-1,8)*0.3d0
         End Do
         y_global = 2d0*y_global/Maxval(y_global)-1d0
-    
+
         alpha = 2.6d0
         Do i=1,ny_global
            y_global(i) = dtanh(alpha*y_global(i))/dtanh(alpha)
@@ -190,15 +190,15 @@ Contains
     End Select
 
     If ( myid==0 ) Then
-       Write(*,*) 'Max U',MaxVal(U)
-       Write(*,*) 'Max V',MaxVal(V)
-       Write(*,*) 'Max W',MaxVal(W)
-       
-       Write(*,*) 'Mean U',sum(U)/Real(nx_global*nyg_global*nzg_global,8)
-       Write(*,*) 'Mean V',sum(V)/Real(nxg_global*ny_global*nzg_global,8)
-       Write(*,*) 'Mean W',sum(W)/Real(nxg_global*nyg_global*nz_global,8)
+      Write(*,*) 'Max U',MaxVal(U)
+      Write(*,*) 'Max V',MaxVal(V)
+      Write(*,*) 'Max W',MaxVal(W)
+
+      Write(*,*) 'Mean U',sum(U)/Real(nx_global*nyg_global*nzg_global,8)
+      Write(*,*) 'Mean V',sum(V)/Real(nxg_global*ny_global*nzg_global,8)
+      Write(*,*) 'Mean W',sum(W)/Real(nxg_global*nyg_global*nz_global,8)
     End If
- 
+
   End Subroutine init_flow
 
   !--------------------------------------------!
@@ -209,7 +209,7 @@ Contains
   !                                            !
   !--------------------------------------------!
   Subroutine read_input_data
-   
+
     Integer(Int32) ::  nx_global_f,  ny_global_f,  nz_global_f, iproc, nze, nzge
     Integer(Int32) :: nxm_global_f, nym_global_f, nzm_global_f, nn(3), ndum
     Integer(Int64) :: pos_header, nsize_U, nsize_V, ii, jj, kk
@@ -217,133 +217,133 @@ Contains
     ! processor 0 Reads the all the data
     If ( myid==0 ) Then
 
-       Write(*,*) 'reading ',Trim(Adjustl(filein)),'...'
-       Open(1,file=filein,access='stream',form='unformatted',action='Read',convert='big_endian')
-       
-       ! mesh
-       Read(1) nx_global_f
-       If ( nx_global_f/=nx_global ) Stop 'nx_f/=nx'
-       Read(1) x_global
-       
-       Read(1) ny_global_f
-       If ( ny_global_f/=ny_global ) Stop 'ny_f/=ny'
-       Read(1) y_global
-       
-       Read(1) nz_global_f
-       If ( nz_global_f/=nz_global ) Stop 'nz_f/=nz'
-       Read(1) z_global
-       
-       Read(1) nxm_global_f
-       If ( nxm_global_f/=nxm_global ) Stop 'nxm_f/=nxm'
-       Read(1) xm_global
-       
-       Read(1) nym_global_f
-       If ( nym_global_f/=nym_global ) Stop 'nym_f/=nym'
-       Read(1) ym_global
-       
-       Read(1) nzm_global_f
-       If ( nzm_global_f/=nzm_global ) Stop 'nzm_f/=nzm'
-       Read(1) zm_global
+      Write(*,*) 'reading ',Trim(Adjustl(filein)),'...'
+      Open(1,file=filein,access='stream',form='unformatted',action='Read',convert='big_endian')
 
-       ! get header position and size
-       Inquire(1,pos=pos_header)
-       pos_header = pos_header - 1
-       nsize_U    = nx_global*nyg_global*nzg_global*8
-       nsize_V    = nxg_global*ny_global*nzg_global*8
-                     
+      ! mesh
+      Read(1) nx_global_f
+      If ( nx_global_f/=nx_global ) Stop 'nx_f/=nx'
+      Read(1) x_global
+
+      Read(1) ny_global_f
+      If ( ny_global_f/=ny_global ) Stop 'ny_f/=ny'
+      Read(1) y_global
+
+      Read(1) nz_global_f
+      If ( nz_global_f/=nz_global ) Stop 'nz_f/=nz'
+      Read(1) z_global
+
+      Read(1) nxm_global_f
+      If ( nxm_global_f/=nxm_global ) Stop 'nxm_f/=nxm'
+      Read(1) xm_global
+
+      Read(1) nym_global_f
+      If ( nym_global_f/=nym_global ) Stop 'nym_f/=nym'
+      Read(1) ym_global
+
+      Read(1) nzm_global_f
+      If ( nzm_global_f/=nzm_global ) Stop 'nzm_f/=nzm'
+      Read(1) zm_global
+
+      ! get header position and size
+      Inquire(1,pos=pos_header)
+      pos_header = pos_header - 1
+      nsize_U    = nx_global*nyg_global*nzg_global*8
+      nsize_V    = nxg_global*ny_global*nzg_global*8
+
     End If
 
     ! U
     If ( myid==0 ) Then
-       ! read dummy
-       Read(1) nn 
-       If ( nn(1)/=nx_global .or. nn(2)/=nyg_global .or. nn(3)/=nzg_global ) Then 
-          Write(*,*) 'nn',nn
-          Stop 'Error! wrong size in input file (U)'
-       End If
-       ! read data for processor 0
-       nzge = kg2_global(myid) - kg1_global(myid) + 1
-       Read(1) U(:,:,1:nzge)
-       ! data for processor n>0    
-       Do iproc = 1, nprocs-1
-          nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
-          If ( iproc<nprocs-1 ) Then
-             ndum = fseek(1,-2*nx_global*nyg_global*8,seek_cur) ! ghost cell
-             Read(1) Uo(:,:,1:nzge)
-             Call Mpi_send(Uo,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
-          Else ! especial case: U has different size for last processor
-             ndum = fseek(1,-2*nx_global*nyg_global*8,seek_cur) ! ghost cell
-             Read(1) Uoo(:,:,1:nzge)
-             Call Mpi_send(Uoo,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
-          End If
-       Enddo       
+      ! read dummy
+      Read(1) nn 
+      If ( nn(1)/=nx_global .or. nn(2)/=nyg_global .or. nn(3)/=nzg_global ) Then 
+        Write(*,*) 'nn',nn
+        Stop 'Error! wrong size in input file (U)'
+      End If
+      ! read data for processor 0
+      nzge = kg2_global(myid) - kg1_global(myid) + 1
+      Read(1) U(:,:,1:nzge)
+      ! data for processor n>0    
+      Do iproc = 1, nprocs-1
+        nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
+        If ( iproc<nprocs-1 ) Then
+          ndum = fseek(1,-2*nx_global*nyg_global*8,seek_cur) ! ghost cell
+          Read(1) Uo(:,:,1:nzge)
+          Call Mpi_send(Uo,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
+        Else ! especial case: U has different size for last processor
+          ndum = fseek(1,-2*nx_global*nyg_global*8,seek_cur) ! ghost cell
+          Read(1) Uoo(:,:,1:nzge)
+          Call Mpi_send(Uoo,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
+        End If
+      Enddo       
     Else
-       Call Mpi_recv(U,nx*nyg*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,istat,ierr)
+      Call Mpi_recv(U,nx*nyg*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,istat,ierr)
     Endif
 
     ! V
     If ( myid==0 ) Then
-       ! go to correct position. I dont know, if I dont do this it gets lost sometimes
-       ndum = fseek(1,pos_header+3*4+nsize_U,seek_set)
-       ! read dummy
-       Read(1) nn
-       If ( nn(1)/=nxg_global .or. nn(2)/=ny_global .or. nn(3)/=nzg_global ) Then 
-          Write(*,*) 'nn',nn
-          Stop 'Error! wrong size in input file (V)'
-       End If
-       ! read data for processor 0
-       nzge = kg2_global(myid) - kg1_global(myid) + 1
-       Read(1) V(:,:,1:nzge)
-       ! data for processor n>0    
-       Do iproc = 1, nprocs-1
-          nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
-          If ( iproc<nprocs-1 ) Then
-             ndum = fseek(1,-2*nxg_global*ny_global*8,seek_cur) ! ghost cell
-             Read(1) Vo(:,:,1:nzge) 
-             Call Mpi_send(Vo,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
-          Else ! especial case: V has different size for last processor
-             ndum = fseek(1,-2*nxg_global*ny_global*8,seek_cur) ! ghost cell
-             Read(1) Voo(:,:,1:nzge) 
-             Call Mpi_send(Voo,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
-          End If
-       Enddo       
+      ! go to correct position. I dont know, if I dont do this it gets lost sometimes
+      ndum = fseek(1,pos_header+3*4+nsize_U,seek_set)
+      ! read dummy
+      Read(1) nn
+      If ( nn(1)/=nxg_global .or. nn(2)/=ny_global .or. nn(3)/=nzg_global ) Then 
+         Write(*,*) 'nn',nn
+         Stop 'Error! wrong size in input file (V)'
+      End If
+      ! read data for processor 0
+      nzge = kg2_global(myid) - kg1_global(myid) + 1
+      Read(1) V(:,:,1:nzge)
+      ! data for processor n>0    
+      Do iproc = 1, nprocs-1
+        nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
+        If ( iproc<nprocs-1 ) Then
+          ndum = fseek(1,-2*nxg_global*ny_global*8,seek_cur) ! ghost cell
+          Read(1) Vo(:,:,1:nzge) 
+          Call Mpi_send(Vo,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
+        Else ! especial case: V has different size for last processor
+          ndum = fseek(1,-2*nxg_global*ny_global*8,seek_cur) ! ghost cell
+          Read(1) Voo(:,:,1:nzge) 
+          Call Mpi_send(Voo,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
+        End If
+      Enddo       
     Else
-       Call Mpi_recv(V,nxg*ny*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,istat,ierr)
+      Call Mpi_recv(V,nxg*ny*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,istat,ierr)
     Endif
 
     ! W
     If ( myid==0 ) Then
-       ! go to correct position. I dont know, if I dont do this it gets lost sometimes
-       ndum = fseek(1,pos_header+3*4+nsize_U+3*4+nsize_V,seek_set)
-       ! read dummy
-       Read(1) nn
-       If ( nn(1)/=nxg_global .or. nn(2)/=nyg_global .or. nn(3)/=nz_global ) Then 
-          Write(*,*) 'nn',nn
-          Stop 'Error! wrong size in input file (W)'
-       End If
-       ! read data for processor 0
-       nzge = k2_global(myid) - k1_global(myid) + 1
-       Read(1) W(:,:,1:nzge)
-       ! data for processor n>0    
-       Do iproc = 1, nprocs-1
-          nze = k2_global(iproc) - k1_global(iproc) + 1 ! local size in z for processor iproc
-          If ( iproc<nprocs-1 ) Then
-             ndum = fseek(1,-2*nxg_global*nyg_global*8,seek_cur) ! ghost cell
-             Read(1) Wo(:,:,1:nzge)
-             Call Mpi_send(Wo,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
-          Else ! especial case: W has different size for last processor
-             ndum = fseek(1,-2*nxg_global*nyg_global*8,seek_cur) ! ghost cell
-             Read(1) Woo(:,:,1:nzge)
-             Call Mpi_send(Woo,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
-          End If
-       Enddo       
+      ! go to correct position. I dont know, if I dont do this it gets lost sometimes
+      ndum = fseek(1,pos_header+3*4+nsize_U+3*4+nsize_V,seek_set)
+      ! read dummy
+      Read(1) nn
+      If ( nn(1)/=nxg_global .or. nn(2)/=nyg_global .or. nn(3)/=nz_global ) Then 
+        Write(*,*) 'nn',nn
+        Stop 'Error! wrong size in input file (W)'
+      End If
+      ! read data for processor 0
+      nzge = k2_global(myid) - k1_global(myid) + 1
+      Read(1) W(:,:,1:nzge)
+      ! data for processor n>0    
+      Do iproc = 1, nprocs-1
+        nze = k2_global(iproc) - k1_global(iproc) + 1 ! local size in z for processor iproc
+        If ( iproc<nprocs-1 ) Then
+          ndum = fseek(1,-2*nxg_global*nyg_global*8,seek_cur) ! ghost cell
+          Read(1) Wo(:,:,1:nzge)
+          Call Mpi_send(Wo,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
+        Else ! especial case: W has different size for last processor
+          ndum = fseek(1,-2*nxg_global*nyg_global*8,seek_cur) ! ghost cell
+          Read(1) Woo(:,:,1:nzge)
+          Call Mpi_send(Woo,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
+        End If
+      Enddo       
     Else
-       Call Mpi_recv(W,nxg*nyg*nz,Mpi_real8,0,myid,MPI_COMM_WORLD,istat,ierr)
+      Call Mpi_recv(W,nxg*nyg*nz,Mpi_real8,0,myid,MPI_COMM_WORLD,istat,ierr)
     Endif
 
     ! close file
     If (myid==0) Then
-       Close(1)
+      Close(1)
     End If
 
     ! send data to all other processors
