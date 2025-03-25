@@ -95,7 +95,7 @@ Contains
     nzme = nzm
     Call Mpi_bcast (  nze,1,MPI_integer,nprocs-1,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( nzme,1,MPI_integer,nprocs-1,MPI_COMM_WORLD,ierr )
-   
+
     ! Allocate main arrays
     If ( myid==0 ) Write(*,*) 'allocating main arrays...'
     Allocate ( x_global (  nx_global),  y_global (  ny_global),  z_global (  nz_global)  )
@@ -108,7 +108,7 @@ Contains
 
     Allocate ( yg_m (nyg-1) )
     Allocate ( yg_mm(nyg-2) )
-    
+
     ! global interior + boundary + ghost points
     Allocate (U (    nx, nym+2, nzm+2) )
     Allocate (V ( nxm+2,    ny, nzm+2) )
@@ -143,7 +143,7 @@ Contains
        Allocate ( rhs_vf  ( 1:nxg  , 1:ny  ,  1:nzg   ) )
        Allocate ( rhs_wf  ( 1:nxg  , 1:nyg  , 1:nz    ) )
     End If
-    
+
     ! read data 
     If ( myid==0 ) Write(*,*) 'preparing initial condition...'
     Call init_flow
