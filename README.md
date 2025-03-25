@@ -2,29 +2,27 @@
 
 ## Building from source
 
-### TODO: Prerequisites
+### Prerequisites
+- CMake
+- LAPACK
+- MPI (tested with version 3.1)
+- FFTW with MPI enabled (tested with version 3.3.10)
+- Fortran compiler (currently only tested with Intel compilers)
 
-#### TODO: Fortran compiler
-
-#### TODO: Math libraries
-
-### Manual compilation
-
+For example, on the Caltech HPC, you can run
 ```
-export F_UFMTENDIAN=big
-mpif90 -O3 -ipo mpi.f90 global.f90 mass_flow.f90 interpolation.f90 equations.f90 boundary_conditions.f90 pressure.f90 input_output.f90 statistics.f90 initialization.f90 finalization.f90 projection.f90 time_integration.f90 monitor.f90 main.f90 -o channel_oc -lfftw3_mpi -lfftw3 PATH_TO_LIBLAPACK -I PATH_TO_FFTW_INCLUDE -L PATH_TO_FFTW_LIB
+module load fftw
+module load intel-oneapi-compilers
+module load openmpi
 ```
-
-or, using Intel oneAPI MKL,
-
+or, if you want to use Intel MPI,
 ```
-export F_UFMTENDIAN=big
-mpifort -O3 -ipo mpi.f90 global.f90 mass_flow.f90 interpolation.f90 equations.f90 boundary_conditions.f90 pressure.f90 input_output.f90 statistics.f90 initialization.f90 finalization.f90 projection.f90 time_integration.f90 monitor.f90 main.f90 -o channel_oc -lfftw3_mpi PATH_TO_LIBLAPACK -I PATH_TO_FFTW_INCLUDE -L PATH_TO_FFTW_LIB  -qmkl=parallel
+module load fftw/3.3.10-oneapi-2023.2.1-7czoymn
+module load intel-oneapi-compilers
+module load intel-oneapi-mpi
 ```
 
 ### Building with CMake
-
-Make sure that the Intel Fortran compiler (ifort or ifx), Math Kernel Library (MKL), and a compatible MPI implementation are installed and available in your system's PATH. If not, you might need to load it first by sourcing the Intel environment setup script `/path/to/intel/oneapi/setvars.sh`.
 
 ```
 cmake -B build
