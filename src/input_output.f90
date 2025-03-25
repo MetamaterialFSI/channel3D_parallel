@@ -379,124 +379,124 @@ Contains
     
     If ( Mod(istep,nsave)==0 ) then
 
-       ! P
-       !If (pressure_computed==.False.) Then
-       !   Call compute_pressure
-       !End If
+      ! P
+      !If (pressure_computed==.False.) Then
+      !   Call compute_pressure
+      !End If
 
-       ! processor 0 writes the data
-       If ( myid==0 ) Then
-          
-          Write(ext,'(I8)') istep + nstep_init
-          
-          fname = Trim(Adjustl(fileout))//'.'//Trim(Adjustl(ext))
-          Write(*,*) 'writing ',Trim(Adjustl(fname))
-          Open(1,file=fname,access='stream',form='unformatted',action='write',convert='big_endian')
-          
-          ! mesh
-          Write(1) Shape(x_global), x_global
-          Write(1) Shape(y_global), y_global
-          Write(1) Shape(z_global), z_global
-          
-          Write(1) Shape(xm_global), xm_global
-          Write(1) Shape(ym_global), ym_global
-          Write(1) Shape(zm_global), zm_global          
-         
-       End If
-
-       ! U
-       If ( myid/=0 ) Then
-          ! data from processor n>0    
-          Call Mpi_send(U,nx*nyg*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
-       Else
-          ! write U size
-          Write(1) nx_global,nyg_global,nzg_global
-          ! processor 0 writes its data
-          Write(1) U(:,:,1:nzg-1) 
-          ! processor 0 receives and writes rest data
-          Do iproc = 1, nprocs-1
-             nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
-             If ( iproc<nprocs-1 ) Then
-                Call Mpi_recv(Uo,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-                Write(1) Uo(:,:,2:nzge-1)
-             Else
-                Call Mpi_recv(Uoo,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-                Write(1) Uoo(:,:,2:nzge)
-             End If
-          End Do
-       Endif
-
-       ! V
-       If ( myid/=0 ) Then
-          ! data from processor n>0    
-          Call Mpi_send(V,nxg*ny*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
-       Else
-          ! write V size
-          Write(1) nxg_global,ny_global,nzg_global
-          ! processor 0 writes its data
-          Write(1) V(:,:,1:nzg-1)
-          ! processor 0 receives and write rest data
-          Do iproc = 1, nprocs-1
-             nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
-             If ( iproc<nprocs-1 ) Then
-                Call Mpi_recv(Vo,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-                Write(1) Vo(:,:,2:nzge-1)
-             Else
-                Call Mpi_recv(Voo,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-                Write(1) Voo(:,:,2:nzge)
-             End If
-          End Do
-       Endif
-
-       ! W
-       If ( myid/=0 ) Then
-          ! data from processor n>0    
-          Call Mpi_send(W,nxg*nyg*nz,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
-       Else
-          ! write W size
-          Write(1) nxg_global,nyg_global,nz_global
-          ! processor 0 writes its data
-          Write(1) W(:,:,1:nz-1)
-          ! processor 0 receives and writes rest data
-          Do iproc = 1, nprocs-1
-             nze = k2_global(iproc) - k1_global(iproc) + 1 ! local size in z for processor iproc
-             If ( iproc<nprocs-1 ) Then
-                Call Mpi_recv(Wo,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-                Write(1) Wo(:,:,2:nze-1)
-             Else
-                Call Mpi_recv(Woo,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-                Write(1) Woo(:,:,2:nze)
-             End If
-          End Do
-       Endif
-
-       ! P
-       If ( myid/=0 ) Then
-          ! data from processor n>0    
-          Call Mpi_send(P,nxg*nyg*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
-       Else
-          ! write P size
-          Write(1) nxg_global,nyg_global,nzg_global
-          ! processor 0 writes its data
-          Write(1) P(:,:,1:nzg-1)
-          ! processor 0 receives and write rest data
-          Do iproc = 1, nprocs-1
-             nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
-             If ( iproc<nprocs-1 ) Then
-                Call Mpi_recv(Po,nxg*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-                Write(1) Po(:,:,2:nzge-1)
-             Else
-                Call Mpi_recv(Poo,nxg*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-                Write(1) Poo(:,:,2:nzge)
-             End If
-          End Do
-       Endif
-          
-       ! close file
-       If (myid==0) Then
-          Close(1)
-       End If
+      ! processor 0 writes the data
+      If ( myid==0 ) Then
+        
+        Write(ext,'(I8)') istep + nstep_init
+        
+        fname = Trim(Adjustl(fileout))//'.'//Trim(Adjustl(ext))
+        Write(*,*) 'writing ',Trim(Adjustl(fname))
+        Open(1,file=fname,access='stream',form='unformatted',action='write',convert='big_endian')
+        
+        ! mesh
+        Write(1) Shape(x_global), x_global
+        Write(1) Shape(y_global), y_global
+        Write(1) Shape(z_global), z_global
+        
+        Write(1) Shape(xm_global), xm_global
+        Write(1) Shape(ym_global), ym_global
+        Write(1) Shape(zm_global), zm_global          
        
+      End If
+
+      ! U
+      If ( myid/=0 ) Then
+        ! data from processor n>0    
+        Call Mpi_send(U,nx*nyg*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
+      Else
+        ! write U size
+        Write(1) nx_global,nyg_global,nzg_global
+        ! processor 0 writes its data
+        Write(1) U(:,:,1:nzg-1) 
+        ! processor 0 receives and writes rest data
+        Do iproc = 1, nprocs-1
+          nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
+          If ( iproc<nprocs-1 ) Then
+            Call Mpi_recv(Uo,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Uo(:,:,2:nzge-1)
+          Else
+            Call Mpi_recv(Uoo,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Uoo(:,:,2:nzge)
+          End If
+        End Do
+      Endif
+
+      ! V
+      If ( myid/=0 ) Then
+        ! data from processor n>0    
+        Call Mpi_send(V,nxg*ny*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
+      Else
+        ! write V size
+        Write(1) nxg_global,ny_global,nzg_global
+        ! processor 0 writes its data
+        Write(1) V(:,:,1:nzg-1)
+        ! processor 0 receives and write rest data
+        Do iproc = 1, nprocs-1
+          nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
+          If ( iproc<nprocs-1 ) Then
+            Call Mpi_recv(Vo,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Vo(:,:,2:nzge-1)
+          Else
+            Call Mpi_recv(Voo,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Voo(:,:,2:nzge)
+          End If
+        End Do
+      Endif
+
+      ! W
+      If ( myid/=0 ) Then
+        ! data from processor n>0    
+        Call Mpi_send(W,nxg*nyg*nz,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
+      Else
+        ! write W size
+        Write(1) nxg_global,nyg_global,nz_global
+        ! processor 0 writes its data
+        Write(1) W(:,:,1:nz-1)
+        ! processor 0 receives and writes rest data
+        Do iproc = 1, nprocs-1
+          nze = k2_global(iproc) - k1_global(iproc) + 1 ! local size in z for processor iproc
+          If ( iproc<nprocs-1 ) Then
+            Call Mpi_recv(Wo,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Wo(:,:,2:nze-1)
+          Else
+            Call Mpi_recv(Woo,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Woo(:,:,2:nze)
+          End If
+        End Do
+      Endif
+
+      ! P
+      If ( myid/=0 ) Then
+        ! data from processor n>0    
+        Call Mpi_send(P,nxg*nyg*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
+      Else
+        ! write P size
+        Write(1) nxg_global,nyg_global,nzg_global
+        ! processor 0 writes its data
+        Write(1) P(:,:,1:nzg-1)
+        ! processor 0 receives and write rest data
+        Do iproc = 1, nprocs-1
+          nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
+          If ( iproc<nprocs-1 ) Then
+            Call Mpi_recv(Po,nxg*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Po(:,:,2:nzge-1)
+          Else
+            Call Mpi_recv(Poo,nxg*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Poo(:,:,2:nzge)
+          End If
+        End Do
+      Endif
+         
+      ! close file
+      If (myid==0) Then
+        Close(1)
+      End If
+      
     End If
        
   End Subroutine output_data
