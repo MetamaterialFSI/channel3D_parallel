@@ -499,6 +499,39 @@ Contains
           End If
         End Do
       Endif
+
+      If ( myid==0 ) Then
+        ! Global fields
+        Write(1) Shape(U_global), U_global
+        Write(1) Shape(V_global), V_global
+        Write(1) Shape(W_global), W_global
+
+        ! Timestep
+        Write(1) dt
+
+        ! Pressure gradient
+        Write(1) dpdx
+
+        ! Viscosity
+        Write(1) nu
+
+        ! body
+        Write(1) Shape(xb, Int32), xb
+        Write(1) Shape(yb, Int32), yb
+        Write(1) Shape(zb, Int32), zb
+        Write(1) nxb
+        Write(1) nzb
+
+        ! surface stress
+        Write(1) Shape(fb, Int32), fb
+
+        ! interpolated body velocity
+        Write(1) Shape(ub, Int32), ub
+
+        ! body surface areas
+        Write(1) Shape(sb, Int32), sb
+
+      End If
          
       ! close file
       If (myid==0) Then

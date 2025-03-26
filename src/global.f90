@@ -97,6 +97,8 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: Uo,Vo,Wo,Po
   Real(Int64), Allocatable, Dimension(:,:,:) :: Uoo,Voo,Woo,Poo
   Real(Int64), Allocatable, Dimension(:,:,:) :: Vw 
+  Real(Int64), Allocatable, Dimension(:,:,:) :: U_global, V_global, W_global
+  Real(Int64), Allocatable, Dimension(:,:,:) :: U_reg, V_reg, W_reg
 
   ! local auxiliary 
   Real(Int64), Allocatable, Dimension(:,:,:) :: term_1, term_2
@@ -206,8 +208,14 @@ Module global
   ! body normals
   Real(Int64), Dimension(:), Allocatable :: normals, tangents_1, tangents_2
 
-  !immersed body forcing
+  ! immersed body forcing
   Real(Int64), Dimension(:), Allocatable :: fb
+
+  ! immersed boundary operator variables
+  Integer(Int32), Dimension(:), Allocatable :: send_counts_U, displs_U
+  Integer(Int32), Dimension(:), Allocatable :: send_counts_V, displs_V
+  Integer(Int32), Dimension(:), Allocatable :: send_counts_W, displs_W
+  Integer(Int32) :: local_size_U, local_size_V, local_size_W
 
   ! regularization and interpolation support, weights, and indices
   Integer(Int32) :: suppx, suppy, suppz, nweights

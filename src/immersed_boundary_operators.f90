@@ -6,6 +6,7 @@ Module immersed_boundary_operators
   ! Modules
   Use iso_fortran_env, Only : error_unit, Int32, Int64
   Use global
+  Use boundary_conditions
 
   ! prevent implicit typing
   Implicit None
@@ -155,6 +156,48 @@ Contains
     periodic_distance = min( abs( x1 - x2 ), abs( x1 - x2 - L ), abs ( x1 - x2 + L) )
   End Function periodic_distance
 
+  Subroutine global_regT
+
+    Call apply_boundary_conditions
+
+    ! Gather U, V, W fields into global fields
+    Call MPI_Gatherv(U(:, :, 2:nzm+1), local_size_U, MPI_REAL8, &
+                 U_global(:, :, 2:nzm_global+1), send_counts_U, displs_U, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+    Call MPI_Gatherv(V(:, :, 2:nzm+1), local_size_V, MPI_REAL8, &
+                 V_global(:, :, 2:nzm_global+1), send_counts_V, displs_V, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+    Call MPI_Gatherv(W(:, :, 2:nz-1), local_size_W, MPI_REAL8, &
+                 W_global(:, :, 2:nz_global-1), send_counts_W, displs_W, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+
+    fb = 0d0
+    If (myid==0) Then
+      fb = regT(U_global, V_global, W_global)
+    End If
+
+  End Subroutine global_regT
+
+  Subroutine global_reg
+
+    fb = 1d0
+    If (myid==0) Then
+      U_global = regu(fb)
+      V_global = regv(fb)
+      W_global = regw(fb)
+    End If
+
+    ! Scatter U, V, W fields to local fields
+    Call MPI_Scatterv(U_global(:, :, 2:nzm_global+1), send_counts_U, displs_U, MPI_REAL8, &
+                  U_reg(:, :, 2:nzm+1), local_size_U, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+    Call MPI_Scatterv(V_global(:, :, 2:nzm_global+1), send_counts_V, displs_V, MPI_REAL8, &
+                  V_reg(:, :, 2:nzm+1), local_size_V, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+    Call MPI_Scatterv(W_global(:, :, 2:nz_global-1), send_counts_W, displs_W, MPI_REAL8, &
+                  W_reg(:, :, 2:nz-1), local_size_W, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+
+
+    ! This call only affects U, V, W. Should change this to apply to U_reg, etc
+    Call apply_boundary_conditions
+
+  End Subroutine global_reg
+
   !-----------------------------------------------!
   !          Interpolation to body points         !
   !                                               !
@@ -164,9 +207,9 @@ Contains
   !-----------------------------------------------!
   Function regT(U_, V_, W_)
     Implicit None
-    Real(Int64), Dimension(nx, nyg, nzg), Intent(In) :: U_
-    Real(Int64), Dimension(nxg, ny, nzg), Intent(In) :: V_
-    Real(Int64), Dimension(nxg, nyg, nz), Intent(In) :: W_
+    Real(Int64), Dimension(nx_global, nyg_global, nzg_global), Intent(In) :: U_
+    Real(Int64), Dimension(nxg_global, ny_global, nzg_global), Intent(In) :: V_
+    Real(Int64), Dimension(nxg_global, nyg_global, nz_global), Intent(In) :: W_
     Real(Int64), Dimension(3 * nb):: regT
 
     Integer(Int32) :: i, j
@@ -193,7 +236,7 @@ Contains
   Function regu(f_)
     Implicit None
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
-    Real(Int64), Dimension(nx, nyg, nzg) :: regu
+    Real(Int64), Dimension(nx_global, nyg_global, nzg_global) :: regu
     Integer(Int32) :: i, j
 
     regu = 0.D0
@@ -202,7 +245,7 @@ Contains
       Do i = 1, nweights
         regu(u_x_indices(i, j), u_y_indices(i, j), u_z_indices(i, j)) = &
           regu(u_x_indices(i, j), u_y_indices(i, j), u_z_indices(i, j)) &
-           + u_weights(i, j) * 1.d0 / (dx * dymin * dz) * sb(i) * f_(j)
+           + u_weights(i, j) * 1.d0 / (dx * dymin * dz) * sb(j) * f_(j)
       End Do
     End Do
 
@@ -219,7 +262,7 @@ Contains
   Function regv(f_)
     Implicit None
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
-    Real(Int64), Dimension(nxg, ny, nzg) :: regv
+    Real(Int64), Dimension(nxg_global, ny_global, nzg_global) :: regv
     Integer(Int32) :: i, j
 
     regv = 0.D0
@@ -228,7 +271,7 @@ Contains
       Do i = 1, nweights
         regv(v_x_indices(i, j), v_y_indices(i, j), v_z_indices(i, j)) = &
           regv(v_x_indices(i, j), v_y_indices(i, j), v_z_indices(i, j)) &
-           + v_weights(i, j) * 1.d0 / (dx * dymin * dz) * sb(i) * f_(j + nb)
+           + v_weights(i, j) * 1.d0 / (dx * dymin * dz) * sb(j) * f_(j + nb)
       End Do
     End Do
 
@@ -245,7 +288,7 @@ Contains
   Function regw(f_)
     Implicit None
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
-    Real(Int64), Dimension(nxg, nyg, nz) :: regw
+    Real(Int64), Dimension(nxg_global, nyg_global, nz_global) :: regw
     Integer(Int32) :: i, j
 
     regw = 0.D0
@@ -254,7 +297,7 @@ Contains
       Do i = 1, nweights
         regw(w_x_indices(i, j), w_y_indices(i, j), w_z_indices(i, j)) = &
           regw(w_x_indices(i, j), w_y_indices(i, j), w_z_indices(i, j)) &
-           + w_weights(i, j) * 1.d0 / (dx * dymin * dz) * sb(i) * f_(j + 2 * nb)
+           + w_weights(i, j) * 1.d0 / (dx * dymin * dz) * sb(j) * f_(j + 2 * nb)
       End Do
     End Do
   
