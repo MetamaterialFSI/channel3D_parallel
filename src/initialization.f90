@@ -127,6 +127,11 @@ Contains
        Allocate (Poo ( nxm+2,  nym+2, nzme+2) )
     End If
 
+    ! arrays for accepting regularized body distributions
+    Allocate (U_reg  (    nx,  nym+2, nzm+2) )
+    Allocate (V_reg  ( nxm+2,     ny, nzm+2) )
+    Allocate (W_reg  ( nxm+2,  nym+2,    nz) )
+
     Allocate (Vw ( nxm+2, 2, nzm+2) )
 
     ! Auxiliary arrays
@@ -203,6 +208,43 @@ Contains
     Ly = y_global(ny_global) - y_global(1)
     Lz = z_global(nz_global) - z_global(1)
 
+    ! For initial IB implementation only!
+    If ( body_type > 0) Then
+      If ( myid==0 ) Then
+        Write(*,*) "Allocating space for global U,V,W data for IB operations. Keep this only for debugging!"
+        Allocate( U_global(nx_global,  nyg_global, nzg_global) )
+        Allocate( V_global(nxg_global, ny_global,  nzg_global) )
+        Allocate( W_global(nxg_global, nyg_global, nz_global ) )
+        Allocate( send_counts_U(nprocs), displs_U(nprocs) )
+        Allocate( send_counts_V(nprocs), displs_V(nprocs) )
+        Allocate( send_counts_W(nprocs), displs_W(nprocs) )
+      End If
+
+      local_size_U = nx * nyg * nzm
+      local_size_V = nxg * ny * nzm
+      local_size_W = nxg * nyg * (nz-2)
+
+      ! Gather send_counts
+      Call MPI_Gather(local_size_U, 1, MPI_INT, send_counts_U, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      Call MPI_Gather(local_size_V, 1, MPI_INT, send_counts_V, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      Call MPI_Gather(local_size_W, 1, MPI_INT, send_counts_W, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+
+      If (myid == 0) Then
+        displs_U(1) = 0
+        displs_V(1) = 0
+        displs_W(1) = 0
+        Do i = 2, nprocs
+          displs_U(i) = displs_U(i-1) + send_counts_U(i-1)
+          displs_V(i) = displs_V(i-1) + send_counts_V(i-1)
+          displs_W(i) = displs_W(i-1) + send_counts_W(i-1)
+        End Do
+      End If
+
+    Else
+      Allocate( U_global(1,1,1) )
+      Allocate( V_global(1,1,1) )
+      Allocate( W_global(1,1,1) )
+    End If
 
     !--------------------------Boundary conditions--------------------------!
     ! local velocity, initial z-planes
