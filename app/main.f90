@@ -71,7 +71,7 @@ Program channel_FD
   Call summary
 
   ! initialize IB operators
-  call setup_IB_operators
+  Call setup_IB_operators
 
   ! write snapshot if needed
   Call output_data
