@@ -141,6 +141,7 @@ Contains
   Subroutine init_flow
   
     Integer(Int32) :: ii, jj, kk
+    Real(Int64) :: ym_val
 
     Select Case (init_type)
       Case (0) ! read input data from file
@@ -157,36 +158,43 @@ Contains
         Call create_grid
 
         ! U
-        Do jj=1,ny_global
-           U(:,jj,:) = 1.5d0*1.3d0*y_global(jj)*( 2d0-y_global(jj) )
+        Do jj=1,ny_global-1
+          ym_val = 0.5d0 * (y_global(jj) + y_global(jj + 1))
+          U(:,jj+1,:) = dpdx / (2d0 * nu) * ym_val * (2d0 - ym_val)
         end Do
         Do ii=1,nx_global
-           Do jj=1,nyg_global
-              Do kk=1,nzg
-                 U(ii,jj,kk) = U(ii,jj,kk) + 0.5*(rand()-0.5)
-              End Do
-           End Do
+          Do jj=1,nyg_global
+             Do kk=1,nzg
+               U(ii,jj,kk) = U(ii,jj,kk) + 0.5*(rand()-0.5)
+             End Do
+          End Do
         End Do
+        U(:,1,:) = -U(:,2,:)
+        U(:,ny_global+1,:) = -U(:,ny_global,:)
 
         ! V
         V = 0d0
         Do ii=1,nxg_global
-           Do jj=1,ny_global
-              Do kk=1,nzg
-                 V(ii,jj,kk) = V(ii,jj,kk) + 0.5*(rand()-0.5)
-              End Do
-           End Do
+          Do jj=1,ny_global
+             Do kk=1,nzg
+               V(ii,jj,kk) = V(ii,jj,kk) + 0.5*(rand()-0.5)
+             End Do
+          End Do
         End Do
+        V(:,1,:) = 0d0
+        V(:,ny_global,:) = 0d0
 
         ! W
         W = 0d0
         Do ii=1,nxg_global
-           Do jj=1,ny_global
-              Do kk=1,nz
-                 W(ii,jj,kk) = W(ii,jj,kk) + 0.5*(rand()-0.5)
-              End Do
-           End Do
+          Do jj=1,ny_global
+             Do kk=1,nz
+               W(ii,jj,kk) = W(ii,jj,kk) + 0.5*(rand()-0.5)
+             End Do
+          End Do
         End Do
+        W(:,1,:) = -W(:,2,:)
+        W(:,ny_global+1,:) = -W(:,ny_global,:)
     End Select
 
     If ( myid==0 ) Then
