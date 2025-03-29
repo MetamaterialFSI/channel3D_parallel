@@ -37,8 +37,11 @@ Module global
   Character(200) :: filein, fileout, fileparams
   Integer(Int32) :: nsave, nmonitor
 
-  ! set random initial condition
-  Integer(Int32) :: random_init
+  ! initial condition
+  Integer(Int32) :: init_type
+
+  ! grid type
+  Integer(Int32) :: grid_type
 
   ! domain size
   Real(Int64) :: Lx, Lz, Ly, Lxp, Lzp
@@ -94,6 +97,8 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: Uo,Vo,Wo,Po
   Real(Int64), Allocatable, Dimension(:,:,:) :: Uoo,Voo,Woo,Poo
   Real(Int64), Allocatable, Dimension(:,:,:) :: Vw 
+  Real(Int64), Allocatable, Dimension(:,:,:) :: U_global, V_global, W_global
+  Real(Int64), Allocatable, Dimension(:,:,:) :: U_reg, V_reg, W_reg
 
   ! local auxiliary 
   Real(Int64), Allocatable, Dimension(:,:,:) :: term_1, term_2
@@ -178,5 +183,48 @@ Module global
   Real(Int64), Dimension(:,:,:), Allocatable :: Fu1, Fu2, Fu3
   Real(Int64), Dimension(:,:,:), Allocatable :: Fv1, Fv2, Fv3
   Real(Int64), Dimension(:,:,:), Allocatable :: Fw1, Fw2, Fw3
+
+  ! body mode
+  Integer(Int32) :: body_type
+
+  ! number of uniform grid points on each side of the IB
+  Integer(Int32) :: nd
+
+  ! body points
+  Integer(Int32) :: nb, nxb, nzb
+  Real   (Int64) :: dxb, dzb
+  Real   (Int64), Dimension(:), Allocatable :: xb, yb, zb
+
+  ! body motion
+  Real   (Int64) :: amp, omega
+  Integer(Int32) :: wave_nx
+
+  ! body surface areas
+  Real(Int64), Dimension(:), Allocatable :: sb ! body face areas interpolated to body nodes
+
+  ! body velocity
+  Real(Int64), Dimension(:), Allocatable :: ub
+
+  ! body normals
+  Real(Int64), Dimension(:), Allocatable :: normals, tangents_1, tangents_2
+
+  ! immersed body forcing
+  Real(Int64), Dimension(:), Allocatable :: fb
+
+  ! immersed boundary operator variables
+  Integer(Int32), Dimension(:), Allocatable :: send_counts_U, displs_U
+  Integer(Int32), Dimension(:), Allocatable :: send_counts_V, displs_V
+  Integer(Int32), Dimension(:), Allocatable :: send_counts_W, displs_W
+  Integer(Int32) :: local_size_U, local_size_V, local_size_W
+
+  ! regularization and interpolation support, weights, and indices
+  Integer(Int32) :: suppx, suppy, suppz, nweights
+  Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights
+  Integer(Int32), Dimension(:,:),   Allocatable :: u_x_indices, u_y_indices, u_z_indices
+  Integer(Int32), Dimension(:,:),   Allocatable :: v_x_indices, v_y_indices, v_z_indices
+  Integer(Int32), Dimension(:,:),   Allocatable :: w_x_indices, w_y_indices, w_z_indices
+  Integer(Int32), Dimension(:),     Allocatable :: x_pivot_index, xm_pivot_index
+  Integer(Int32), Dimension(:),     Allocatable :: y_pivot_index, ym_pivot_index
+  Integer(Int32), Dimension(:),     Allocatable :: z_pivot_index, zm_pivot_index
   
 End Module global

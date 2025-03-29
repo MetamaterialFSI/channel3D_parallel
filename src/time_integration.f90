@@ -10,6 +10,8 @@ Module time_integration
   Use projection
   Use boundary_conditions
   Use mass_flow
+  Use immersed_boundary_geometry
+  Use immersed_boundary_operators
 
   ! prevent implicit typing
   Implicit None
@@ -104,6 +106,12 @@ Contains
     W(2:nxg-1,2:nyg-1,2:nz-1) = Wo(2:nxg-1,2:nyg-1,2:nz-1) + dt*rk_coef(1,1)*Fw1
     t = to + rk_t(rk_step)*dt
 
+    ! update body point positions and velocities if body is moving
+    If ( body_type > 1 ) Then
+      call setup_IB_geometry
+      call setup_IB_operators
+    End If
+
     Call apply_boundary_conditions
     Call compute_projection_step
     Call apply_boundary_conditions
@@ -121,6 +129,12 @@ Contains
     V(2:nxg-1,2:ny-1,2:nzg-1) = Vo(2:nxg-1,2:ny-1,2:nzg-1) + dt*( rk_coef(2,1)*Fv1 + rk_coef(2,2)*Fv2 )
     W(2:nxg-1,2:nyg-1,2:nz-1) = Wo(2:nxg-1,2:nyg-1,2:nz-1) + dt*( rk_coef(2,1)*Fw1 + rk_coef(2,2)*Fw2 )
     t = to + rk_t(rk_step)*dt
+
+    ! update body point positions and velocities if body is moving
+    If ( body_type > 1 ) Then
+      call setup_IB_geometry
+      call setup_IB_operators
+    End If
 
     Call apply_boundary_conditions
     Call compute_projection_step
@@ -142,6 +156,12 @@ Contains
     W(2:nxg-1,2:nyg-1,2:nz-1) = Wo(2:nxg-1,2:nyg-1,2:nz-1) + &
          dt*( rk_coef(3,1)*Fw1 + rk_coef(3,2)*Fw2 + rk_coef(3,3)*Fw3 )
     t = to + rk_t(rk_step)*dt
+
+    ! update body point positions and velocities if body is moving
+    If ( body_type > 1 ) Then
+      call setup_IB_geometry
+      call setup_IB_operators
+    End If
 
     Call apply_boundary_conditions
     Call compute_projection_step
