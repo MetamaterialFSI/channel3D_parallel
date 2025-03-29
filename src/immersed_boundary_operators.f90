@@ -303,4 +303,27 @@ Contains
   
   End Function regw
 
+  Subroutine divergence(diV_, U_, V_, W_)
+
+    Integer(Int32) :: i, j, k
+    Real   (Int64), DIMENSION( 2:nxg-1, 2:nyg-1, 2:nzg-1 ), INTENT(OUT) :: div_
+    Real   (Int64), DIMENSION(      nx,   nym+2,   nzm+2 ), INTENT(IN)  :: U_
+    Real   (Int64), DIMENSION(   nxm+2,      ny,   nzm+2 ), INTENT(IN)  :: V_
+    Real   (Int64), DIMENSION(   nxm+2,   nym+2,      nz ), INTENT(IN)  :: W_
+
+    div_ = 0d0
+
+    Do k = 2, nzg-1
+       Do j = 2, nyg-1
+          Do i = 2, nxg-1
+             div_(i,j,k) = ( U_(i,j,k) - U_(i-1,j,k) ) / ( x(i)-x(i-1) ) + & ! d u/dx
+                           ( V_(i,j,k) - V_(i,j-1,k) ) / ( y(j)-y(j-1) ) + & ! d v/dy
+                           ( W_(i,j,k) - W_(i,j,k-1) ) / ( z(k)-z(k-1) )     ! d w/dz
+          End Do
+       End Do
+    End Do
+    ! write(*,*) 'diV_ = ', maxval(abs(diV_))
+
+  End Subroutine divergence
+
 End Module immersed_boundary_operators
