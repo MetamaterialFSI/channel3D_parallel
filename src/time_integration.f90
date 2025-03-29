@@ -19,67 +19,6 @@ Module time_integration
 Contains
   
   !-----------------------------------------------!
-  !                Explicit Euler                 !
-  !-----------------------------------------------!
-  Subroutine compute_time_step_Euler
-
-    ! equivalent to last rk steps
-    rk_step = 3
-
-    ! save current step
-    Uo = U
-    Vo = V
-    Wo = W
-
-    ! compute rhs for U
-    Call compute_rhs_u(Uo,Vo,Wo,rhs_uo)
-
-    ! Advance U interior points
-    U(2:nx-1,2:nyg-1,2:nzg-1) = Uo(2:nx-1,2:nyg-1,2:nzg-1) + dt*rhs_uo
-
-    ! compute rhs for V
-    Call compute_rhs_v(Uo,Vo,Wo,rhs_vo)
-
-    ! Advance V interior points
-    V(2:nxg-1,2:ny-1,2:nzg-1) = Vo(2:nxg-1,2:ny-1,2:nzg-1) + dt*rhs_vo
-
-    ! compute rhs for W
-    Call compute_rhs_w(Uo,Vo,Wo,rhs_wo)
-
-    ! Advance W interior points
-    W(2:nxg-1,2:nyg-1,2:nz-1) = Wo(2:nxg-1,2:nyg-1,2:nz-1) + dt*rhs_wo
-
-    ! Advance time
-    t = t + dt
-
-    ! boundary conditions
-    Call apply_boundary_conditions
-    
-    ! projection step
-    Call compute_projection_step
-    
-    ! boundary conditions
-    Call apply_boundary_conditions
-
-    ! compute mean pressure gradient for constant mass flow in x
-    If ( x_mass_cte == 1 ) Then
-       Call compute_dPx_for_constant_mass_flow(U,dPdx)
-       U(2:nx-1,2:nyg-1,2:nzg-1) = U(2:nx-1,2:nyg-1,2:nzg-1) + dPdx
-       dPdx = dPdx/dt ! to be used later by rhs_*
-       Call apply_boundary_conditions
-    End If
-
-    ! compute mean pressure gradient for constant mass flow in y
-    If ( y_mass_cte == 1 ) Then
-       Call compute_dPy_for_constant_mass_flow(V,dPdy)
-       V(2:nxg-1,1:ny,2:nzg-1) = V(2:nxg-1,1:ny,2:nzg-1) + dPdy
-       dPdy = dPdy/dt ! to be used later by rhs_*
-       Call apply_boundary_conditions
-    End If
-
-  End Subroutine compute_time_step_Euler
-
-  !-----------------------------------------------!
   !          Explicit Runge-Kutta 3 steps         !
   !-----------------------------------------------!
   Subroutine compute_time_step_RK3
