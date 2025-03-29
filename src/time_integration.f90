@@ -55,8 +55,8 @@ Contains
     Call compute_projection_step
     Call apply_boundary_conditions
 
-    Vw(:,1,:) = -V(:,24,:)
-    Vw(:,2,:) = -V(:,ny-23,:)
+   !  Vw(:,1,:) = -V(:,24,:)
+   !  Vw(:,2,:) = -V(:,ny-23,:)
 
     ! step 2
     rk_step = 2
@@ -79,8 +79,8 @@ Contains
     Call compute_projection_step
     Call apply_boundary_conditions
 
-    Vw(:,1,:) = -V(:,24,:)
-    Vw(:,2,:) = -V(:,ny-23,:)
+   !  Vw(:,1,:) = -V(:,24,:)
+   !  Vw(:,2,:) = -V(:,ny-23,:)
 
     ! step 3
     rk_step = 3
