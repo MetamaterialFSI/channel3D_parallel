@@ -326,4 +326,30 @@ Contains
 
   End Subroutine divergence
 
+  Subroutine gradient(Gpx_, Gpy_, Gpz_, p_)
+
+    Integer(Int32) :: i, j, k
+    Real   (Int64), DIMENSION( 2:nxg-1, 2:nyg-1, 2:nzg-1 ), INTENT(IN)  :: p_
+    Real   (Int64), DIMENSION(      nx,   nym+2,   nzm+2 ), INTENT(OUT) :: Gpx_
+    Real   (Int64), DIMENSION(   nxm+2,      ny,   nzm+2 ), INTENT(OUT) :: Gpy_
+    Real   (Int64), DIMENSION(   nxm+2,   nym+2,      nz ), INTENT(OUT) :: Gpz_
+
+    Gpx_ = 0d0
+    Gpy_ = 0d0
+    Gpz_ = 0d0
+
+    Do i=2,nx-1
+       Gpx_(i,2:nyg-1,2:nzg-1) = ( p_(i+1,2:nyg-1,2:nzg-1) - p_(i,2:nyg-1,2:nzg-1) ) / ( xg(i+1) - xg(i) )
+    End Do
+
+    Do j=2,ny-1
+       Gpy_(2:nxg-1,j,2:nzg-1) = ( p_(2:nxg-1,j+1,2:nzg-1) - p_(2:nxg-1,j,2:nzg-1) ) / ( yg(j+1) - yg(j) )
+    End Do
+
+    Do k=2,nz-1
+       Gpz_(2:nxg-1,2:nyg-1,k) = ( p_(2:nxg-1,2:nyg-1,k+1) - p_(2:nxg-1,2:nyg-1,k) ) / ( zg(k+1) - zg(k) )
+    End Do
+
+  End Subroutine gradient
+
 End Module immersed_boundary_operators
