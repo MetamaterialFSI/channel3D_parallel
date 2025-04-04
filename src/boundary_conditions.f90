@@ -17,32 +17,35 @@ Contains
   !     Apply boundary conditions to velocities      !
   !              in the 3 directions                 !
   !--------------------------------------------------!
-  Subroutine apply_boundary_conditions
+  Subroutine apply_boundary_conditions(U_, V_, W_)
+    Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: U_(:, :, :)
+    Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: V_(:, :, :)
+    Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: W_(:, :, :)
 
     ! interior region
-    Call update_ghost_interior_planes(U,1)
-    Call update_ghost_interior_planes(V,2)
-    Call update_ghost_interior_planes(W,3)
+    Call update_ghost_interior_planes(U_,1)
+    Call update_ghost_interior_planes(V_,2)
+    Call update_ghost_interior_planes(W_,3)
    
     ! apply periodicity in x
-    Call apply_periodic_bc_x(U,1)
-    Call apply_periodic_bc_x(V,2)
-    Call apply_periodic_bc_x(W,2)
+    Call apply_periodic_bc_x(U_,1)
+    Call apply_periodic_bc_x(V_,2)
+    Call apply_periodic_bc_x(W_,2)
 
     ! apply periodicity in z 
-    Call apply_periodic_bc_z(U,1)
-    Call apply_periodic_bc_z(V,2)
-    Call apply_periodic_bc_z(W,3)
+    Call apply_periodic_bc_z(U_,1)
+    Call apply_periodic_bc_z(V_,2)
+    Call apply_periodic_bc_z(W_,3)
 
     ! U boundary condition at the wall
-    Call apply_Dirichlet_bc_y(U,2)
+    Call apply_Dirichlet_bc_y(U_,2)
 
     ! V boundary condition at the wall
     !Call apply_OppControl_bc_y(V,1)
-    Call apply_Dirichlet_bc_y(V,1)
+    Call apply_Dirichlet_bc_y(V_,1)
 
     ! W boundary condition at the wall
-    Call apply_Dirichlet_bc_y(W,2)
+    Call apply_Dirichlet_bc_y(W_,2)
 
     ! compute boundary conditions for pseudo-pressure
     !If ( i_BC_V==2 ) Then

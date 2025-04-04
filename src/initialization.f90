@@ -132,6 +132,12 @@ Contains
     Allocate (V_reg  ( nxm+2,     ny, nzm+2) )
     Allocate (W_reg  ( nxm+2,  nym+2,    nz) )
 
+    ! arrays for storing intermediate velocity fields in the projection method
+    Allocate (U_interim  (    nx,  nym+2, nzm+2) )
+    Allocate (V_interim  ( nxm+2,     ny, nzm+2) )
+    Allocate (W_interim  ( nxm+2,  nym+2,    nz) )
+    Allocate (P_interim  ( nxm+2,  nym+2, nzm+2) )
+
     Allocate (Vw ( nxm+2, 2, nzm+2) )
 
     ! Auxiliary arrays
@@ -208,6 +214,10 @@ Contains
     Ly = y_global(ny_global) - y_global(1)
     Lz = z_global(nz_global) - z_global(1)
 
+    Write(*,*) 'rank ', myid, ': nz = ', nz
+    Write(*,*) 'rank ', myid, ': z = ', z
+    Write(*,*) 'rank ', myid, ': zg = ', zg
+    Write(*,*) 'rank ', myid, ': nzg = ', nzg
     ! For initial IB implementation only!
     If ( body_type > 0) Then
       If ( myid==0 ) Then
@@ -299,7 +309,7 @@ Contains
     cplane_fft = fftw_alloc_complex(alloc_local)
     Call c_f_pointer(cplane_fft,plane,[nxp,nzp])
     plane_hat(0:,0:) => plane
-    Allocate ( rhs_p_hat ( 0:mx, 2:nyg-1, 0:mz ) )
+    Allocate ( rhs_hat ( 0:mx, 2:nyg-1, 0:mz ) )
     Allocate ( rhs_aux   ( 2:nyg-1 ) )
    
     ! create MPI plan for forward DFT (note dimension reversal and transposed_out/in)
@@ -479,20 +489,31 @@ Contains
     Allocate(sb (nb) )
 
     ! Body forcing
-    Allocate (fb(3*nb))
+    Allocate (fb(3*nb) )
     fb = 0d0
 
     ! Body velocity
-    Allocate(ub (3 * nb) )
+    Allocate (ub (3 * nb) )
     ub = 0d0
 
     ! Body normals and tangents
-    Allocate(normals (3 * nb) )
-    Allocate(tangents_1 (3 * nb) )
-    Allocate(tangents_2 (3 * nb) )
+    Allocate (normals (3 * nb) )
+    Allocate (tangents_1 (3 * nb) )
+    Allocate (tangents_2 (3 * nb) )
     normals= 0d0
     tangents_1= 0d0
     tangents_2= 0d0
+
+    ! Auxiliary surface arrays
+    Allocate ( rhs_ib (3 * nb) )
+    Allocate ( aux_surface_vector (3 * nb) )
+    Allocate ( aux_surface_scalar (nb) )
+    rhs_ib = 0d0
+    aux_surface_vector = 0d0
+    aux_surface_scalar = 0d0
+    Allocate ( Fibu (nx,nyg,nzg) )
+    Allocate ( Fibv (nxg,ny,nzg) )
+    Allocate ( Fibw (nxg,nyg,nz) )
 
     !--------------------Initialize IB operator variables-------------------!    
     suppx = 2
@@ -500,7 +521,7 @@ Contains
     suppz = 2
     nweights = (2 * suppx + 1) * (2 * suppy + 1) * (2 * suppz + 1)
 
-    if (nd < suppy) then
+    if (body_type > 0 .and. nd < suppy) then
       write(*,*) 'Error: nd should be greater than or equal to suppy. Currently, nd = ', nd, ' and suppy = ', suppy
       stop
     end if
@@ -526,6 +547,10 @@ Contains
     Allocate ( w_x_indices( nweights, nb) )
     Allocate ( w_y_indices( nweights, nb) )
     Allocate ( w_z_indices( nweights, nb) )
+
+    If ( myid==0 ) Then
+      Allocate( send_counts_weights(nprocs), displs_weights(nprocs) )
+    End If
 
     !-------------------------Done--------------------------------!
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)

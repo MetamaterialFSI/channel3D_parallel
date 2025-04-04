@@ -3,6 +3,7 @@
 # Collect the module source files
 set(SOURCES  
   global.f90
+  differential_operators.f90
   mass_flow.f90
   interpolation.f90
   equations.f90
@@ -12,6 +13,7 @@ set(SOURCES
   statistics.f90
   initialization.f90
   finalization.f90
+  poisson.f90
   projection.f90
   time_integration.f90
   monitor.f90
@@ -22,7 +24,6 @@ set(SOURCES
 # Create a library from the modules
 add_library(channel_lib STATIC "${SOURCES}")
 
-# Link MKL to the library
 target_link_libraries(channel_lib PUBLIC LAPACK::LAPACK)
 target_link_libraries(channel_lib PUBLIC MPI::MPI_Fortran)
 target_link_libraries(channel_lib PUBLIC FFTW::Double)

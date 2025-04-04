@@ -99,7 +99,7 @@ Contains
     Do i=1,nx_global
        x_global(i) = Real(i-1,8)*0.2d0
     End Do
-    x_global = 2d0*pi*x_global/x_global(nx_global-1)
+    x_global = 1d0*x_global/x_global(nx_global-1)
 
     Do i=1,nz_global
        z_global(i) = Real(i-1,8)*0.1d0
@@ -165,7 +165,7 @@ Contains
         Do ii=1,nx_global
           Do jj=1,nyg_global
              Do kk=1,nzg
-               U(ii,jj,kk) = U(ii,jj,kk) + 0.5*(rand()-0.5)
+               U(ii,jj,kk) = U(ii,jj,kk) !+ 0.5*(rand()-0.5)
              End Do
           End Do
         End Do
@@ -177,7 +177,7 @@ Contains
         Do ii=1,nxg_global
           Do jj=1,ny_global
              Do kk=1,nzg
-               V(ii,jj,kk) = V(ii,jj,kk) + 0.5*(rand()-0.5)
+               V(ii,jj,kk) = V(ii,jj,kk) !+ 0.5*(rand()-0.5)
              End Do
           End Do
         End Do
@@ -189,7 +189,7 @@ Contains
         Do ii=1,nxg_global
           Do jj=1,ny_global
              Do kk=1,nz
-               W(ii,jj,kk) = W(ii,jj,kk) + 0.5*(rand()-0.5)
+               W(ii,jj,kk) = W(ii,jj,kk) !+ 0.5*(rand()-0.5)
              End Do
           End Do
         End Do
@@ -502,9 +502,9 @@ Contains
 
       If ( myid==0 ) Then
         ! Global fields
-        Write(1) Shape(U_global), U_global
-        Write(1) Shape(V_global), V_global
-        Write(1) Shape(W_global), W_global
+        Write(1) Shape(U_global, Int32), U_global
+        Write(1) Shape(V_global, Int32), V_global
+        Write(1) Shape(W_global, Int32), W_global
 
         ! Timestep
         Write(1) dt

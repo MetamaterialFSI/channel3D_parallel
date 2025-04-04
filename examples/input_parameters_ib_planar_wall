@@ -1,26 +1,26 @@
 &params
 	! domain size
-	nx_global = 10
-	ny_global = 130
-	nz_global = 10
-	nxb = 10
-	nzb = 10
+	nx_global = 8
+	ny_global = 34
+	nz_global = 8
+	nxb = 6
+	nzb = 6
 	nd = 3
 	! (positive->CFL, negative->timestep size)
-	CFL = -0.001
+	CFL = -0.1
 	! viscosity
 	nu = 3.076923076923077e-04 
 	! Pressure gradient
 	dPdx = 0.003275394114261
 	dPdz = 0.000000000000 
-	x_mass_cte = 1 ! (0->use dPdx, 1->constant mass flow)
+	x_mass_cte = 0 ! (0->use dPdx, 1->constant mass flow)
 	y_mass_cte = 0
 	! nsteps, nsave, nstats, nmonitor
-	nsteps = 100
-	nsave = 10
-	nstats = 100
-	nmonitor = 10 
-	filein = 'channel180_minchan.9999000'
+	nsteps = 1000
+	nsave = 1000
+	nstats = 1000
+	nmonitor = 100
+	filein = ''
 	fileout = 'channel_output/test'
 	! first number for output flow field
 	nstep_init = 0
