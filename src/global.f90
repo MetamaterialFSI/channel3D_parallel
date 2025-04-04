@@ -17,7 +17,7 @@ Module global
   !------------------Declarations-----------------!
 
   ! declarations
-  Integer(Int32) :: ierr, myid, nprocs, nslices_z
+  Integer(Int32) :: ierr, myid, nprocs, nslices_z, provided
   Integer        :: istat ( MPI_STATUS_SIZE )
 
   ! global faces index range for each processor
@@ -99,6 +99,7 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: Vw 
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_global, V_global, W_global
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_reg, V_reg, W_reg
+  Real(Int64), Allocatable, Dimension(:,:,:) :: U_interim, V_interim, W_interim, P_interim
 
   ! local auxiliary 
   Real(Int64), Allocatable, Dimension(:,:,:) :: term_1, term_2
@@ -109,8 +110,8 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: rhs_uo, rhs_vo, rhs_wo
   Real(Int64), Allocatable, Dimension(:,:,:) :: rhs_uf, rhs_vf, rhs_wf
 
-  ! local rhs for pressure in Fourier
-  Complex(Int64), Dimension(:,:,:), Allocatable :: rhs_p_hat
+  ! local rhs for Poisson in Fourier
+  Complex(Int64), Dimension(:,:,:), Allocatable :: rhs_hat
   Complex(Int64), Dimension(:),     Allocatable :: rhs_aux
 
   ! local auxiliary arrays for MPI_sendrev boundary conditions
@@ -186,12 +187,14 @@ Module global
 
   ! body mode
   Integer(Int32) :: body_type
+  Logical(Int32) :: moving_body
 
   ! number of uniform grid points on each side of the IB
   Integer(Int32) :: nd
 
   ! body points
   Integer(Int32) :: nb, nxb, nzb
+  Integer(Int32) :: nb_start, nb_end
   Real   (Int64) :: dxb, dzb
   Real   (Int64), Dimension(:), Allocatable :: xb, yb, zb
 
@@ -215,7 +218,8 @@ Module global
   Integer(Int32), Dimension(:), Allocatable :: send_counts_U, displs_U
   Integer(Int32), Dimension(:), Allocatable :: send_counts_V, displs_V
   Integer(Int32), Dimension(:), Allocatable :: send_counts_W, displs_W
-  Integer(Int32) :: local_size_U, local_size_V, local_size_W
+  Integer(Int32), Dimension(:), Allocatable :: send_counts_weights, displs_weights
+  Integer(Int32) :: local_size_U, local_size_V, local_size_W, local_size_nb
 
   ! regularization and interpolation support, weights, and indices
   Integer(Int32) :: suppx, suppy, suppz, nweights
@@ -226,5 +230,9 @@ Module global
   Integer(Int32), Dimension(:),     Allocatable :: x_pivot_index, xm_pivot_index
   Integer(Int32), Dimension(:),     Allocatable :: y_pivot_index, ym_pivot_index
   Integer(Int32), Dimension(:),     Allocatable :: z_pivot_index, zm_pivot_index
-  
+
+  ! immersed body auxilliary variables
+  Real(Int64), Dimension(:),     Allocatable :: aux_surface_scalar, aux_surface_vector, rhs_ib
+  Real(Int64), Dimension(:,:,:), Allocatable :: Fibu, Fibv, Fibw
+
 End Module global

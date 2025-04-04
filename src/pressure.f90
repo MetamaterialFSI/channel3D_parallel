@@ -102,7 +102,7 @@ Contains
     Do j = 2, nyg-1
        plane = dcmplx( rhs_p(2:nxp+1,j,2:nzp+1) ) ! nxp+1 = nxg-2, nzp+1 = nzg-2
        Call fftw_mpi_execute_dft(plan_d,plane,plane_hat)
-       rhs_p_hat(:,j,:) = plane_hat
+       rhs_hat(:,j,:) = plane_hat
     End Do
 
     ! 2D Fourier transform boundary conditions
@@ -134,18 +134,18 @@ Contains
           ! remove singularity 00 mode (set a reference pressure)
           if ( i_global==0 .And. k_global==0 ) D(2) = 3d0/2d0*D(2)
           ! rhs with boundary conditions for pressure
-          rhs_aux        = rhs_p_hat(i,:,k) 
+          rhs_aux        = rhs_hat(i,:,k) 
           rhs_aux(    2) = rhs_aux(    2) + coef_bc_1*(yg(  2)-yg(    1))*bc_1_hat(i,k)
           rhs_aux(nyg-1) = rhs_aux(nyg-1) - coef_bc_2*(yg(nyg)-yg(nyg-1))*bc_2_hat(i,k)
-          ! solve M*u = rhs (solution stored in rhs_p_hat)
+          ! solve M*u = rhs (solution stored in rhs_hat)
           Call Zgtsv( nr, nrhs, DL, D, DU, rhs_aux, nr, info)
-          rhs_p_hat(i,:,k) = rhs_aux
+          rhs_hat(i,:,k) = rhs_aux
        End Do
     End Do
 
     ! 2D inverse Fourier transform
     Do j = 2, nyg-1
-       plane_hat = rhs_p_hat(:,j,:)
+       plane_hat = rhs_hat(:,j,:)
        Call fftw_mpi_execute_dft(plan_i,plane_hat,plane)
        P(2:nxg-2,j,2:nzg-2) = plane/Real(nxp_global*nzp_global,8)
     End Do

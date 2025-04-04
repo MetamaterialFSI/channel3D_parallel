@@ -101,3 +101,4 @@ jobs:
         cd examples
         mkdir -p channel_output
         mpirun -n 2 ../build/channel3D input_parameters_non_ib || exit 1
+        mpirun -n 2 ../build/channel3D input_parameters_ib_planar_wall || exit 1
