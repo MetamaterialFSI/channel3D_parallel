@@ -199,6 +199,7 @@ Contains
     rhs_p = 0d0
     Call divergence(rhs_p, U, V, W)
     max_divergence = Maxval( Abs(rhs_p) )
+    write(*,*) "proc ", myid, "; max divergence = ", max_divergence
 
     Call MPI_Reduce(max_divergence_local,max_divergence,1,MPI_real8,MPI_max,0,MPI_COMM_WORLD,ierr)
 
