@@ -193,15 +193,13 @@ Contains
   Subroutine check_divergence(max_divergence)
 
     Real(Int64), Intent(Out) :: max_divergence
-
-    Real   (Int64) :: max_divergence_local
+    Real(Int64) :: max_divergence_local
 
     rhs_p = 0d0
     Call divergence(rhs_p, U, V, W)
-    max_divergence = Maxval( Abs(rhs_p) )
-    write(*,*) "proc ", myid, "; max divergence = ", max_divergence
+    max_divergence_local = Maxval( Abs(rhs_p) )
 
-    Call MPI_Reduce(max_divergence_local,max_divergence,1,MPI_real8,MPI_max,0,MPI_COMM_WORLD,ierr)
+    Call MPI_Reduce(max_divergence_local, max_divergence, 1, MPI_real8, MPI_max, 0, MPI_COMM_WORLD,ierr)
 
   End Subroutine check_divergence
 
