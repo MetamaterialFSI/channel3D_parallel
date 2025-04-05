@@ -134,33 +134,59 @@ Contains
       Do i = 2, nprocs
         displs_weights(i) = displs_weights(i-1) + send_counts_weights(i-1)
       End Do
+      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_REAL8, &
+                       u_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_REAL8, &
+                       v_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_REAL8, &
+                       w_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+
+      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
+                       u_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
+                       u_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
+                       u_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
+                       v_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
+                       v_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
+                       v_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
+                       w_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
+                       w_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
+                       w_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+    Else
+
+      call MPI_GATHERV(u_weights(:, nb_start:nb_end), local_size_nb * nweights, MPI_REAL8, &
+                       u_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(v_weights(:, nb_start:nb_end), local_size_nb * nweights, MPI_REAL8, &
+                       v_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(w_weights(:, nb_start:nb_end), local_size_nb * nweights, MPI_REAL8, &
+                       w_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+
+      call MPI_GATHERV(u_x_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
+                       u_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(u_y_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
+                       u_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(u_z_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
+                       u_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(v_x_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
+                       v_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(v_y_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
+                       v_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(v_z_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
+                       v_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(w_x_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
+                       w_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(w_y_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
+                       w_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_GATHERV(w_z_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
+                       w_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
     End If
-
-    call MPI_GATHERV(u_weights(:, nb_start:nb_end), local_size_nb * nweights, MPI_REAL8, &
-                     u_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-    call MPI_GATHERV(v_weights(:, nb_start:nb_end), local_size_nb * nweights, MPI_REAL8, &
-                     v_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-    call MPI_GATHERV(w_weights(:, nb_start:nb_end), local_size_nb * nweights, MPI_REAL8, &
-                     w_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-
-    call MPI_GATHERV(u_x_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                     u_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-    call MPI_GATHERV(u_y_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                     u_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-    call MPI_GATHERV(u_z_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                     u_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-    call MPI_GATHERV(v_x_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                     v_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-    call MPI_GATHERV(v_y_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                     v_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-    call MPI_GATHERV(v_z_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                     v_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-    call MPI_GATHERV(w_x_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                     w_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-    call MPI_GATHERV(w_y_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                     w_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-    call MPI_GATHERV(w_z_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                     w_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
 
     ! if (myid == 0) then
     !   open(unit=10, file="weights_global.dat", status="replace", action="write")
