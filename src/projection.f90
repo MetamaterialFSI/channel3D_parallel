@@ -116,8 +116,8 @@ Contains
     Real(Int64) :: rho_o, rho_n, alpha, om, eps, error, bta, cgtol
 
     !initialize
-    cgtol=1.E-8
-    cg_max_iter=3000
+    cgtol=1.E-12
+    cg_max_iter=50
     error = 1.d0
     eps = cgtol * cgtol
     iter = 0
@@ -143,6 +143,7 @@ Contains
       r = sv - om * tv
       error = dot_product( r, r)
       iter = iter + 1
+      Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
     End Do
     If (iter .eq. cg_max_iter) Then
       Write(*,*)  "......WARNING, bicgstab used maximum number of iterations"

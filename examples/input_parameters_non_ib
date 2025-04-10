@@ -18,7 +18,7 @@
 	nstats = 100
 	nmonitor = 10 
 	filein = 'channel180_minchan.9999000'
-	fileout = 'channel_output/test'
+	fileout = 'channel_output_non_ib/test'
 	! first number for output flow field
 	nstep_init = 0
 	init_type = 2, ! (0->reads previous file, 1->zero, 2->random)

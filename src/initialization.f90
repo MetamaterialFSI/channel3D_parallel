@@ -214,10 +214,6 @@ Contains
     Ly = y_global(ny_global) - y_global(1)
     Lz = z_global(nz_global) - z_global(1)
 
-    Write(*,*) 'rank ', myid, ': nz = ', nz
-    Write(*,*) 'rank ', myid, ': z = ', z
-    Write(*,*) 'rank ', myid, ': zg = ', zg
-    Write(*,*) 'rank ', myid, ': nzg = ', nzg
     ! For initial IB implementation only!
     If ( body_type > 0) Then
       If ( myid==0 ) Then
@@ -485,6 +481,9 @@ Contains
     ! Body coordinates
     Allocate ( xb (  nb), yb (  nb), zb (  nb) )
 
+    ! Wall normal reference coordinate and index
+    Allocate ( y_ref_index (  nb) )
+
     ! Body areas
     Allocate(sb (nb) )
 
@@ -516,15 +515,6 @@ Contains
     Allocate ( Fibw (nxg,nyg,nz) )
 
     !--------------------Initialize IB operator variables-------------------!    
-    suppx = 2
-    suppy = 2
-    suppz = 2
-    nweights = (2 * suppx + 1) * (2 * suppy + 1) * (2 * suppz + 1)
-
-    if (body_type > 0 .and. nd < suppy) then
-      write(*,*) 'Error: nd should be greater than or equal to suppy. Currently, nd = ', nd, ' and suppy = ', suppy
-      stop
-    end if
 
     Allocate ( x_pivot_index  (nb) )
     Allocate ( xm_pivot_index (nb) )

@@ -10,51 +10,188 @@ Module immersed_boundary_geometry
 Contains
 
   Subroutine compute_nb
+    Integer(Int32) :: nxb1, nxb2
+    Real   (Int64) :: r, r1, r2
 
-    If (body_type == 0) Then
-      nxb = 0
-      nzb = 0
-    End If
+    Select Case (body_type)
+      Case (0) ! No IB
+        nxb = 0
+        nzb = 0
+        nb = 0
+        dxb = real(Lxp / nxb, 8)
+        dzb = real(Lzp / nzb, 8)
 
-    nb = nxb * nzb
-    dxb = real(Lxp / nxb, 8)
-    dzb = real(Lzp / nzb, 8)
+      Case (1) ! Static centered wall
+        nb = nxb * nzb
+        dxb = real(Lxp / nxb, 8)
+        dzb = real(Lzp / nzb, 8)
+
+      Case (2) ! Double concentric cylinders
+        r1 = body_param_1
+        r2 = body_param_2
+        dzb = real(Lzp / nzb, 8)
+        dxb = dzb * dx / dz
+        nxb1 = int(2 * 3.14159 * r1 / dxb)
+        nxb2 = int(2 * 3.14159 * r2 / dxb)
+        nxb = nxb1 + nxb2
+        nb = nxb * nzb
+
+      Case (3) ! Top and bottom wall undergoing standing wave motion
+        nb = 2 * nxb * nzb
+        dxb = real(Lxp / nxb, 8)
+        dzb = real(Lzp / nzb, 8)
+
+      Case (4) ! Top and bottom wall undergoing travelling wave motion
+        nb = 2 * nxb * nzb
+        dxb = real(Lxp / nxb, 8)
+        dzb = real(Lzp / nzb, 8)
+
+    End Select
+
 
   End Subroutine compute_nb
 
   Subroutine setup_IB_geometry
-    Integer(Int32) :: i, j, k, l, idx
+    Integer(Int32) :: i, j, k, l, nxb1, nxb2
+    Real   (Int64) :: a1, a2, r1, r2, xc, yc, theta, dsb1, dsb2
 
     Select Case (body_type)
       Case (0) ! No IB
+        moving_body = .False.
         nb_start = 0
         nb_end = -1
-      Case (1) ! Static wall
+
+      Case (1) ! Static centered wall
         moving_body = .False.
         ub = 0d0
+        ! Reference points are the center of the domain
+        y_ref_index = ny_global / 2 ! automatically rounds down
+
         ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
         ! (i.e., fall between an nb_start and nb_end)
         nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
         nb_end = 0         ! Initialize to the lowest possible index
-        Do j=1,nzb
-          Do i=1,nxb
-            idx = i + (j-1) * nxb
-            xb(idx) = (real(i,8) - 0.75d0) * dxb
-            yb(idx) = 1.0d0
-            zb(idx) = (real(j,8) - 0.75d0) * dzb
-            If (zb(idx) >= z(1) .and. nb_start > idx) then
-              nb_start = idx
+        Do j = 1, nzb
+          Do i = 1, nxb
+            k = i + (j-1) * nxb
+            xb(k) = (real(i,8) - 0.75d0) * dxb
+            yb(k) = 1.0d0
+            zb(k) = (real(j,8) - 0.75d0) * dzb
+            If (zb(k) >= z(1) .and. nb_start > k) then
+              nb_start = k
             End If
-            If (zb(idx) <= z(nz-1) .and. nb_end < idx) then
-              nb_end = idx
+            If (zb(k) <= z(nz-1) .and. nb_end < k) then
+              nb_end = k
             End If  
           End Do
         End Do
         sb = dxb * dzb 
 
-      Case (2) ! Standing wave motion
+      Case (2) ! Double rotating cylinders
+        moving_body = .False.
+        nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
+        nb_end = 0         ! Initialize to the lowest possible index
+        y_ref_index = 1 ! The grid has to be uniform for this case, so it doesn't matter what y_ref_index is
 
-      Case (3) ! Travelling wave motion
+        r1 = body_param_1
+        r2 = body_param_2
+        xc = 0.5d0
+        yc = 1.0d0
+        nxb1 = Int(2 * 3.14159 * r1 / dxb)
+        nxb2 = Int(2 * 3.14159 * r2 / dxb)
+        nxb = nxb1 + nxb2
+        dsb1 = 2 * 3.14159 * r1 / nxb1
+        dsb2 = 2 * 3.14159 * r2 / nxb2
+        ub = 0d0
+        Do j=1,nzb
+          ! Inner cylinder
+          Do i = 1, nxb1
+            theta = Real(i - 1, 8) * dsb1 / r1
+            xb(i + (j-1) * nxb) = r1 * cos(theta) + xc
+            yb(i + (j-1) * nxb) = r1 * sin(theta) + yc
+            zb(i + (j-1) * nxb) = (Real(j,8) - 0.5d0) * dzb
+            ub(i + (j-1) * nxb) = -sin(theta) * body_param_3
+            ub(nb + i + (j-1) * nxb) = cos(theta) * body_param_3
+            sb(i + (j-1) * nxb) = dsb1 * dzb
+          End Do
+
+          ! Outer cylinder
+          Do i = 1, nxb2
+            theta = Real(i - 1, 8) * dsb2 / r2
+            xb(i + (j-1) * nxb + nxb1) = r2 * cos(theta) + xc
+            yb(i + (j-1) * nxb + nxb1) = r2 * sin(theta) + yc
+            zb(i + (j-1) * nxb + nxb1) = (Real(j,8) - 0.5d0) * dzb
+            sb(i + (j-1) * nxb + nxb1) = dsb2 * dzb
+          End Do
+
+          If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
+            nb_start = (j-1) * nxb + 1
+          End If
+          If (zb(j * nxb) <= z(nz-1) .and. nb_end < j * nxb) then
+            nb_end = j * nxb
+          End If  
+        End Do
+
+      Case (3) ! Top and bottom wall undergoing standing wave motion in x-direction
+        moving_body = .True.
+
+        ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
+        ! (i.e., fall between an nb_start and nb_end)
+        nb_start = nb + 1 ! Initialize to an invalid value (beyond the max index)
+        nb_end = 0        ! Initialize to the lowest possible index
+        Do j = 1, nzb
+          Do i = 1, nxb
+            k = i + 2 * nxb * (j - 1)
+            xb(k)             = (real(i,8) - 0.75d0) * dxb
+            xb(k + nxb)       = (real(i,8) - 0.75d0) * dxb
+            yb(k)             = y(1) + 0.5d0 * Real(n_uniform - 1, 8) * dymin + body_param_1 * & 
+              sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
+            yb(k + nxb) = y(ny_global) - 0.5d0 * Real(n_uniform - 1, 8) * dymin + body_param_1 * &
+              sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
+            zb(k)             = (real(j,8) - 0.75d0) * dzb
+            zb(k + nxb)       = (real(j,8) - 0.75d0) * dzb
+
+            y_ref_index(k) = n_uniform / 2 ! automatically rounds down
+            y_ref_index(k + nxb) = ny_global - Int(Ceiling(0.5d0 * Real(n_uniform, 8)))
+
+            If (zb(k) >= z(1) .and. nb_start > k) then
+              nb_start = k
+            End If
+            If (zb(k + nxb) <= z(nz-1) .and. nb_end < k + nxb) then
+              nb_end = k + nxb
+            End If  
+          End Do
+        End Do
+        ! Vector arrays
+        ub(1:nb) = 0d0
+        ub(2 * nb + 1 : 3 * nb) = 0d0
+        Do j = 1, nzb
+          Do i = 1, nxb
+            k = i + 2 * nxb * (j - 1)
+            ub(nb + k) = -body_param_1 * body_param_2 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * sin(body_param_2 * t)
+            ub(nb + k + nxb) = -body_param_1 * body_param_2 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * sin(body_param_2 * t)
+          End Do
+        End Do
+        ! For now, make a naive sb calculation that assumes no variation in z
+        Do j = 1, nzb
+          Do i = 1, nxb
+            k = i + 2 * nxb * (j - 1)
+            If (i .eq. 1) Then
+              a1 = sqrt((xb(k) - (xb(nxb + 2 * nxb * (j - 1)) - Lxp)) ** 2 + (yb(k) - yb(nxb + 2 * nxb * (j - 1))) ** 2)
+              a2 = sqrt((xb(k) - (xb(k + 1))                        ) ** 2 + (yb(k) - yb(k + 1)                  ) ** 2)
+            Else If (i .eq. nxb) Then
+              a1 = sqrt((xb(k) - (xb(k - 1))                      ) ** 2   + (yb(k) - yb(k - 1)                  ) ** 2)
+              a1 = sqrt((xb(k) - (xb(1 + 2 * nxb * (j - 1)) + Lxp)) ** 2   + (yb(k) - yb(1 + 2 * nxb * (j - 1))) ** 2)
+            Else
+              a1 = sqrt((xb(k) - (xb(k - 1))) ** 2                     + (yb(k) - yb(k - 1)) ** 2)
+              a2 = sqrt((xb(k) - (xb(k + 1))) ** 2                     + (yb(k) - yb(k + 1)) ** 2)
+            End If 
+            sb(k)       = dzb * (0.5d0 * a1 + 0.5d0 * a2)
+            sb(k + nxb) = dzb * (0.5d0 * a1 + 0.5d0 * a2) ! Assumes that the top and bottom wall undergo the same motion!
+          End Do
+        End Do
+
+      Case (4) ! Top and bottom wall undergoing travelling wave motion
 
     End Select
 

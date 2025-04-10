@@ -41,7 +41,7 @@ Module global
   Integer(Int32) :: init_type
 
   ! grid type
-  Integer(Int32) :: grid_type
+  Integer(Int32) :: grid_type, n_uniform
 
   ! domain size
   Real(Int64) :: Lx, Lz, Ly, Lxp, Lzp
@@ -189,18 +189,18 @@ Module global
   Integer(Int32) :: body_type
   Logical(Int32) :: moving_body
 
-  ! number of uniform grid points on each side of the IB
-  Integer(Int32) :: nd
-
   ! body points
   Integer(Int32) :: nb, nxb, nzb
   Integer(Int32) :: nb_start, nb_end
   Real   (Int64) :: dxb, dzb
   Real   (Int64), Dimension(:), Allocatable :: xb, yb, zb
 
-  ! body motion
-  Real   (Int64) :: amp, omega
-  Integer(Int32) :: wave_nx
+  ! array containing an index for each body point of a y grid point that is part of a
+  ! uniform grid patch containing the body point
+  Integer(Int32), Dimension(:), Allocatable :: y_ref_index
+
+  ! body parameters
+  Real(Int64) :: body_param_1, body_param_2, body_param_3
 
   ! body surface areas
   Real(Int64), Dimension(:), Allocatable :: sb ! body face areas interpolated to body nodes
@@ -222,7 +222,10 @@ Module global
   Integer(Int32) :: local_size_U, local_size_V, local_size_W, local_size_nb
 
   ! regularization and interpolation support, weights, and indices
-  Integer(Int32) :: suppx, suppy, suppz, nweights
+  Integer(Int32), parameter :: suppx = 2
+  Integer(Int32), parameter :: suppy = 2
+  Integer(Int32), parameter :: suppz = 2
+  Integer(Int32), parameter :: nweights = (2 * suppx + 1) * (2 * suppy + 1) * (2 * suppz + 1)
   Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights
   Integer(Int32), Dimension(:,:),   Allocatable :: u_x_indices, u_y_indices, u_z_indices
   Integer(Int32), Dimension(:,:),   Allocatable :: v_x_indices, v_y_indices, v_z_indices
@@ -234,5 +237,5 @@ Module global
   ! immersed body auxilliary variables
   Real(Int64), Dimension(:),     Allocatable :: aux_surface_scalar, aux_surface_vector, rhs_ib
   Real(Int64), Dimension(:,:,:), Allocatable :: Fibu, Fibv, Fibw
-
+  
 End Module global

@@ -99,6 +99,7 @@ jobs:
       shell: bash
       run: |
         cd examples
-        mkdir -p channel_output
+        mkdir -p channel_output_non_ib
         mpirun -n 2 ../build/channel3D input_parameters_non_ib || exit 1
+        mkdir -p channel_output_ib_planar_wall
         mpirun -n 2 ../build/channel3D input_parameters_ib_planar_wall || exit 1

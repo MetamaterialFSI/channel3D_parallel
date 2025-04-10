@@ -26,10 +26,11 @@ Contains
       x_pivot_index(l) = Int(xb(l) / dx) + 1
       ! index of largest xm value that is smaller than xb(l), accounting for periodicity, but not for ghost cells
       xm_pivot_index(l) = Modulo(Int((xb(l) + 0.5 * dx) / dx) - 1, nxm_global - 1) + 1
-      ! index of largest y value that is smaller than yb(l)
-      y_pivot_index(l) = Int((yb(l) - (1.d0 - nd * dymin)) / dymin) + (ny_global + 1) / 2 - nd
+      ! index of largest y value that is smaller than yb(l). The use of reference points is more efficient here than searching
+      ! the y array for the closest point, in case there is grid stretching.
+      y_pivot_index(l) = Int((yb(l) - y(y_ref_index(l))) / dymin) + y_ref_index(l)
       ! index of largest ym value that is smaller than yb(l), not accounting for ghost cells
-      ym_pivot_index(l) = Int((yb(l) - (1.d0 - nd * dymin + 0.5 * dymin)) / dymin) + (ny_global + 1) / 2 - nd 
+      ym_pivot_index(l) = Int((yb(l) - (y(y_ref_index(l)) + 0.5 * dymin)) / dymin) + y_ref_index(l)
       ! index of largest z value that is smaller than zb(l)
       z_pivot_index(l) = Int(zb(l) / dz) + 1
       ! index of largest zm value that is smaller than zb(l), accounting for periodicity, but not for ghost cells
@@ -110,21 +111,6 @@ Contains
     End Do
 
     local_size_nb = nb_end - nb_start + 1
-    ! write(*,*) "proc ", myid, "; nb_start = ", nb_start
-    ! write(*,*) "proc ", myid, "; nb_end = ", nb_end
-    ! write(*,*) "proc ", myid, "; local_size_nb = ", local_size_nb
-    !
-    ! write(filename, '(A,I3.3)') "weights_proc_", myid  ! Creates "weights_proc_000", "weights_proc_001", etc.
-    !
-    ! open(unit=10, file=filename, status="replace", action="write")
-    ! do i = nb_start, nb_end
-    !   write(10, '(I8)') i  ! Print body index on its own line
-    !   do j = 1, nweights, 6
-    !         ! write(10, '(8E12.5)') (u_weights(k, i), k = j, min(j+5, nweights))  ! Print up to 6 per row
-    !         write(10, '(8I12)') (u_z_indices(k, i), k = j, min(j+5, nweights))  ! Print up to 6 per row
-    !   end do
-    ! end do
-    ! close(10)
 
     ! Gather send_counts
     Call MPI_Gather(local_size_nb * nweights, 1, MPI_INT, send_counts_weights, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
@@ -187,18 +173,6 @@ Contains
       call MPI_GATHERV(w_z_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
                        w_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
     End If
-
-    ! if (myid == 0) then
-    !   open(unit=10, file="weights_global.dat", status="replace", action="write")
-    !   do i = 1, nb  ! total_nb is the sum of all nb across processes
-    !     write(10, '(I8)') i  ! Print body index on its own line
-    !     do j = 1, nweights, 6
-    !         ! write(10, '(8E12.5)') (u_weights(k, i), k = j, min(j+5, nweights))  ! Print up to 6 per row
-    !         write(10, '(8I12)') (u_z_indices(k, i), k = j, min(j+5, nweights))  ! Print up to 6 per row
-    !     end do
-    !   end do
-    !   close(10)
-    ! end if
 
   End Subroutine setup_IB_operators
 
@@ -277,12 +251,9 @@ Contains
     If (myid==0) Then
       Call global_regu(U_global, f_)
     End If
-    ! write(*,*) "proc ", myid, "; regu f_ = ", maxval(abs(f_))
-    ! write(*,*) "proc ", myid, "; regu U_global = ", maxval(abs(U_global))
 
     Call MPI_Scatterv(U_global(:, :, 2:nzm_global+1), send_counts_U, displs_U, MPI_REAL8, &
                   U_(:, :, 2:nzm+1), local_size_U, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-    ! write(*,*) "proc ", myid, "; regu = ", maxval(abs(regu))
 
   End Subroutine regu
 

@@ -26,14 +26,15 @@ Contains
 
     namelist /params/ &
       nx_global, ny_global, nz_global, &
-      nxb, nzb, nd, &
+      nxb, nzb, &
       CFL, &
       nu, &
       dPdx, dPdz, x_mass_cte, y_mass_cte, &
       nsteps, nsave, nstats, nmonitor, &
       filein, fileout, &
       nstep_init, &
-      init_type, grid_type, body_type
+      init_type, grid_type, body_type, &
+      body_param_3, body_param_1, body_param_2
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
@@ -42,12 +43,12 @@ Contains
       Open(newunit=iounit, file=fileparams, status="old", action="read", iostat=ioerr, iomsg=msg)
       If (ierr /= 0) then
           Print *, "Error opening input file. IOSTAT =", ioerr, " IOMSG = ", msg
-          call abort
+          Stop 1
       End If
       Read(iounit, Nml=params, IOSTAT=ioerr, IOMSG=msg)
       If (ierr /= 0) then
           Print *, "Error reading namelist. IOSTAT =", ioerr, " IOMSG = ", msg
-          call abort
+          Stop 1
       End If
 
       utau_    = dPdx**0.5d0
@@ -64,7 +65,6 @@ Contains
 
     Call Mpi_bcast ( nxb,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( nzb,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
-    Call Mpi_bcast (  nd,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
 
     Call Mpi_bcast (      CFL,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (       nu,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
@@ -83,6 +83,10 @@ Contains
     Call Mpi_bcast (  x_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  y_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
 
+    Call Mpi_bcast (   body_param_1,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   body_param_2,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   body_param_3,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+
   End Subroutine read_input_parameters
 
   !--------------------------------------!
@@ -95,6 +99,8 @@ Contains
 
     Integer(Int32) :: i
     Real   (Int64) :: alpha
+
+    n_uniform = 1
 
     Do i=1,nx_global
        x_global(i) = Real(i-1,8)*0.2d0
@@ -114,7 +120,7 @@ Contains
         End Do
         y_global = 2d0*y_global/Maxval(y_global)
 
-      Case (1) ! Stretched grid
+      Case (1) ! Stretched grid wall to wall
         If ( myid==0 ) Write(*,*) 'Generating stretched y grid'
         Do i=1,ny_global
            y_global(i) = Real(i-1,8)*0.3d0
@@ -128,9 +134,72 @@ Contains
 
         y_global = y_global - Minval(y_global)
         y_global = y_global*2d0/Maxval(y_global)
+
+      Case (2) ! Stretched grid centered around 0 with uniform buffers on each end to account for IB (moving with amplitude body_param_1)
+        If ( myid==0 ) Write(*,*) 'Generating stretched y grid with uniform buffers'
+
+        ! Loop until buffer condition is met
+        write(*,*) 'creating stretched grid using ny_global = ', ny_global
+        Do
+          alpha = 1.3d0
+          Call create_stretched_grid(y_global, 2d0, ny_global, n_uniform, alpha)
+
+          ! Compute dy between first two points (assume uniform region at beginning)
+          dymin = y_global(2) - y_global(1)
+
+          If ( myid==0 ) Write(*,'(A,I4,A,F12.6)') ' Number of buffer cells on each side = ', n_uniform, ' -> dymin = ', dymin 
+          If ( myid==0 ) Write(*,'(A,F12.6,A,F12.6,A)') ' Buffer width = ', n_uniform * dymin, ' (minimum requirement = ', &
+            2 * body_param_1 + (2 * suppy + 2) * dymin, ')'
+          ! TODO: check if 2 * suppy + 2 is the correct amount
+          If (n_uniform * dymin >= 2 * body_param_1 + (2 * suppy + 2) * dymin) Exit
+
+          n_uniform = n_uniform + 1
+
+          If (2 * n_uniform >= Ny) Stop 'Number of buffer points exceeds the total number of grid points' 
+        End Do
+
     End Select
 
   End Subroutine create_grid
+
+  Subroutine create_stretched_grid(grid, L, n_total, n_uniform, alpha_stretch)
+    Implicit None
+
+    Integer(Int32), Intent(In) :: n_total, n_uniform
+    Real(Int64), Intent(In) :: L, alpha_stretch
+    Real(Int64), Dimension(ny), Intent(Out) :: grid
+
+    Real(Int64), Dimension(:), Allocatable :: grid_unpadded
+    Real(Int64) :: ds_min_unscaled, ds_min_scaled
+    Integer(Int32) :: i
+
+    ! We use n_uniform - 1 because the first cell of the stretched grid will be considered to be part of the uniform grid
+    Allocate ( grid_unpadded ( n_total - 2 * (n_uniform - 1) ) )
+
+    Do i = 1, (n_total - 2 * (n_uniform - 1))
+      grid_unpadded(i) = Real(i - 1, 8)
+    End Do
+
+    ! Make the unpadded grid go from -1 to 1
+    grid_unpadded = 2d0 * grid_unpadded / Maxval(grid_unpadded) - 1d0
+
+    ! Stretch the unpadded grid
+    grid_unpadded = dtanh(alpha_stretch * grid_unpadded) / dtanh(alpha_stretch)
+
+    ! Compute the smallest spacing of the unpadded grid
+    ds_min_unscaled = grid_unpadded(2) - grid_unpadded(1)
+    
+    ! Compute the smallest spacing of the final scaled grid such that the stretched portion plus two half-buffers cover L
+    ds_min_scaled = L * ds_min_unscaled / (2 + (n_uniform - 1) * ds_min_unscaled)
+
+    ! Create the scaled grid
+    grid(n_uniform : n_total - n_uniform + 1) = grid_unpadded * ds_min_scaled / ds_min_unscaled
+    Do i = 2, n_uniform
+      grid(n_total - n_uniform + i) = grid(n_total - n_uniform + i - 1) + ds_min_scaled
+      grid(n_uniform - i + 1) = grid(n_uniform - i + 2) - ds_min_scaled
+    End Do
+
+  End Subroutine create_stretched_grid
 
   !------------------------------------------------!
   !    Generates an initial condition for channel  !
