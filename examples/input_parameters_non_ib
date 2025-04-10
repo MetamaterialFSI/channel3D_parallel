@@ -18,9 +18,10 @@
 	nstats = 100
 	nmonitor = 10 
 	filein = 'channel180_minchan.9999000'
-	fileout = 'channel_output/test'
+	fileout = 'channel_output_non_ib/test'
 	! first number for output flow field
 	nstep_init = 0
-	! random initial condition 0->no (reads previous file), 1->yes
-	random_init = 1
+	init_type = 2, ! (0->reads previous file, 1->zero, 2->random)
+	grid_type = 1, ! (0->uniform, 1->stretched)
+	body_type = 0, ! (0->no body)
 /

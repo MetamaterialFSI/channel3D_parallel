@@ -1,0 +1,29 @@
+&params
+	! domain size
+	nx_global = 8
+	ny_global = 34
+	nz_global = 8
+	nxb = 6
+	nzb = 6
+	! (positive->CFL, negative->timestep size)
+	CFL = -0.1
+	! viscosity
+	nu = 3.076923076923077e-04 
+	! Pressure gradient
+	dPdx = 0.003275394114261
+	dPdz = 0.000000000000 
+	x_mass_cte = 0 ! (0->use dPdx, 1->constant mass flow)
+	y_mass_cte = 0
+	! nsteps, nsave, nstats, nmonitor
+	nsteps = 10
+	nsave = 1000
+	nstats = 1000
+	nmonitor = 100
+	filein = ''
+	fileout = 'channel_output_ib_planar_wall/test'
+	! first number for output flow field
+	nstep_init = 0
+	init_type = 1, ! (0->reads previous file, 1->zero, 2->random)
+	grid_type = 0, ! (0->uniform, 1->stretched)
+	body_type = 1, ! (0->no body, 1->planar wall)
+/

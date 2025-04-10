@@ -10,6 +10,8 @@ Module time_integration
   Use projection
   Use boundary_conditions
   Use mass_flow
+  Use immersed_boundary_geometry
+  Use immersed_boundary_operators
 
   ! prevent implicit typing
   Implicit None
@@ -51,20 +53,20 @@ Contains
     t = t + dt
 
     ! boundary conditions
-    Call apply_boundary_conditions
+    Call apply_boundary_conditions(U, V, W)
     
     ! projection step
-    Call compute_projection_step
+    Call compute_non_IB_projection
     
     ! boundary conditions
-    Call apply_boundary_conditions
+    Call apply_boundary_conditions(U, V, W)
 
     ! compute mean pressure gradient for constant mass flow in x
     If ( x_mass_cte == 1 ) Then
        Call compute_dPx_for_constant_mass_flow(U,dPdx)
        U(2:nx-1,2:nyg-1,2:nzg-1) = U(2:nx-1,2:nyg-1,2:nzg-1) + dPdx
        dPdx = dPdx/dt ! to be used later by rhs_*
-       Call apply_boundary_conditions
+       Call apply_boundary_conditions(U, V, W)
     End If
 
     ! compute mean pressure gradient for constant mass flow in y
@@ -72,7 +74,7 @@ Contains
        Call compute_dPy_for_constant_mass_flow(V,dPdy)
        V(2:nxg-1,1:ny,2:nzg-1) = V(2:nxg-1,1:ny,2:nzg-1) + dPdy
        dPdy = dPdy/dt ! to be used later by rhs_*
-       Call apply_boundary_conditions
+       Call apply_boundary_conditions(U, V, W)
     End If
 
   End Subroutine compute_time_step_Euler
@@ -90,8 +92,8 @@ Contains
     Vo = V
     Wo = W
 
-    Vw(:,1,:) = -V(:,24,:)
-    Vw(:,2,:) = -V(:,ny-23,:)
+    ! Vw(:,1,:) = -V(:,24,:)
+    ! Vw(:,2,:) = -V(:,ny-23,:)
 
     ! step 1
     rk_step = 1
@@ -104,12 +106,22 @@ Contains
     W(2:nxg-1,2:nyg-1,2:nz-1) = Wo(2:nxg-1,2:nyg-1,2:nz-1) + dt*rk_coef(1,1)*Fw1
     t = to + rk_t(rk_step)*dt
 
-    Call apply_boundary_conditions
-    Call compute_projection_step
-    Call apply_boundary_conditions
+    ! update body point positions and velocities if body is moving
+    If ( moving_body ) Then
+      call setup_IB_geometry
+      call setup_IB_operators
+    End If
 
-    Vw(:,1,:) = -V(:,24,:)
-    Vw(:,2,:) = -V(:,ny-23,:)
+    Call apply_boundary_conditions(U, V, W)
+    Call compute_non_IB_projection
+    If ( body_type > 0 ) Then
+      Call apply_boundary_conditions(U, V, W)
+      Call compute_IB_projection
+    End If
+    Call apply_boundary_conditions(U, V, W)
+
+    ! Vw(:,1,:) = -V(:,24,:)
+    ! Vw(:,2,:) = -V(:,ny-23,:)
 
     ! step 2
     rk_step = 2
@@ -122,12 +134,22 @@ Contains
     W(2:nxg-1,2:nyg-1,2:nz-1) = Wo(2:nxg-1,2:nyg-1,2:nz-1) + dt*( rk_coef(2,1)*Fw1 + rk_coef(2,2)*Fw2 )
     t = to + rk_t(rk_step)*dt
 
-    Call apply_boundary_conditions
-    Call compute_projection_step
-    Call apply_boundary_conditions
+    ! update body point positions and velocities if body is moving
+    If ( moving_body ) Then
+      call setup_IB_geometry
+      call setup_IB_operators
+    End If
 
-    Vw(:,1,:) = -V(:,24,:)
-    Vw(:,2,:) = -V(:,ny-23,:)
+    Call apply_boundary_conditions(U, V, W)
+    Call compute_non_IB_projection
+    If ( body_type > 0 ) Then
+      Call apply_boundary_conditions(U, V, W)
+      Call compute_IB_projection
+    End If
+    Call apply_boundary_conditions(U, V, W)
+
+    ! Vw(:,1,:) = -V(:,24,:)
+    ! Vw(:,2,:) = -V(:,ny-23,:)
 
     ! step 3
     rk_step = 3
@@ -143,16 +165,26 @@ Contains
          dt*( rk_coef(3,1)*Fw1 + rk_coef(3,2)*Fw2 + rk_coef(3,3)*Fw3 )
     t = to + rk_t(rk_step)*dt
 
-    Call apply_boundary_conditions
-    Call compute_projection_step
-    Call apply_boundary_conditions
+    ! update body point positions and velocities if body is moving
+    If ( moving_body ) Then
+      call setup_IB_geometry
+      call setup_IB_operators
+    End If
+
+    Call apply_boundary_conditions(U, V, W)
+    Call compute_non_IB_projection
+    If ( body_type > 0 ) Then
+      Call apply_boundary_conditions(U, V, W)
+      Call compute_IB_projection
+    End If
+    Call apply_boundary_conditions(U, V, W)
 
     ! compute mean pressure gradient for constant mass flow in x
     If ( x_mass_cte == 1 ) Then
        Call compute_dPx_for_constant_mass_flow(U,dPdx)
        U(2:nx-1,2:nyg-1,2:nzg-1) = U(2:nx-1,2:nyg-1,2:nzg-1) + dPdx
        dPdx = dPdx/dt ! to be used later by rhs_*
-       Call apply_boundary_conditions
+       Call apply_boundary_conditions(U, V, W)
     End If
 
     ! compute mean pressure gradient for constant mass flow in y
@@ -160,7 +192,7 @@ Contains
        Call compute_dPy_for_constant_mass_flow(V,dPdy)
        V(2:nxg-1,2:ny-1,2:nzg-1) = V(2:nxg-1,2:ny-1,2:nzg-1) + dPdy
        dPdy = dPdy/dt ! to be used later by rhs_*
-       Call apply_boundary_conditions
+       Call apply_boundary_conditions(U, V, W)
     End If
 
   End Subroutine compute_time_step_RK3

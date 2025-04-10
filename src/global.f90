@@ -17,7 +17,7 @@ Module global
   !------------------Declarations-----------------!
 
   ! declarations
-  Integer(Int32) :: ierr, myid, nprocs, nslices_z
+  Integer(Int32) :: ierr, myid, nprocs, nslices_z, provided
   Integer        :: istat ( MPI_STATUS_SIZE )
 
   ! global faces index range for each processor
@@ -37,8 +37,11 @@ Module global
   Character(200) :: filein, fileout, fileparams
   Integer(Int32) :: nsave, nmonitor
 
-  ! set random initial condition
-  Integer(Int32) :: random_init
+  ! initial condition
+  Integer(Int32) :: init_type
+
+  ! grid type
+  Integer(Int32) :: grid_type, n_uniform
 
   ! domain size
   Real(Int64) :: Lx, Lz, Ly, Lxp, Lzp
@@ -94,6 +97,9 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: Uo,Vo,Wo,Po
   Real(Int64), Allocatable, Dimension(:,:,:) :: Uoo,Voo,Woo,Poo
   Real(Int64), Allocatable, Dimension(:,:,:) :: Vw 
+  Real(Int64), Allocatable, Dimension(:,:,:) :: U_global, V_global, W_global
+  Real(Int64), Allocatable, Dimension(:,:,:) :: U_reg, V_reg, W_reg
+  Real(Int64), Allocatable, Dimension(:,:,:) :: U_interim, V_interim, W_interim, P_interim
 
   ! local auxiliary 
   Real(Int64), Allocatable, Dimension(:,:,:) :: term_1, term_2
@@ -104,8 +110,8 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: rhs_uo, rhs_vo, rhs_wo
   Real(Int64), Allocatable, Dimension(:,:,:) :: rhs_uf, rhs_vf, rhs_wf
 
-  ! local rhs for pressure in Fourier
-  Complex(Int64), Dimension(:,:,:), Allocatable :: rhs_p_hat
+  ! local rhs for Poisson in Fourier
+  Complex(Int64), Dimension(:,:,:), Allocatable :: rhs_hat
   Complex(Int64), Dimension(:),     Allocatable :: rhs_aux
 
   ! local auxiliary arrays for MPI_sendrev boundary conditions
@@ -178,5 +184,58 @@ Module global
   Real(Int64), Dimension(:,:,:), Allocatable :: Fu1, Fu2, Fu3
   Real(Int64), Dimension(:,:,:), Allocatable :: Fv1, Fv2, Fv3
   Real(Int64), Dimension(:,:,:), Allocatable :: Fw1, Fw2, Fw3
+
+  ! body mode
+  Integer(Int32) :: body_type
+  Logical(Int32) :: moving_body
+
+  ! body points
+  Integer(Int32) :: nb, nxb, nzb
+  Integer(Int32) :: nb_start, nb_end
+  Real   (Int64) :: dxb, dzb
+  Real   (Int64), Dimension(:), Allocatable :: xb, yb, zb
+
+  ! array containing an index for each body point of a y grid point that is part of a
+  ! uniform grid patch containing the body point
+  Integer(Int32), Dimension(:), Allocatable :: y_ref_index
+
+  ! body parameters
+  Real(Int64) :: body_param_1, body_param_2, body_param_3
+
+  ! body surface areas
+  Real(Int64), Dimension(:), Allocatable :: sb ! body face areas interpolated to body nodes
+
+  ! body velocity
+  Real(Int64), Dimension(:), Allocatable :: ub
+
+  ! body normals
+  Real(Int64), Dimension(:), Allocatable :: normals, tangents_1, tangents_2
+
+  ! immersed body forcing
+  Real(Int64), Dimension(:), Allocatable :: fb
+
+  ! immersed boundary operator variables
+  Integer(Int32), Dimension(:), Allocatable :: send_counts_U, displs_U
+  Integer(Int32), Dimension(:), Allocatable :: send_counts_V, displs_V
+  Integer(Int32), Dimension(:), Allocatable :: send_counts_W, displs_W
+  Integer(Int32), Dimension(:), Allocatable :: send_counts_weights, displs_weights
+  Integer(Int32) :: local_size_U, local_size_V, local_size_W, local_size_nb
+
+  ! regularization and interpolation support, weights, and indices
+  Integer(Int32), parameter :: suppx = 2
+  Integer(Int32), parameter :: suppy = 2
+  Integer(Int32), parameter :: suppz = 2
+  Integer(Int32), parameter :: nweights = (2 * suppx + 1) * (2 * suppy + 1) * (2 * suppz + 1)
+  Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights
+  Integer(Int32), Dimension(:,:),   Allocatable :: u_x_indices, u_y_indices, u_z_indices
+  Integer(Int32), Dimension(:,:),   Allocatable :: v_x_indices, v_y_indices, v_z_indices
+  Integer(Int32), Dimension(:,:),   Allocatable :: w_x_indices, w_y_indices, w_z_indices
+  Integer(Int32), Dimension(:),     Allocatable :: x_pivot_index, xm_pivot_index
+  Integer(Int32), Dimension(:),     Allocatable :: y_pivot_index, ym_pivot_index
+  Integer(Int32), Dimension(:),     Allocatable :: z_pivot_index, zm_pivot_index
+
+  ! immersed body auxilliary variables
+  Real(Int64), Dimension(:),     Allocatable :: aux_surface_scalar, aux_surface_vector, rhs_ib
+  Real(Int64), Dimension(:,:,:), Allocatable :: Fibu, Fibv, Fibw
   
 End Module global

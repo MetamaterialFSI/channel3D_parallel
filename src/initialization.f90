@@ -10,6 +10,7 @@ Module initialization
   Use mpi
   Use input_output
   Use mass_flow
+  Use immersed_boundary_geometry
 
   ! prevent implicit typing
   Implicit None
@@ -18,7 +19,7 @@ Module initialization
 Contains
 
   !----------------------------------------!
-  !         Initialize everything          !
+  !      Initialize flow variables         !
   !----------------------------------------!
   Subroutine initialize
     
@@ -94,7 +95,7 @@ Contains
     nzme = nzm
     Call Mpi_bcast (  nze,1,MPI_integer,nprocs-1,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( nzme,1,MPI_integer,nprocs-1,MPI_COMM_WORLD,ierr )
-   
+
     ! Allocate main arrays
     If ( myid==0 ) Write(*,*) 'allocating main arrays...'
     Allocate ( x_global (  nx_global),  y_global (  ny_global),  z_global (  nz_global)  )
@@ -107,7 +108,7 @@ Contains
 
     Allocate ( yg_m (nyg-1) )
     Allocate ( yg_mm(nyg-2) )
-    
+
     ! global interior + boundary + ghost points
     Allocate (U (    nx, nym+2, nzm+2) )
     Allocate (V ( nxm+2,    ny, nzm+2) )
@@ -126,6 +127,17 @@ Contains
        Allocate (Poo ( nxm+2,  nym+2, nzme+2) )
     End If
 
+    ! arrays for accepting regularized body distributions
+    Allocate (U_reg  (    nx,  nym+2, nzm+2) )
+    Allocate (V_reg  ( nxm+2,     ny, nzm+2) )
+    Allocate (W_reg  ( nxm+2,  nym+2,    nz) )
+
+    ! arrays for storing intermediate velocity fields in the projection method
+    Allocate (U_interim  (    nx,  nym+2, nzm+2) )
+    Allocate (V_interim  ( nxm+2,     ny, nzm+2) )
+    Allocate (W_interim  ( nxm+2,  nym+2,    nz) )
+    Allocate (P_interim  ( nxm+2,  nym+2, nzm+2) )
+
     Allocate (Vw ( nxm+2, 2, nzm+2) )
 
     ! Auxiliary arrays
@@ -142,16 +154,12 @@ Contains
        Allocate ( rhs_vf  ( 1:nxg  , 1:ny  ,  1:nzg   ) )
        Allocate ( rhs_wf  ( 1:nxg  , 1:nyg  , 1:nz    ) )
     End If
-    
+
     ! read data 
     If ( myid==0 ) Write(*,*) 'preparing initial condition...'
-    If ( random_init==1 ) Then
-       Call init_flow
-    Else
-       Call read_input_data
-    End If
+    Call init_flow
 
-    ! definie global grids from x_global, y_global and z_global (face to centers)
+    ! define global grids from x_global, y_global and z_global (face to centers)
     ! local faces
     x = x_global
     y = y_global
@@ -206,6 +214,43 @@ Contains
     Ly = y_global(ny_global) - y_global(1)
     Lz = z_global(nz_global) - z_global(1)
 
+    ! For initial IB implementation only!
+    If ( body_type > 0) Then
+      If ( myid==0 ) Then
+        Write(*,*) "Allocating space for global U,V,W data for IB operations. Keep this only for debugging!"
+        Allocate( U_global(nx_global,  nyg_global, nzg_global) )
+        Allocate( V_global(nxg_global, ny_global,  nzg_global) )
+        Allocate( W_global(nxg_global, nyg_global, nz_global ) )
+        Allocate( send_counts_U(nprocs), displs_U(nprocs) )
+        Allocate( send_counts_V(nprocs), displs_V(nprocs) )
+        Allocate( send_counts_W(nprocs), displs_W(nprocs) )
+      End If
+
+      local_size_U = nx * nyg * nzm
+      local_size_V = nxg * ny * nzm
+      local_size_W = nxg * nyg * (nz-2)
+
+      ! Gather send_counts
+      Call MPI_Gather(local_size_U, 1, MPI_INT, send_counts_U, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      Call MPI_Gather(local_size_V, 1, MPI_INT, send_counts_V, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      Call MPI_Gather(local_size_W, 1, MPI_INT, send_counts_W, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+
+      If (myid == 0) Then
+        displs_U(1) = 0
+        displs_V(1) = 0
+        displs_W(1) = 0
+        Do i = 2, nprocs
+          displs_U(i) = displs_U(i-1) + send_counts_U(i-1)
+          displs_V(i) = displs_V(i-1) + send_counts_V(i-1)
+          displs_W(i) = displs_W(i-1) + send_counts_W(i-1)
+        End Do
+      End If
+
+    Else
+      Allocate( U_global(1,1,1) )
+      Allocate( V_global(1,1,1) )
+      Allocate( W_global(1,1,1) )
+    End If
 
     !--------------------------Boundary conditions--------------------------!
     ! local velocity, initial z-planes
@@ -260,7 +305,7 @@ Contains
     cplane_fft = fftw_alloc_complex(alloc_local)
     Call c_f_pointer(cplane_fft,plane,[nxp,nzp])
     plane_hat(0:,0:) => plane
-    Allocate ( rhs_p_hat ( 0:mx, 2:nyg-1, 0:mz ) )
+    Allocate ( rhs_hat ( 0:mx, 2:nyg-1, 0:mz ) )
     Allocate ( rhs_aux   ( 2:nyg-1 ) )
    
     ! create MPI plan for forward DFT (note dimension reversal and transposed_out/in)
@@ -426,5 +471,80 @@ Contains
     time1 = MPI_WTIME()
     
   End Subroutine initialize
+
+  Subroutine initialize_ib_arrays
+    !--------------------Initialize main arrays-------------------!    
+    If ( myid==0 ) Write(*,*) 'allocating main IB arrays...'
+    ! Number of body points
+    Call compute_nb
+
+    ! Body coordinates
+    Allocate ( xb (  nb), yb (  nb), zb (  nb) )
+
+    ! Wall normal reference coordinate and index
+    Allocate ( y_ref_index (  nb) )
+
+    ! Body areas
+    Allocate(sb (nb) )
+
+    ! Body forcing
+    Allocate (fb(3*nb) )
+    fb = 0d0
+
+    ! Body velocity
+    Allocate (ub (3 * nb) )
+    ub = 0d0
+
+    ! Body normals and tangents
+    Allocate (normals (3 * nb) )
+    Allocate (tangents_1 (3 * nb) )
+    Allocate (tangents_2 (3 * nb) )
+    normals= 0d0
+    tangents_1= 0d0
+    tangents_2= 0d0
+
+    ! Auxiliary surface arrays
+    Allocate ( rhs_ib (3 * nb) )
+    Allocate ( aux_surface_vector (3 * nb) )
+    Allocate ( aux_surface_scalar (nb) )
+    rhs_ib = 0d0
+    aux_surface_vector = 0d0
+    aux_surface_scalar = 0d0
+    Allocate ( Fibu (nx,nyg,nzg) )
+    Allocate ( Fibv (nxg,ny,nzg) )
+    Allocate ( Fibw (nxg,nyg,nz) )
+
+    !--------------------Initialize IB operator variables-------------------!    
+
+    Allocate ( x_pivot_index  (nb) )
+    Allocate ( xm_pivot_index (nb) )
+    Allocate ( y_pivot_index  (nb) )
+    Allocate ( ym_pivot_index (nb) )
+    Allocate ( z_pivot_index  (nb) )
+    Allocate ( zm_pivot_index (nb) )
+    
+    Allocate ( u_weights  ( nweights, nb) )
+    Allocate ( u_x_indices( nweights, nb) )
+    Allocate ( u_y_indices( nweights, nb) )
+    Allocate ( u_z_indices( nweights, nb) )
+    
+    Allocate ( v_weights  ( nweights, nb) )
+    Allocate ( v_x_indices( nweights, nb) )
+    Allocate ( v_y_indices( nweights, nb) )
+    Allocate ( v_z_indices( nweights, nb) )
+    
+    Allocate ( w_weights  ( nweights, nb) )
+    Allocate ( w_x_indices( nweights, nb) )
+    Allocate ( w_y_indices( nweights, nb) )
+    Allocate ( w_z_indices( nweights, nb) )
+
+    If ( myid==0 ) Then
+      Allocate( send_counts_weights(nprocs), displs_weights(nprocs) )
+    End If
+
+    !-------------------------Done--------------------------------!
+    Call Mpi_barrier(MPI_COMM_WORLD,ierr)
+
+  End Subroutine
   
 End Module initialization
