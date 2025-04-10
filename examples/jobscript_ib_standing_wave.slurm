@@ -3,10 +3,10 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=2
 #SBATCH --cpus-per-task=1
-#SBATCH --time=2:00:00
+#SBATCH --time=8:00:00
 
 #SBATCH --job-name=channel_trial
-#SBATCH --output=status_standing_wave.out
+#SBATCH --output=status_ib_standing_wave.out
 
 module load openmpi
 
