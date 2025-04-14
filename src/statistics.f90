@@ -129,6 +129,58 @@ Contains
        ! write statistics
        Call output_statistics
 
+       ! write statistics of speed
+       if (myid .eq. 0) Then
+         IB_geo =IB_geo/3
+         IB_op =IB_op/3
+         non_IB_proj=non_IB_proj/3
+         E_1st=E_1st/3
+         IB_force=IB_force/3
+         R_1st=R_1st/3
+         D_1st=D_1st/3
+         IB_possion=IB_possion/3
+         proj_1st=proj_1st/3
+         grad_1st=grad_1st/3
+         proj_2nd=proj_2nd/3
+         !WRITE(*,*) 'write output stats'
+         tmp_t=t+REAL(nstep_init)*dt
+         !WRITE(*,*) 'tmp_t=',tmp_t
+         time_matrix(store_index,1)=tmp_t
+         time_matrix(store_index,2)=IB_geo 
+         time_matrix(store_index,3)=IB_op 
+         time_matrix(store_index,4)=non_IB_proj 
+         time_matrix(store_index,5)=E_1st 
+         time_matrix(store_index,6)=IB_force 
+         time_matrix(store_index,7)=R_1st 
+         time_matrix(store_index,8)=D_1st 
+         time_matrix(store_index,9)=IB_possion 
+         time_matrix(store_index,10)=proj_1st 
+         time_matrix(store_index,11)=grad_1st 
+         time_matrix(store_index,12)=proj_2nd 
+         !WRITE(*,*) 't,tau_w=',tau_w_log(store_index,1),tau_w_log(store_index,2)
+         if (store_index .eq. 1000 .or. istep .eq. nsteps) then
+           Call output_time
+           store_index=1
+         elseif ( istep==1) then
+          Call output_time
+          !store_index=store_index+1
+          store_index=1
+         else
+           store_index=store_index+1
+         end if
+         IB_geo =0.d0
+         IB_op =0.d0
+         non_IB_proj=0.d0
+         E_1st=0.d0
+         IB_force=0.d0 
+         R_1st=0.d0
+         D_1st=0.d0
+         IB_possion=0.d0
+         proj_1st=0.d0
+         grad_1st=0.d0
+         proj_2nd=0.d0
+       end if
+
        ! Sanity check 
        If ( Any( Isnan(U) ) ) Stop 'Error: NaNs!'
        If ( Any( Isnan(V) ) ) Stop 'Error: NaNs!'

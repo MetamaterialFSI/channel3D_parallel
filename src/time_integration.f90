@@ -108,12 +108,21 @@ Contains
 
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
+      prev_time = MPI_WTIME()
       call setup_IB_geometry
+      last_time = MPI_WTIME()
+      IB_geo = IB_geo+last_time-prev_time
+      prev_time = last_time
       call setup_IB_operators
+      last_time = MPI_WTIME()
+      IB_op = IB_op+last_time-prev_time
     End If
 
+    prev_time = last_time
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
+    last_time = MPI_WTIME()
+    non_IB_proj = non_IB_proj+last_time-prev_time
     If ( body_type > 0 ) Then
       Call apply_boundary_conditions(U, V, W)
       Call compute_IB_projection
@@ -134,14 +143,24 @@ Contains
     W(2:nxg-1,2:nyg-1,2:nz-1) = Wo(2:nxg-1,2:nyg-1,2:nz-1) + dt*( rk_coef(2,1)*Fw1 + rk_coef(2,2)*Fw2 )
     t = to + rk_t(rk_step)*dt
 
+    
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
+      prev_time = MPI_WTIME()
       call setup_IB_geometry
+      last_time = MPI_WTIME()
+      IB_geo = IB_geo+last_time-prev_time
+      prev_time = last_time
       call setup_IB_operators
+      last_time = MPI_WTIME()
+      IB_op = IB_op+last_time-prev_time
     End If
 
+    prev_time = last_time
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
+    last_time = MPI_WTIME()
+    non_IB_proj = non_IB_proj+last_time-prev_time
     If ( body_type > 0 ) Then
       Call apply_boundary_conditions(U, V, W)
       Call compute_IB_projection
@@ -165,14 +184,24 @@ Contains
          dt*( rk_coef(3,1)*Fw1 + rk_coef(3,2)*Fw2 + rk_coef(3,3)*Fw3 )
     t = to + rk_t(rk_step)*dt
 
+    
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
+      prev_time = MPI_WTIME()
       call setup_IB_geometry
+      last_time = MPI_WTIME()
+      IB_geo = IB_geo+last_time-prev_time
+      prev_time = last_time
       call setup_IB_operators
+      last_time = MPI_WTIME()
+      IB_op = IB_op+last_time-prev_time
     End If
 
+    prev_time = last_time
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
+    last_time = MPI_WTIME()
+    non_IB_proj = non_IB_proj+last_time-prev_time
     If ( body_type > 0 ) Then
       Call apply_boundary_conditions(U, V, W)
       Call compute_IB_projection

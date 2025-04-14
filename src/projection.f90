@@ -45,33 +45,59 @@ Contains
   Subroutine compute_IB_projection
 
     ! - E u* + ub 
+    prev_time = last_time
     rhs_ib = -regT(U, V, W) + ub
+    last_time = MPI_WTIME()
+    E_1st = E_1st+last_time-prev_time
 
     ! solve for IB forcing
+    prev_time = last_time
     call bicgstab(fb, rhs_ib)
+    last_time = MPI_WTIME()
+    IB_force = IB_force +last_time-prev_time
 
     ! U_reg = R f
+    prev_time = last_time
     Call regu(U_reg, fb)
     Call regv(V_reg, fb)
     Call regw(W_reg, fb)
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
+    last_time = MPI_WTIME()
+    R_1st = R_1st +last_time-prev_time
+
 
     ! rhs_p = D R f
+    prev_time = last_time
     Call divergence(rhs_p, U_reg, V_reg, W_reg)
+    last_time = MPI_WTIME()
+    D_1st = D_1st +last_time-prev_time
+
+    prev_time = last_time
     Call solve_poisson_equation(rhs_p)
+    last_time = MPI_WTIME()
+    IB_possion = IB_possion +last_time-prev_time
 
     ! Pnp1 = P* - Linv D R f
+    prev_time = last_time
     rhs_p = P_interim - rhs_p
+    last_time = MPI_WTIME()
+    proj_1st = proj_1st +last_time-prev_time
 
     ! U, V, W = G Pnp1
+    prev_time = last_time
     call gradient(U, V, W, rhs_p)
+    last_time = MPI_WTIME()
+    grad_1st = grad_1st +last_time-prev_time
 
     ! Unp1 = U** - R f - G Pnp1
+    prev_time = last_time
     U = U_interim - U_reg - U
     V = V_interim - V_reg - V
     W = W_interim - W_reg - W
 
     Call apply_boundary_conditions(U, V, W)
+    last_time = MPI_WTIME()
+    proj_2nd = proj_2nd +last_time-prev_time
 
   End Subroutine compute_IB_projection
 
