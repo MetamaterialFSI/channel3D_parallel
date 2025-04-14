@@ -23,7 +23,7 @@ Contains
 
     Integer(Int32) :: jj
     Real   (Int64) :: dUdy_wall_b, dUdy_wall_t
-    Real   (Int64) ::   UV_wall_b,   UV_wall_t
+    Real   (Int64) ::   UV_wall_b,   UV_wall_t, tmp_t
 
     ! if pressure not computed 
     pressure_computed = .False.

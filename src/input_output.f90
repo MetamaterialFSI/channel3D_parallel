@@ -644,7 +644,7 @@ Contains
 
     Character(200) :: fname
     Character(8)   :: ext
-    Integer(Int32) :: i
+    Integer(Int32) :: i,j
  
     If ( myid==0 ) Then
  
@@ -667,6 +667,6 @@ Contains
  
     End If
  
-  End Subroutine output_response
+  End Subroutine output_time
 
 End Module input_output
