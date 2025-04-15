@@ -88,7 +88,7 @@ Contains
         sb = dxb * dzb 
 
       Case (2) ! Double rotating cylinders
-        moving_body = .False.
+        moving_body = .True. ! should be False, but set to True for speed test
         nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
         nb_end = 0         ! Initialize to the lowest possible index
         y_ref_index = 1 ! The grid has to be uniform for this case, so it doesn't matter what y_ref_index is
