@@ -53,6 +53,7 @@ Contains
 
       utau_    = dPdx**0.5d0
       dPdx_ref = dPdx
+      store_index = 1
 
       Print params
        
@@ -103,14 +104,14 @@ Contains
     n_uniform = 1
 
     Do i=1,nx_global
-       x_global(i) = Real(i-1,8)*0.2d0
+       x_global(i) = Real(i-1,8)
     End Do
-    x_global = 1d0*x_global/x_global(nx_global-1)
+    x_global = 4d0*x_global/x_global(nx_global-1)
 
     Do i=1,nz_global
-       z_global(i) = Real(i-1,8)*0.1d0
+       z_global(i) = Real(i-1,8)
     End Do
-    z_global = 1d0*z_global/z_global(nz_global-1)
+    z_global = 0.25d0*z_global/z_global(nz_global-1)
 
     Select Case (grid_type)
       Case (0) ! Uniform grid
@@ -118,7 +119,7 @@ Contains
         Do i=1,ny_global
            y_global(i) = Real(i-1,8)*0.3d0
         End Do
-        y_global = 2d0*y_global/Maxval(y_global)
+        y_global = 4d0*y_global/Maxval(y_global)
 
       Case (1) ! Stretched grid wall to wall
         If ( myid==0 ) Write(*,*) 'Generating stretched y grid'
@@ -660,7 +661,9 @@ Contains
 
        
        Do i=1,store_index
-        Write(35,'(999F15.8)') (time_matrix(i,j), j=1,12)
+        !Write(33,'(999F15.8)') (time_matrix(i,j), j=1,12)
+        Write(33,'(999E15.8)') (time_matrix(i,j), j=1,12)
+
        End do
        
        Close(33)

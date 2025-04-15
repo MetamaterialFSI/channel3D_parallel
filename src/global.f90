@@ -241,7 +241,8 @@ Module global
   ! variables for speed test
   Real(Int64),    Dimension(:,:),   Allocatable :: time_matrix
   Real(Int64) :: prev_time, last_time ! for calculate time interval
-  Real(Int64) ::IB_geo, IB_op,non_IB_proj,E_1st, IB_force, R_1st, D_1st, IB_possion, proj_1st, grad_1st,proj_2nd
+  Real(Int64) ::IB_geo, IB_op,non_IB_proj,E_1st, IB_force, R_1st, D_1st, IB_possion, proj_1st, grad_1st,proj_2nd,apply_bc
+  Integer(Int32) ::RK1_iter, RK2_iter,RK3_iter
   Integer(Int32) :: store_index
   
 End Module global

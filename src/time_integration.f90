@@ -112,13 +112,13 @@ Contains
       call setup_IB_geometry
       last_time = MPI_WTIME()
       IB_geo = IB_geo+last_time-prev_time
-      prev_time = last_time
+      prev_time = MPI_WTIME()
       call setup_IB_operators
       last_time = MPI_WTIME()
       IB_op = IB_op+last_time-prev_time
     End If
 
-    prev_time = last_time
+    prev_time = MPI_WTIME()
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
     last_time = MPI_WTIME()
@@ -127,7 +127,10 @@ Contains
       Call apply_boundary_conditions(U, V, W)
       Call compute_IB_projection
     End If
+    prev_time = MPI_WTIME()
     Call apply_boundary_conditions(U, V, W)
+    last_time = MPI_WTIME()
+    apply_bc=apply_bc+last_time-prev_time
 
     ! Vw(:,1,:) = -V(:,24,:)
     ! Vw(:,2,:) = -V(:,ny-23,:)
@@ -150,13 +153,13 @@ Contains
       call setup_IB_geometry
       last_time = MPI_WTIME()
       IB_geo = IB_geo+last_time-prev_time
-      prev_time = last_time
+      prev_time = MPI_WTIME()
       call setup_IB_operators
       last_time = MPI_WTIME()
       IB_op = IB_op+last_time-prev_time
     End If
 
-    prev_time = last_time
+    prev_time = MPI_WTIME()
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
     last_time = MPI_WTIME()
@@ -165,7 +168,10 @@ Contains
       Call apply_boundary_conditions(U, V, W)
       Call compute_IB_projection
     End If
+    prev_time = MPI_WTIME()
     Call apply_boundary_conditions(U, V, W)
+    last_time = MPI_WTIME()
+    apply_bc=apply_bc+last_time-prev_time
 
     ! Vw(:,1,:) = -V(:,24,:)
     ! Vw(:,2,:) = -V(:,ny-23,:)
@@ -191,13 +197,13 @@ Contains
       call setup_IB_geometry
       last_time = MPI_WTIME()
       IB_geo = IB_geo+last_time-prev_time
-      prev_time = last_time
+      prev_time = MPI_WTIME()
       call setup_IB_operators
       last_time = MPI_WTIME()
       IB_op = IB_op+last_time-prev_time
     End If
 
-    prev_time = last_time
+    prev_time = MPI_WTIME()
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
     last_time = MPI_WTIME()
@@ -206,7 +212,10 @@ Contains
       Call apply_boundary_conditions(U, V, W)
       Call compute_IB_projection
     End If
+    prev_time = MPI_WTIME()
     Call apply_boundary_conditions(U, V, W)
+    last_time = MPI_WTIME()
+    apply_bc=apply_bc+last_time-prev_time
 
     ! compute mean pressure gradient for constant mass flow in x
     If ( x_mass_cte == 1 ) Then

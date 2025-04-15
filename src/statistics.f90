@@ -142,6 +142,7 @@ Contains
          proj_1st=proj_1st/3
          grad_1st=grad_1st/3
          proj_2nd=proj_2nd/3
+         apply_bc = apply_bc/3
          !WRITE(*,*) 'write output stats'
          tmp_t=t+REAL(nstep_init)*dt
          !WRITE(*,*) 'tmp_t=',tmp_t
@@ -157,6 +158,10 @@ Contains
          time_matrix(store_index,10)=proj_1st 
          time_matrix(store_index,11)=grad_1st 
          time_matrix(store_index,12)=proj_2nd 
+         time_matrix(store_index,13)=apply_bc 
+         time_matrix(store_index,14)=RK1_iter 
+         time_matrix(store_index,15)=RK2_iter 
+         time_matrix(store_index,16)=RK3_iter 
          !WRITE(*,*) 't,tau_w=',tau_w_log(store_index,1),tau_w_log(store_index,2)
          if (store_index .eq. 1000 .or. istep .eq. nsteps) then
            Call output_time
@@ -179,6 +184,10 @@ Contains
          proj_1st=0.d0
          grad_1st=0.d0
          proj_2nd=0.d0
+         apply_bc=0.d0
+         RK1_iter=0
+         RK2_iter=0
+         RK3_iter=0
        end if
 
        ! Sanity check 
