@@ -86,6 +86,7 @@ Contains
 
     Real(Int64) :: to
 
+    prev_time_total = MPI_WTIME()
     ! save previous state
     to = t
     Uo = U
@@ -232,6 +233,9 @@ Contains
        dPdy = dPdy/dt ! to be used later by rhs_*
        Call apply_boundary_conditions(U, V, W)
     End If
+    last_time_total = MPI_WTIME()
+    total_time = last_time_total-prev_time_total
+    
 
   End Subroutine compute_time_step_RK3
 

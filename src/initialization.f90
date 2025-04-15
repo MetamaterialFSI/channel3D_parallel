@@ -546,7 +546,7 @@ Contains
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)
 
     ! Measure time
-    Allocate ( time_matrix( 1000, 16) )
+    Allocate ( time_matrix( 1000, 17) )
     prev_time = MPI_WTIME()
     IB_geo =0.d0
     IB_op =0.d0

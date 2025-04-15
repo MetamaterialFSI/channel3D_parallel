@@ -162,6 +162,7 @@ Contains
          time_matrix(store_index,14)=RK1_iter 
          time_matrix(store_index,15)=RK2_iter 
          time_matrix(store_index,16)=RK3_iter 
+         time_matrix(store_index,17)=total_time
          !WRITE(*,*) 't,tau_w=',tau_w_log(store_index,1),tau_w_log(store_index,2)
          if (store_index .eq. 1000 .or. istep .eq. nsteps) then
            Call output_time
@@ -188,6 +189,7 @@ Contains
          RK1_iter=0
          RK2_iter=0
          RK3_iter=0
+         total_time=0.d0
        end if
 
        ! Sanity check 
