@@ -95,8 +95,8 @@ Contains
 
         r1 = body_param_1
         r2 = body_param_2
-        xc = 0.5d0
-        yc = 1.0d0
+        xc = 2.d0
+        yc = 2.0d0
         nxb1 = Int(2 * 3.14159 * r1 / dxb)
         nxb2 = Int(2 * 3.14159 * r2 / dxb)
         nxb = nxb1 + nxb2
