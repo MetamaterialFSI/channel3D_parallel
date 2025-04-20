@@ -1,12 +1,12 @@
 &params
 	! domain size
-	nx_global = 34
-	ny_global = 33
+	nx_global = 66
+	ny_global = 66
 	nz_global = 66
 	nxb = 0 ! Is determined in the code such that dxb / dx matches dzb / dz
 	nzb = 48
 	! (positive->CFL, negative->timestep size)
-	CFL = -0.01
+	CFL = -0.001
 	! viscosity
 	nu = 3.076923076923077e-04 
 	! Pressure gradient

@@ -1,9 +1,10 @@
 #!/bin/bash
 
 #SBATCH --nodes=1
+#SBATCH -q debug
 #SBATCH --ntasks=2
 #SBATCH --cpus-per-task=1
-#SBATCH --time=1:00:00
+#SBATCH --time=00:30:00
 
 #SBATCH --job-name=channel_trial
 #SBATCH --output=status_ib_double_rotating_cylinders.out
