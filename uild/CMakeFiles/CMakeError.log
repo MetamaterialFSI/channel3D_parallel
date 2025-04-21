@@ -1,0 +1,85 @@
+Determining if the Fortran sgemm exists failed with the following output:
+Change Dir: /central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake -f Makefile cmTC_0f13d/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_0f13d.dir/build.make CMakeFiles/cmTC_0f13d.dir/build
+gmake[1]: Entering directory '/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp'
+Building Fortran object CMakeFiles/cmTC_0f13d.dir/testFortranCompiler.f.o
+/usr/bin/f95   -O3  -c /central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp/testFortranCompiler.f -o CMakeFiles/cmTC_0f13d.dir/testFortranCompiler.f.o
+Linking Fortran executable cmTC_0f13d
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0f13d.dir/link.txt --verbose=1
+/usr/bin/f95 -O3  CMakeFiles/cmTC_0f13d.dir/testFortranCompiler.f.o -o cmTC_0f13d 
+/usr/bin/ld: CMakeFiles/cmTC_0f13d.dir/testFortranCompiler.f.o: in function `main':
+testFortranCompiler.f:(.text.startup+0x1b): undefined reference to `sgemm_'
+collect2: error: ld returned 1 exit status
+gmake[1]: *** [CMakeFiles/cmTC_0f13d.dir/build.make:99: cmTC_0f13d] Error 1
+gmake[1]: Leaving directory '/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:127: cmTC_0f13d/fast] Error 2
+
+
+
+The MPI test test_mpi for Fortran in mode F77_HEADER failed to compile with the following output:
+Change Dir: /central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake -f Makefile cmTC_7b681/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_7b681.dir/build.make CMakeFiles/cmTC_7b681.dir/build
+gmake[1]: Entering directory '/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp'
+Building Fortran object CMakeFiles/cmTC_7b681.dir/test_mpi.f90.o
+/usr/bin/f95   -O3  -c /central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/FindMPI/test_mpi.f90 -o CMakeFiles/cmTC_7b681.dir/test_mpi.f90.o
+/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/FindMPI/test_mpi.f90:3: Error: Can't open included file 'mpif.h'
+gmake[1]: *** [CMakeFiles/cmTC_7b681.dir/build.make:78: CMakeFiles/cmTC_7b681.dir/test_mpi.f90.o] Error 1
+gmake[1]: Leaving directory '/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:127: cmTC_7b681/fast] Error 2
+
+
+
+The MPI test test_mpi for Fortran in mode F90_MODULE failed to compile with the following output:
+Change Dir: /central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake -f Makefile cmTC_0ad24/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_0ad24.dir/build.make CMakeFiles/cmTC_0ad24.dir/build
+gmake[1]: Entering directory '/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp'
+Building Fortran object CMakeFiles/cmTC_0ad24.dir/test_mpi.f90.o
+/usr/bin/f95   -O3  -c /central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/FindMPI/test_mpi.f90 -o CMakeFiles/cmTC_0ad24.dir/test_mpi.f90.o
+/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/FindMPI/test_mpi.f90:2:11:
+
+    2 |       use mpi
+      |           1
+Fatal Error: Cannot open module file ‘mpi.mod’ for reading at (1): No such file or directory
+compilation terminated.
+gmake[1]: *** [CMakeFiles/cmTC_0ad24.dir/build.make:78: CMakeFiles/cmTC_0ad24.dir/test_mpi.f90.o] Error 1
+gmake[1]: Leaving directory '/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:127: cmTC_0ad24/fast] Error 2
+
+
+
+The MPI test test_mpi for Fortran in mode F08_MODULE failed to compile with the following output:
+Change Dir: /central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake -f Makefile cmTC_56500/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_56500.dir/build.make CMakeFiles/cmTC_56500.dir/build
+gmake[1]: Entering directory '/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp'
+Building Fortran object CMakeFiles/cmTC_56500.dir/test_mpi.f90.o
+/usr/bin/f95   -O3  -c /central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/FindMPI/test_mpi.f90 -o CMakeFiles/cmTC_56500.dir/test_mpi.f90.o
+/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/FindMPI/test_mpi.f90:2:11:
+
+    2 |       use mpi_f08
+      |           1
+Fatal Error: Cannot open module file ‘mpi_f08.mod’ for reading at (1): No such file or directory
+compilation terminated.
+gmake[1]: *** [CMakeFiles/cmTC_56500.dir/build.make:78: CMakeFiles/cmTC_56500.dir/test_mpi.f90.o] Error 1
+gmake[1]: Leaving directory '/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:127: cmTC_56500/fast] Error 2
+
+
+
+The MPI test test_mpi for Fortran in mode F77_HEADER_NOKIND failed to compile with the following output:
+Change Dir: /central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake -f Makefile cmTC_cbd2d/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_cbd2d.dir/build.make CMakeFiles/cmTC_cbd2d.dir/build
+gmake[1]: Entering directory '/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp'
+Building Fortran object CMakeFiles/cmTC_cbd2d.dir/test_mpi.f90.o
+/usr/bin/f95   -O3  -c /central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/FindMPI/test_mpi.f90 -o CMakeFiles/cmTC_cbd2d.dir/test_mpi.f90.o
+/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/FindMPI/test_mpi.f90:3: Error: Can't open included file 'mpif.h'
+gmake[1]: *** [CMakeFiles/cmTC_cbd2d.dir/build.make:78: CMakeFiles/cmTC_cbd2d.dir/test_mpi.f90.o] Error 1
+gmake[1]: Leaving directory '/central/groups/bae-group/ctlin/channel180_IBPM/channel3D_parallel/uild/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:127: cmTC_cbd2d/fast] Error 2
+
+
+

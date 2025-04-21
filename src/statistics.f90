@@ -127,9 +127,10 @@ Contains
        Call compute_mean_mass_flow_V(V,Qflow_y)
 
        ! write statistics
-       Call output_statistics
+       !Call output_statistics
 
        ! write statistics of speed
+       !WRITE(*,*) 'write output_time'
        if (myid .eq. 0) Then
          IB_geo =IB_geo/3
          IB_op =IB_op/3
@@ -145,7 +146,7 @@ Contains
          apply_bc = apply_bc/3
          !WRITE(*,*) 'write output stats'
          tmp_t=t+REAL(nstep_init)*dt
-         !WRITE(*,*) 'tmp_t=',tmp_t
+         !WRITE(*,*) 'store_index=',store_index
          time_matrix(store_index,1)=tmp_t
          time_matrix(store_index,2)=IB_geo 
          time_matrix(store_index,3)=IB_op 

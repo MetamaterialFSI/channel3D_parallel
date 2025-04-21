@@ -1,12 +1,12 @@
 &params
 	! domain size
-	nx_global = 66
-	ny_global = 66
+	nx_global = 34
+	ny_global = 33
 	nz_global = 66
 	nxb = 0 ! Is determined in the code such that dxb / dx matches dzb / dz
 	nzb = 48
 	! (positive->CFL, negative->timestep size)
-	CFL = -0.001
+	CFL = -0.01
 	! viscosity
 	nu = 3.076923076923077e-04 
 	! Pressure gradient
@@ -17,7 +17,7 @@
 	! nsteps, nsave, nstats, nmonitor
 	nsteps = 5000
 	nsave = 100
-	nstats = 1000
+	nstats = 1
 	nmonitor = 1
 	filein = ''
 	fileout = 'channel_output_ib_double_rotating_cylinders/test'
