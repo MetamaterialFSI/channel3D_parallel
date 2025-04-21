@@ -13,7 +13,7 @@ module load openmpi
 
 input_file="input_parameters_ib_double_rotating_cylinders"
 
-mkdir -p channel_output_ib_double_rotating_cylinders
+mkdir -p channel_output_ib_double_rotating_cylinders_nx34
 
 cd $SLURM_SUBMIT_DIR
 mpirun -np 2 ../build/channel3D "$input_file" 
