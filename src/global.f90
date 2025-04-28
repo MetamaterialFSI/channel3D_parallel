@@ -31,7 +31,7 @@ Module global
   Real   (Int64) :: time1, time2
 
   ! constants
-  Real(Int64) :: pi = 4d0*datan(1d0)  
+  Real(Int64) :: pi = 4d0 * datan(1d0)  
 
   ! files
   Character(200) :: filein, fileout, fileparams
@@ -49,6 +49,13 @@ Module global
   ! steps
   Integer(Int32) :: nsteps, nstep_init
   Real   (Int64) :: dt, t
+
+  ! grid stretching factor
+  Real(Int64) :: alpha_stretch
+
+  ! minimum width of uniform buffers at the bottom and top ends of the stretched grid for grid_type 2
+  ! NOTE: the grid-size dependent delta function width is added to the minimum buffer width when creating the grid
+  Real(Int64) :: min_buffer_width
 
   ! viscosity
   Real(Int64) :: nu
@@ -208,11 +215,16 @@ Module global
   ! body velocity
   Real(Int64), Dimension(:), Allocatable :: ub
 
-  ! body normals
+  ! body normals and tangents
   Real(Int64), Dimension(:), Allocatable :: normals, tangents_1, tangents_2
 
   ! immersed body forcing
-  Real(Int64), Dimension(:), Allocatable :: fb
+  Real(Int64), Dimension(:), Allocatable :: fb!, input_fb
+  ! Integer(Int32) :: input_fb_len
+
+  ! Biconjugate gradient max iterations and tolerance
+  Integer(Int32) :: cg_max_iter
+  Real(Int64) :: cg_tol
 
   ! immersed boundary operator variables
   Integer(Int32), Dimension(:), Allocatable :: send_counts_U, displs_U

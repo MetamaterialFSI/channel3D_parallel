@@ -109,17 +109,15 @@ Contains
   End Function schur
 
   Subroutine bicgstab( x, b)
-    Integer :: j, iter, cg_max_iter
+    Integer :: j, iter
     Real(Int64), Dimension(3*nb), Intent(In) :: b
     Real(Int64), Dimension(3*nb), Intent(Inout) :: x
     Real(Int64), Dimension(3*nb) :: r, rhat, p, nu, h, sv, tv
-    Real(Int64) :: rho_o, rho_n, alpha, om, eps, error, bta, cgtol
+    Real(Int64) :: rho_o, rho_n, alpha, om, eps, error, bta
 
     !initialize
-    cgtol=1.E-12
-    cg_max_iter=50
     error = 1.d0
-    eps = cgtol * cgtol
+    eps = cg_tol * cg_tol
     iter = 0
     r = b - schur( x)
     rhat = r
@@ -144,6 +142,7 @@ Contains
       error = dot_product( r, r)
       iter = iter + 1
       Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
+      ! If (myid == 0) Write(*,*)  "......Iteration = ",iter,", residual = ", error
     End Do
     If (iter .eq. cg_max_iter) Then
       Write(*,*)  "......WARNING, bicgstab used maximum number of iterations"

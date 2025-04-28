@@ -21,7 +21,7 @@ Contains
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
 
-      Case (1) ! Static centered wall
+      Case (1) ! Static planar IB wall centered at y = 1
         nb = nxb * nzb
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
@@ -61,9 +61,11 @@ Contains
         nb_start = 0
         nb_end = -1
 
-      Case (1) ! Static centered wall
+      Case (1) ! Static planar wall centered at y = 0
+        If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
         moving_body = .False.
-        ub = 0d0
+
+         ub = 0d0
         ! Reference points are the center of the domain
         y_ref_index = ny_global / 2 ! automatically rounds down
 
@@ -85,9 +87,17 @@ Contains
             End If  
           End Do
         End Do
-        sb = dxb * dzb 
+        sb = dxb * dzb
+
+        ! Vector arrays
+        do k=1,nb
+          tangents_1(k) = 1d0
+          tangents_2(2*nb + k) = -1d0
+          normals(nb + k) = -1d0
+        end do
 
       Case (2) ! Double rotating cylinders
+        If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
         moving_body = .False.
         nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
         nb_end = 0         ! Initialize to the lowest possible index
@@ -95,7 +105,7 @@ Contains
 
         r1 = body_param_1
         r2 = body_param_2
-        xc = 0.5d0
+        xc = 1.0d0
         yc = 1.0d0
         nxb1 = Int(2 * 3.14159 * r1 / dxb)
         nxb2 = Int(2 * 3.14159 * r2 / dxb)
@@ -107,22 +117,34 @@ Contains
           ! Inner cylinder
           Do i = 1, nxb1
             theta = Real(i - 1, 8) * dsb1 / r1
-            xb(i + (j-1) * nxb) = r1 * cos(theta) + xc
-            yb(i + (j-1) * nxb) = r1 * sin(theta) + yc
-            zb(i + (j-1) * nxb) = (Real(j,8) - 0.5d0) * dzb
-            ub(i + (j-1) * nxb) = -sin(theta) * body_param_3
-            ub(nb + i + (j-1) * nxb) = cos(theta) * body_param_3
-            sb(i + (j-1) * nxb) = dsb1 * dzb
+            xb(i + (j - 1) * nxb) = r1 * cos(theta) + xc
+            yb(i + (j - 1) * nxb) = r1 * sin(theta) + yc
+            zb(i + (j - 1) * nxb) = (Real(j,8) - 0.5d0) * dzb
+            ub(i + (j - 1) * nxb) = -sin(theta) * body_param_3
+            ub(nb + i + (j - 1) * nxb) = cos(theta) * body_param_3
+            sb(i + (j - 1) * nxb) = dsb1 * dzb
+            normals(i + (j - 1) * nxb) = -cos(theta)
+            normals(nb + i + (j - 1) * nxb) = -sin(theta)
+            tangents_1(i + (j - 1) * nxb) = sin(theta)
+            tangents_1(nb + i + (j - 1) * nxb) = -cos(theta)
           End Do
 
           ! Outer cylinder
           Do i = 1, nxb2
             theta = Real(i - 1, 8) * dsb2 / r2
-            xb(i + (j-1) * nxb + nxb1) = r2 * cos(theta) + xc
-            yb(i + (j-1) * nxb + nxb1) = r2 * sin(theta) + yc
-            zb(i + (j-1) * nxb + nxb1) = (Real(j,8) - 0.5d0) * dzb
-            sb(i + (j-1) * nxb + nxb1) = dsb2 * dzb
+            xb(i + (j - 1) * nxb + nxb1) = r2 * cos(theta) + xc
+            yb(i + (j - 1) * nxb + nxb1) = r2 * sin(theta) + yc
+            zb(i + (j - 1) * nxb + nxb1) = (Real(j,8) - 0.5d0) * dzb
+            sb(i + (j - 1) * nxb + nxb1) = dsb2 * dzb
+            normals(i + (j - 1) * nxb + nxb1) = cos(theta)
+            normals(nb + i + (j - 1) * nxb + nxb1) = sin(theta)
+            tangents_1(i + (j - 1) * nxb + nxb1) = -sin(theta)
+            tangents_1(nb + i + (j - 1) * nxb + nxb1) = cos(theta)
           End Do
+
+          do i = 1, nb
+            tangents_2(2 * nb + i) = 1d0
+          end do
 
           If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
             nb_start = (j-1) * nxb + 1
@@ -133,6 +155,8 @@ Contains
         End Do
 
       Case (3) ! Top and bottom wall undergoing standing wave motion in x-direction
+        If ( grid_type /= 2 ) Stop 'Error: body type is incompatible with grid type'
+        If ( body_param_1 > min_buffer_width ) Stop 'Error: IB amplitude is bigger than the minimum buffer width'
         moving_body = .True.
 
         ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
@@ -142,17 +166,15 @@ Contains
         Do j = 1, nzb
           Do i = 1, nxb
             k = i + 2 * nxb * (j - 1)
-            xb(k)             = (real(i,8) - 0.75d0) * dxb
-            xb(k + nxb)       = (real(i,8) - 0.75d0) * dxb
-            yb(k)             = y(1) + 0.5d0 * Real(n_uniform - 1, 8) * dymin + body_param_1 * & 
-              sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
-            yb(k + nxb) = y(ny_global) - 0.5d0 * Real(n_uniform - 1, 8) * dymin + body_param_1 * &
-              sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
-            zb(k)             = (real(j,8) - 0.75d0) * dzb
-            zb(k + nxb)       = (real(j,8) - 0.75d0) * dzb
+            xb(k)       = (real(i,8) - 0.75d0) * dxb
+            xb(k + nxb) = (real(i,8) - 0.75d0) * dxb
+            yb(k)       =       body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
+            yb(k + nxb) = 2d0 + body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
+            zb(k)       = (real(j,8) - 0.75d0) * dzb
+            zb(k + nxb) = (real(j,8) - 0.75d0) * dzb
 
-            y_ref_index(k) = n_uniform / 2 ! automatically rounds down
-            y_ref_index(k + nxb) = ny_global - Int(Ceiling(0.5d0 * Real(n_uniform, 8)))
+            y_ref_index(k) = 1
+            y_ref_index(k + nxb) = ny_global
 
             If (zb(k) >= z(1) .and. nb_start > k) then
               nb_start = k
@@ -168,8 +190,26 @@ Contains
         Do j = 1, nzb
           Do i = 1, nxb
             k = i + 2 * nxb * (j - 1)
-            ub(nb + k) = -body_param_1 * body_param_2 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * sin(body_param_2 * t)
+            ub(nb + k)       = -body_param_1 * body_param_2 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * sin(body_param_2 * t)
             ub(nb + k + nxb) = -body_param_1 * body_param_2 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * sin(body_param_2 * t)
+
+            tangents_1(nb + k)       = body_param_1 * 2d0 * pi * body_param_3 / Lxp &
+              * cos(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t)
+            tangents_1(nb + k + nxb) = body_param_1 * 2d0 * pi * body_param_3 / Lxp &
+              * cos(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t)
+            ! scale to unit vectors
+            tangents_1(k)            = -1 / sqrt( 1 + tangents_1(nb + k) ** 2 )
+            tangents_1(k + nxb)      = 1 / sqrt( 1 + tangents_1(nb + k) ** 2 )
+            tangents_1(nb + k)       = tangents_1(nb + k) / sqrt( 1 + tangents_1(nb + k) ** 2 )
+            tangents_1(nb + k + nxb) = tangents_1(nb + k) / sqrt( 1 + tangents_1(nb + k) ** 2 )
+
+            tangents_2(2 * nb + k      ) = 1d0
+            tangents_2(2 * nb + k + nxb) = 1d0
+
+            normals(k)            = tangents_1(nb + k)
+            normals(k + nxb)      = tangents_1(nb + k + nxb)
+            normals(nb + k)       = -tangents_1(k)
+            normals(nb + k + nxb) = -tangents_1(k + nxb)
           End Do
         End Do
         ! For now, make a naive sb calculation that assumes no variation in z
