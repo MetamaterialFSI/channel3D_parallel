@@ -20,7 +20,7 @@
 	nstats = 1000
 	nmonitor = 100
 	filein = ''
-	fileout = 'channel_output_ib_planar_walls/test'
+	fileout = 'channel_output_ib_planar_wall/test'
 	! first number for output flow field
 	nstep_init = 0
 	init_type = 1, ! (0->reads previous file, 1->zero, 2->random)
