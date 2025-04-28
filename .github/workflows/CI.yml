@@ -22,6 +22,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install BLAS and LAPACK
+      run: sudo apt-get update && sudo apt-get install -y libblas-dev liblapack-dev
+
     - name: Setup MPI
       uses: mpi4py/setup-mpi@v1
       with:
