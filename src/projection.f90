@@ -168,6 +168,15 @@ Contains
       x = h + om * sv
       r = sv - om * tv
       error = dot_product( r, r)
+      ! debug for output error
+      !write(*,*) 'For iter=',iter,'error : ', error
+      if ( rk_step==1 )then
+        RK1_error(iter+1)=error
+      elseif (rk_step ==2) then
+        RK2_error(iter+1)=error
+      elseif (rk_step==3) then
+        RK3_error(iter+1)=error
+      end if 
       iter = iter + 1
       Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
     End Do

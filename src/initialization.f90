@@ -547,6 +547,7 @@ Contains
 
     ! Measure time
     Allocate ( time_matrix( 1000, 17) )
+    Allocate ( error_matrix( 1000, 150) )
     prev_time = MPI_WTIME()
     IB_geo =0.d0
     IB_op =0.d0

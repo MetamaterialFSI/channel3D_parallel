@@ -164,12 +164,17 @@ Contains
          time_matrix(store_index,15)=RK2_iter 
          time_matrix(store_index,16)=RK3_iter 
          time_matrix(store_index,17)=total_time
+         error_matrix (store_index,1:50)=RK1_error
+         error_matrix (store_index,51:100)=RK2_error
+         error_matrix (store_index,101:150)=RK3_error
          !WRITE(*,*) 't,tau_w=',tau_w_log(store_index,1),tau_w_log(store_index,2)
          if (store_index .eq. 1000 .or. istep .eq. nsteps) then
            Call output_time
+           call output_error
            store_index=1
          elseif ( istep==1) then
           Call output_time
+          call output_error
           !store_index=store_index+1
           store_index=1
          else
@@ -191,6 +196,9 @@ Contains
          RK2_iter=0
          RK3_iter=0
          total_time=0.d0
+         RK1_error=0.d0
+         RK2_error=0.d0
+         RK3_error=0.d0
        end if
 
        ! Sanity check 
