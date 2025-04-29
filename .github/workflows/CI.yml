@@ -9,7 +9,7 @@ on:
 
 jobs:
   build_linux_apt_fortran:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
@@ -21,6 +21,9 @@ jobs:
       FC: ifx
     steps:
     - uses: actions/checkout@v4
+
+    - name: Install BLAS and LAPACK
+      run: sudo apt-get update && sudo apt-get install -y libblas-dev liblapack-dev
 
     - name: Setup MPI
       uses: mpi4py/setup-mpi@v1
