@@ -53,7 +53,7 @@ Contains
 
   Subroutine setup_IB_geometry
     Integer(Int32) :: i, j, k, l, nxb1, nxb2
-    Real   (Int64) :: a1, a2, r1, r2, xc, yc, theta, dsb1, dsb2
+    Real   (Int64) :: a1, a2, r1, r2, xc, yc, theta, dsb1, dsb2, phi
 
     Select Case (body_type)
       Case (0) ! No IB
@@ -65,7 +65,7 @@ Contains
         If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
         moving_body = .False.
 
-         ub = 0d0
+        ub = 0d0
         ! Reference points are the center of the domain
         y_ref_index = ny_global / 2 ! automatically rounds down
 
@@ -194,21 +194,21 @@ Contains
             ub(nb + k + nxb) = -body_param_1 * body_param_2 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * sin(body_param_2 * t)
 
             tangents_1(nb + k)       = body_param_1 * 2d0 * pi * body_param_3 / Lxp &
-              * cos(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t)
+              * cos(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
             tangents_1(nb + k + nxb) = body_param_1 * 2d0 * pi * body_param_3 / Lxp &
-              * cos(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t)
+              * cos(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
             ! scale to unit vectors
-            tangents_1(k)            = -1 / sqrt( 1 + tangents_1(nb + k) ** 2 )
-            tangents_1(k + nxb)      = 1 / sqrt( 1 + tangents_1(nb + k) ** 2 )
+            tangents_1(k)            = 1 / sqrt( 1 + tangents_1(nb + k) ** 2 )
+            tangents_1(k + nxb)      = 1 / sqrt( 1 + tangents_1(nb + k + nxb) ** 2 )
             tangents_1(nb + k)       = tangents_1(nb + k) / sqrt( 1 + tangents_1(nb + k) ** 2 )
-            tangents_1(nb + k + nxb) = tangents_1(nb + k) / sqrt( 1 + tangents_1(nb + k) ** 2 )
+            tangents_1(nb + k + nxb) = tangents_1(nb + k + nxb) / sqrt( 1 + tangents_1(nb + k + nxb) ** 2 )
 
             tangents_2(2 * nb + k      ) = 1d0
             tangents_2(2 * nb + k + nxb) = 1d0
 
-            normals(k)            = tangents_1(nb + k)
+            normals(k)            = -tangents_1(nb + k)
             normals(k + nxb)      = tangents_1(nb + k + nxb)
-            normals(nb + k)       = -tangents_1(k)
+            normals(nb + k)       = tangents_1(k)
             normals(nb + k + nxb) = -tangents_1(k + nxb)
           End Do
         End Do
@@ -231,7 +231,98 @@ Contains
           End Do
         End Do
 
-      Case (4) ! Top and bottom wall undergoing travelling wave motion
+      Case (4) ! Top and bottom wall undergoing traveling wave motion
+        If ( grid_type /= 2 ) Stop 'Error: body type is incompatible with grid type'
+        If ( body_param_1 > min_buffer_width ) Stop 'Error: IB amplitude is bigger than the minimum buffer width'
+        moving_body = .True.
+
+        ! Phase difference between top and bottom wave motion
+        phi = pi
+
+        ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
+        ! (i.e., fall between an nb_start and nb_end)
+        nb_start = nb + 1 ! Initialize to an invalid value (beyond the max index)
+        nb_end = 0        ! Initialize to the lowest possible index
+        Do j = 1, nzb
+          Do i = 1, nxb
+            k = i + 2 * nxb * (j - 1)
+            xb(k)       = (real(i,8) - 0.75d0) * dxb
+            xb(k + nxb) = (real(i,8) - 0.75d0) * dxb
+            yb(k)       =       body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t)
+            yb(k + nxb) = 2d0 + body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t + phi)
+            zb(k)       = (real(j,8) - 0.75d0) * dzb
+            zb(k + nxb) = (real(j,8) - 0.75d0) * dzb
+
+            y_ref_index(k) = 1
+            y_ref_index(k + nxb) = ny_global
+
+            If (zb(k) >= z(1) .and. nb_start > k) then
+              nb_start = k
+            End If
+            If (zb(k + nxb) <= z(nz-1) .and. nb_end < k + nxb) then
+              nb_end = k + nxb
+            End If  
+          End Do
+        End Do
+        ! Vector arrays
+        ub(1:nb) = 0d0
+        ub(2 * nb + 1 : 3 * nb) = 0d0
+        Do j = 1, nzb
+          Do i = 1, nxb
+            k = i + 2 * nxb * (j - 1)
+            ub(nb + k)       = body_param_1 * body_param_2 * cos(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t)
+            ub(nb + k + nxb) = body_param_1 * body_param_2 * cos(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t + phi)
+
+            tangents_1(nb + k)       = body_param_1 * 2d0 * pi * body_param_3 / Lxp &
+              * cos(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t)
+            tangents_1(nb + k + nxb) = body_param_1 * 2d0 * pi * body_param_3 / Lxp &
+              * cos(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t + phi)
+            ! scale to unit vectors
+            tangents_1(k)            = 1 / sqrt( 1 + tangents_1(nb + k) ** 2 )
+            tangents_1(k + nxb)      = 1 / sqrt( 1 + tangents_1(nb + k + nxb) ** 2 )
+            tangents_1(nb + k)       = tangents_1(nb + k) / sqrt( 1 + tangents_1(nb + k) ** 2 )
+            tangents_1(nb + k + nxb) = tangents_1(nb + k + nxb) / sqrt( 1 + tangents_1(nb + k + nxb) ** 2 )
+
+            tangents_2(2 * nb + k      ) = 1d0
+            tangents_2(2 * nb + k + nxb) = -1d0
+
+            normals(k)            = -tangents_1(nb + k)
+            normals(k + nxb)      = tangents_1(nb + k + nxb)
+            normals(nb + k)       = tangents_1(k)
+            normals(nb + k + nxb) = -tangents_1(k + nxb)
+          End Do
+        End Do
+        ! For now, make a naive sb calculation that assumes no variation in z
+        Do j = 1, nzb
+          Do i = 1, nxb
+            ! Bottom wall
+            k = i + 2 * nxb * (j - 1)
+            If (i .eq. 1) Then
+              a1 = sqrt((xb(k) - (xb(nxb + 2 * nxb * (j - 1)) - Lxp)) ** 2 + (yb(k) - yb(nxb + 2 * nxb * (j - 1))) ** 2)
+              a2 = sqrt((xb(k) - (xb(k + 1))                        ) ** 2 + (yb(k) - yb(k + 1)                  ) ** 2)
+            Else If (i .eq. nxb) Then
+              a1 = sqrt((xb(k) - (xb(k - 1))                      ) ** 2   + (yb(k) - yb(k - 1)                  ) ** 2)
+              a1 = sqrt((xb(k) - (xb(1 + 2 * nxb * (j - 1)) + Lxp)) ** 2   + (yb(k) - yb(1 + 2 * nxb * (j - 1))) ** 2)
+            Else
+              a1 = sqrt((xb(k) - (xb(k - 1))) ** 2                     + (yb(k) - yb(k - 1)) ** 2)
+              a2 = sqrt((xb(k) - (xb(k + 1))) ** 2                     + (yb(k) - yb(k + 1)) ** 2)
+            End If 
+            sb(k) = dzb * (0.5d0 * a1 + 0.5d0 * a2)
+            ! Top wall
+            k = i + nxb + 2 * nxb * (j - 1)
+            If (i .eq. 1) Then
+              a1 = sqrt((xb(k) - (xb(nxb + 2 * nxb * (j - 1)) - Lxp)) ** 2 + (yb(k) - yb(nxb + 2 * nxb * (j - 1))) ** 2)
+              a2 = sqrt((xb(k) - (xb(k + 1))                        ) ** 2 + (yb(k) - yb(k + 1)                  ) ** 2)
+            Else If (i .eq. nxb) Then
+              a1 = sqrt((xb(k) - (xb(k - 1))                      ) ** 2   + (yb(k) - yb(k - 1)                  ) ** 2)
+              a1 = sqrt((xb(k) - (xb(1 + 2 * nxb * (j - 1)) + Lxp)) ** 2   + (yb(k) - yb(1 + 2 * nxb * (j - 1))) ** 2)
+            Else
+              a1 = sqrt((xb(k) - (xb(k - 1))) ** 2                     + (yb(k) - yb(k - 1)) ** 2)
+              a2 = sqrt((xb(k) - (xb(k + 1))) ** 2                     + (yb(k) - yb(k + 1)) ** 2)
+            End If 
+            sb(k) = dzb * (0.5d0 * a1 + 0.5d0 * a2)
+          End Do
+        End Do
 
     End Select
 
