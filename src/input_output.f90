@@ -33,7 +33,7 @@ Contains
       dPdx, dPdz, x_mass_cte, y_mass_cte, &
       nsteps, nsave, nstats, nmonitor, &
       filein, fileout, &
-      nstep_init, &
+      nstep_init, t_init, &
       init_type, grid_type, body_type, &
       body_param_3, body_param_1, body_param_2, &
       min_buffer_width, cg_tol, cg_max_iter
@@ -45,6 +45,7 @@ Contains
     min_buffer_width = 0d0
     cg_tol = 1e-8
     cg_max_iter = 50
+    t_init = 0d0
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
@@ -168,7 +169,7 @@ Contains
           If ( myid==0 ) Write(*,'(A,F12.6,A,F12.6,A)') ' Buffer width = ', n_uniform * dymin, ' (minimum requirement = ', &
             min_buffer_width + (2 * suppy + 2) * dymin, ')'
           ! TODO: check if 2 * suppy + 2 is the correct amount
-          If (n_uniform * dymin >= 2 * min_buffer_width + (2 * suppy + 2) * dymin) Exit
+          If (n_uniform * dymin >= min_buffer_width + (2 * suppy + 2) * dymin) Exit
 
           n_uniform = n_uniform + 1
 
@@ -311,10 +312,6 @@ Contains
     Integer(Int32) ::  nx_global_f,  ny_global_f,  nz_global_f, iproc, nze, nzge
     Integer(Int32) :: nxm_global_f, nym_global_f, nzm_global_f, nn(3), ndum
     Integer(Int64) :: pos_header, nsize_U, nsize_V, ii, jj, kk
-    ! Real(Int64) :: temp_real
-    ! Integer(Int32) :: temp_ar_len
-    ! Real(Int64), Allocatable :: temp_ar(:)
-
 
     ! processor 0 Reads the all the data
     If ( myid==0 ) Then
@@ -443,43 +440,13 @@ Contains
       Call Mpi_recv(W,nxg*nyg*nz,Mpi_real8,0,myid,MPI_COMM_WORLD,istat,ierr)
     Endif
 
-    ! If ( myid == 0 ) Then
-    !   If ( body_type > 0 ) Then
-    !
-    !     Read(1) nn
-    !     Read(1) U_global
-    !
-    !     Read(1) nn
-    !     Read(1) V_global
-    !
-    !     Read(1) nn
-    !     Read(1) W_global
-    !
-    !     Read(1) temp_real
-    !     Read(1) temp_real
-    !     Read(1) temp_real
-    !
-    !     Read(1) temp_ar_len
-    !     Allocate(temp_ar(temp_ar_len))
-    !     Read(1) temp_ar
-    !     Deallocate(temp_ar)
-    !     Allocate(temp_ar(temp_ar_len))
-    !     Read(1) temp_ar
-    !     Deallocate(temp_ar)
-    !     Allocate(temp_ar(temp_ar_len))
-    !     Read(1) temp_ar
-    !     Deallocate(temp_ar)
-    !
-    !     Read(1) temp_real
-    !     Read(1) temp_real
-    !
-    !     Write(*,*) 'Reading force from input file'
-    !     Read(1) input_fb_len
-    !     Allocate(input_fb(input_fb_len))
-    !     Read(1) input_fb
-    !
-    !   End If
-    ! End If
+    If ( myid == 0 ) Then
+      If ( body_type > 0 ) Then
+
+        Read(1) t
+
+      End If
+    End If
 
     ! close file
     If (myid==0) Then
@@ -633,10 +600,8 @@ Contains
       Endif
 
       If ( myid==0 ) Then
-        ! Global fields
-        Write(1) Shape(U_global, Int32), U_global
-        Write(1) Shape(V_global, Int32), V_global
-        Write(1) Shape(W_global, Int32), W_global
+        ! Time
+        Write(1) t
 
         ! Timestep
         Write(1) dt
