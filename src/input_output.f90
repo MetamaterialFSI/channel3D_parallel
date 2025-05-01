@@ -440,14 +440,6 @@ Contains
       Call Mpi_recv(W,nxg*nyg*nz,Mpi_real8,0,myid,MPI_COMM_WORLD,istat,ierr)
     Endif
 
-    If ( myid == 0 ) Then
-      If ( body_type > 0 ) Then
-
-        Read(1) t
-
-      End If
-    End If
-
     ! close file
     If (myid==0) Then
       Close(1)
