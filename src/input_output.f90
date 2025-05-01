@@ -33,7 +33,7 @@ Contains
       dPdx, dPdz, x_mass_cte, y_mass_cte, &
       nsteps, nsave, nstats, nmonitor, &
       filein, fileout, &
-      nstep_init, &
+      nstep_init, t_init, &
       init_type, grid_type, body_type, &
       body_param_3, body_param_1, body_param_2, &
       min_buffer_width, cg_tol, cg_max_iter
@@ -45,6 +45,7 @@ Contains
     min_buffer_width = 0d0
     cg_tol = 1e-8
     cg_max_iter = 50
+    t_init = 0d0
 
     ! processor 0 reads the data
     If ( myid==0 ) Then

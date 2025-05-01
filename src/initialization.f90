@@ -29,14 +29,14 @@ Contains
 
     If (myid==0) Then 
        Write(*,*) '----------------------------------------------------------------------'       
-       Write(*,*) ' '
+       Write(*,*) '                                                                      '
        Write(*,*) '           My channel ^^, parallel version (clean) 1.0                '
-       Write(*,*) ' '
+       Write(*,*) '                                                                      '
        Write(*,*) '----------------------------------------------------------------------'
     End If
 
     ! time
-    t = 0d0
+    t = t_init
     
     !-------------------grid definitions-------------------------!
     Allocate (  k1_global(0:nprocs-1),  k2_global(0:nprocs-1) )

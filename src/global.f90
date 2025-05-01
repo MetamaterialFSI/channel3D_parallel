@@ -48,7 +48,7 @@ Module global
 
   ! steps
   Integer(Int32) :: nsteps, nstep_init
-  Real   (Int64) :: dt, t
+  Real   (Int64) :: dt, t, t_init
 
   ! grid stretching factor
   Real(Int64) :: alpha_stretch
