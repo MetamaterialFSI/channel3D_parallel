@@ -2,9 +2,9 @@
 	! domain size
 	nx_global = 34
 	ny_global = 200
-	nz_global = 34
+	nz_global = 66
 	nxb = 10
-	nzb = 10
+	nzb = 20
 	! (positive->CFL, negative->timestep size)
 	CFL = -0.001
 	! viscosity
