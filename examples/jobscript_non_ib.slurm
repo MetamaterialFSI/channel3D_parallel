@@ -5,13 +5,13 @@
 #SBATCH --time=2:00:00
 
 #SBATCH --job-name=channel_trial
-#SBATCH --output=status.out
+#SBATCH --output=status_non_ib.out
 
 # module load openmpi
 module load intel-oneapi-mpi
 
-input_file="input_parameters"
-mkdir -p channel_output
+input_file="input_parameters_non_ib"
+mkdir -p channel_output_non_ib
 
 cd $SLURM_SUBMIT_DIR
 mpirun -np 2 ../build/channel3D "$input_file" 

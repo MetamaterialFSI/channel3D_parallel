@@ -25,6 +25,7 @@ Contains
     Integer(Int32) :: ioerr, iounit
 
     namelist /params/ &
+      Lxp, Lzp, alpha_stretch, &
       nx_global, ny_global, nz_global, &
       nxb, nzb, &
       CFL, &
@@ -32,9 +33,19 @@ Contains
       dPdx, dPdz, x_mass_cte, y_mass_cte, &
       nsteps, nsave, nstats, nmonitor, &
       filein, fileout, &
-      nstep_init, &
+      nstep_init, t_init, &
       init_type, grid_type, body_type, &
-      body_param_3, body_param_1, body_param_2
+      body_param_3, body_param_1, body_param_2, &
+      min_buffer_width, cg_tol, cg_max_iter
+
+    ! default values
+    alpha_stretch = 2.6d0
+    Lxp = 2d0 * pi
+    Lzp = 1d0 * pi
+    min_buffer_width = 0d0
+    cg_tol = 1e-8
+    cg_max_iter = 50
+    t_init = 0d0
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
@@ -51,7 +62,7 @@ Contains
           Stop 1
       End If
 
-      utau_    = dPdx**0.5d0
+      utau_    = dPdx ** 0.5d0
       dPdx_ref = dPdx
       store_index = 1
 
@@ -63,6 +74,10 @@ Contains
     Call Mpi_bcast ( nx_global,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( ny_global,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( nz_global,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+
+    Call Mpi_bcast ( Lxp,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( Lzp,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( alpha_stretch,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
     Call Mpi_bcast ( nxb,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( nzb,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
@@ -84,6 +99,10 @@ Contains
     Call Mpi_bcast (  x_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  y_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
 
+    Call Mpi_bcast ( min_buffer_width,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( cg_max_iter,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( cg_tol,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+
     Call Mpi_bcast (   body_param_1,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_param_2,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_param_3,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
@@ -99,7 +118,6 @@ Contains
   Subroutine create_grid
 
     Integer(Int32) :: i
-    Real   (Int64) :: alpha
 
     n_uniform = 1
 
@@ -117,24 +135,25 @@ Contains
       Case (0) ! Uniform grid
         If ( myid==0 ) Write(*,*) 'Generating uniform y grid'
         Do i=1,ny_global
-           y_global(i) = Real(i-1,8)*0.3d0
+          y_global(i) = Real(i-1,8)
         End Do
         y_global = 4d0*y_global/Maxval(y_global)
 
       Case (1) ! Stretched grid wall to wall
         If ( myid==0 ) Write(*,*) 'Generating stretched y grid'
         Do i=1,ny_global
-           y_global(i) = Real(i-1,8)*0.3d0
+          y_global(i) = Real(i-1,8)
         End Do
-        y_global = 2d0*y_global/Maxval(y_global)-1d0
+        y_global = 2d0 * y_global / Maxval(y_global) - 1d0
 
-        alpha = 2.6d0
-        Do i=1,ny_global
-           y_global(i) = dtanh(alpha*y_global(i))/dtanh(alpha)
-        End Do
+        If ( alpha_stretch > 0d0 ) Then
+          Do i=1,ny_global
+            y_global(i) = dtanh(alpha_stretch * y_global(i)) / dtanh(alpha_stretch)
+          End Do
+        End If
 
         y_global = y_global - Minval(y_global)
-        y_global = y_global*2d0/Maxval(y_global)
+        y_global = y_global * 2d0 / Maxval(y_global)
 
       Case (2) ! Stretched grid centered around 0 with uniform buffers on each end to account for IB (moving with amplitude body_param_1)
         If ( myid==0 ) Write(*,*) 'Generating stretched y grid with uniform buffers'
@@ -142,32 +161,33 @@ Contains
         ! Loop until buffer condition is met
         write(*,*) 'creating stretched grid using ny_global = ', ny_global
         Do
-          alpha = 1.3d0
-          Call create_stretched_grid(y_global, 2d0, ny_global, n_uniform, alpha)
+          Call create_stretched_grid(y_global, 2d0, ny_global, n_uniform, alpha_stretch)
 
           ! Compute dy between first two points (assume uniform region at beginning)
           dymin = y_global(2) - y_global(1)
 
           If ( myid==0 ) Write(*,'(A,I4,A,F12.6)') ' Number of buffer cells on each side = ', n_uniform, ' -> dymin = ', dymin 
           If ( myid==0 ) Write(*,'(A,F12.6,A,F12.6,A)') ' Buffer width = ', n_uniform * dymin, ' (minimum requirement = ', &
-            2 * body_param_1 + (2 * suppy + 2) * dymin, ')'
+            min_buffer_width + (2 * suppy + 2) * dymin, ')'
           ! TODO: check if 2 * suppy + 2 is the correct amount
-          If (n_uniform * dymin >= 2 * body_param_1 + (2 * suppy + 2) * dymin) Exit
+          If (n_uniform * dymin >= min_buffer_width + (2 * suppy + 2) * dymin) Exit
 
           n_uniform = n_uniform + 1
 
           If (2 * n_uniform >= Ny) Stop 'Number of buffer points exceeds the total number of grid points' 
         End Do
+        ! Move entire channel in the positive y-direction to center around y = 1
+        y_global = y_global + 1d0
 
     End Select
 
   End Subroutine create_grid
 
-  Subroutine create_stretched_grid(grid, L, n_total, n_uniform, alpha_stretch)
+  Subroutine create_stretched_grid(grid, L, n_total, n_uniform, alpha)
     Implicit None
 
     Integer(Int32), Intent(In) :: n_total, n_uniform
-    Real(Int64), Intent(In) :: L, alpha_stretch
+    Real(Int64), Intent(In) :: L, alpha
     Real(Int64), Dimension(ny), Intent(Out) :: grid
 
     Real(Int64), Dimension(:), Allocatable :: grid_unpadded
@@ -185,7 +205,9 @@ Contains
     grid_unpadded = 2d0 * grid_unpadded / Maxval(grid_unpadded) - 1d0
 
     ! Stretch the unpadded grid
-    grid_unpadded = dtanh(alpha_stretch * grid_unpadded) / dtanh(alpha_stretch)
+    If ( alpha_stretch > 0d0 ) Then
+      grid_unpadded = dtanh(alpha * grid_unpadded) / dtanh(alpha)
+    End If
 
     ! Compute the smallest spacing of the unpadded grid
     ds_min_unscaled = grid_unpadded(2) - grid_unpadded(1)
@@ -218,12 +240,12 @@ Contains
         If ( myid==0 ) Write(*,*) 'Reading input data'
         Call read_input_data
       
-      Case (1) ! create grid and initialize velocity to random values
+      Case (1) ! create grid and initialize velocity to zero
         If ( myid==0 ) Write(*,*) 'Generating zero initial condition'
         Call create_grid
         U = 0d0; V = 0d0; W = 0d0
 
-      Case (2) ! create grid and initialize velocity to zero
+      Case (2) ! create grid and initialize velocity to the laminar parabolic profile with random perturbations
         If ( myid==0 ) Write(*,*) 'Generating random initial condition'
         Call create_grid
 
@@ -235,7 +257,7 @@ Contains
         Do ii=1,nx_global
           Do jj=1,nyg_global
              Do kk=1,nzg
-               U(ii,jj,kk) = U(ii,jj,kk) !+ 0.5*(rand()-0.5)
+               U(ii,jj,kk) = U(ii,jj,kk) + 0.5*(rand()-0.5)
              End Do
           End Do
         End Do
@@ -247,7 +269,7 @@ Contains
         Do ii=1,nxg_global
           Do jj=1,ny_global
              Do kk=1,nzg
-               V(ii,jj,kk) = V(ii,jj,kk) !+ 0.5*(rand()-0.5)
+               V(ii,jj,kk) = V(ii,jj,kk) + 0.5*(rand()-0.5)
              End Do
           End Do
         End Do
@@ -259,7 +281,7 @@ Contains
         Do ii=1,nxg_global
           Do jj=1,ny_global
              Do kk=1,nz
-               W(ii,jj,kk) = W(ii,jj,kk) !+ 0.5*(rand()-0.5)
+               W(ii,jj,kk) = W(ii,jj,kk) + 0.5*(rand()-0.5)
              End Do
           End Do
         End Do
@@ -571,10 +593,8 @@ Contains
       Endif
 
       If ( myid==0 ) Then
-        ! Global fields
-        Write(1) Shape(U_global, Int32), U_global
-        Write(1) Shape(V_global, Int32), V_global
-        Write(1) Shape(W_global, Int32), W_global
+        ! Time
+        Write(1) t
 
         ! Timestep
         Write(1) dt
@@ -600,6 +620,11 @@ Contains
 
         ! body surface areas
         Write(1) Shape(sb, Int32), sb
+
+        ! body normals and tangents
+        Write(1) Shape(normals, Int32), normals
+        Write(1) Shape(tangents_1, Int32), tangents_1
+        Write(1) Shape(tangents_2, Int32), tangents_2
 
       End If
          

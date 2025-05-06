@@ -29,4 +29,5 @@
 	body_param_1 = 0.1
 	body_param_2 = 0.01
 	body_param_3 = 1.0
+	min_buffer_width = 0.1
 /

@@ -161,6 +161,11 @@ Contains
       
       Write(*,*) 'zg(1),xz(end) :',zg_global(1), zg_global(nzg_global)
       Write(*,*) 'z (1),z (end) :', z_global(1), z_global ( nz_global)
+      
+      Write(*,*) ' '
+      Write(*,*) 'dxmin,dxmax :',dxmin, Maxval ( xg_global(2:nxg_global) - xg_global(1:nxg_global-1) ) 
+      Write(*,*) 'dymin,dymax :',dymin, Maxval ( yg_global(2:nyg_global) - yg_global(1:nyg_global-1) ) 
+      Write(*,*) 'dzmin,dzmax :',dzmin, Maxval ( zg_global(2:nzg_global) - zg_global(1:nzg_global-1) ) 
 
       Write(*,*) ' '
       Write(*,*) 'nxb :', nxb

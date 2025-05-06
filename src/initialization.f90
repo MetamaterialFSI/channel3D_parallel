@@ -29,14 +29,14 @@ Contains
 
     If (myid==0) Then 
        Write(*,*) '----------------------------------------------------------------------'       
-       Write(*,*) ' '
+       Write(*,*) '                                                                      '
        Write(*,*) '           My channel ^^, parallel version (clean) 1.0                '
-       Write(*,*) ' '
+       Write(*,*) '                                                                      '
        Write(*,*) '----------------------------------------------------------------------'
     End If
 
     ! time
-    t = 0d0
+    t = t_init
     
     !-------------------grid definitions-------------------------!
     Allocate (  k1_global(0:nprocs-1),  k2_global(0:nprocs-1) )
@@ -216,40 +216,30 @@ Contains
 
     ! For initial IB implementation only!
     If ( body_type > 0) Then
-      If ( myid==0 ) Then
-        Write(*,*) "Allocating space for global U,V,W data for IB operations. Keep this only for debugging!"
-        Allocate( U_global(nx_global,  nyg_global, nzg_global) )
-        Allocate( V_global(nxg_global, ny_global,  nzg_global) )
-        Allocate( W_global(nxg_global, nyg_global, nz_global ) )
-        Allocate( send_counts_U(nprocs), displs_U(nprocs) )
-        Allocate( send_counts_V(nprocs), displs_V(nprocs) )
-        Allocate( send_counts_W(nprocs), displs_W(nprocs) )
-      End If
+      Allocate( U_global(nx_global,  nyg_global, nzg_global) )
+      Allocate( V_global(nxg_global, ny_global,  nzg_global) )
+      Allocate( W_global(nxg_global, nyg_global, nz_global ) )
+      Allocate( send_counts_U(nprocs), displs_U(nprocs) )
+      Allocate( send_counts_V(nprocs), displs_V(nprocs) )
+      Allocate( send_counts_W(nprocs), displs_W(nprocs) )
 
       local_size_U = nx * nyg * nzm
       local_size_V = nxg * ny * nzm
       local_size_W = nxg * nyg * (nz-2)
 
       ! Gather send_counts
-      Call MPI_Gather(local_size_U, 1, MPI_INT, send_counts_U, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      Call MPI_Gather(local_size_V, 1, MPI_INT, send_counts_V, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      Call MPI_Gather(local_size_W, 1, MPI_INT, send_counts_W, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      Call MPI_Allgather(local_size_U, 1, MPI_INT, send_counts_U, 1, MPI_INT, MPI_COMM_WORLD, ierr)
+      Call MPI_Allgather(local_size_V, 1, MPI_INT, send_counts_V, 1, MPI_INT, MPI_COMM_WORLD, ierr)
+      Call MPI_Allgather(local_size_W, 1, MPI_INT, send_counts_W, 1, MPI_INT, MPI_COMM_WORLD, ierr)
 
-      If (myid == 0) Then
-        displs_U(1) = 0
-        displs_V(1) = 0
-        displs_W(1) = 0
-        Do i = 2, nprocs
-          displs_U(i) = displs_U(i-1) + send_counts_U(i-1)
-          displs_V(i) = displs_V(i-1) + send_counts_V(i-1)
-          displs_W(i) = displs_W(i-1) + send_counts_W(i-1)
-        End Do
-      End If
-
-    Else
-      Allocate( U_global(1,1,1) )
-      Allocate( V_global(1,1,1) )
-      Allocate( W_global(1,1,1) )
+      displs_U(1) = 0
+      displs_V(1) = 0
+      displs_W(1) = 0
+      Do i = 2, nprocs
+        displs_U(i) = displs_U(i-1) + send_counts_U(i-1)
+        displs_V(i) = displs_V(i-1) + send_counts_V(i-1)
+        displs_W(i) = displs_W(i-1) + send_counts_W(i-1)
+      End Do
     End If
 
     !--------------------------Boundary conditions--------------------------!
@@ -538,9 +528,7 @@ Contains
     Allocate ( w_y_indices( nweights, nb) )
     Allocate ( w_z_indices( nweights, nb) )
 
-    If ( myid==0 ) Then
-      Allocate( send_counts_weights(nprocs), displs_weights(nprocs) )
-    End If
+    Allocate( send_counts_nb(nprocs), displs_nb(nprocs) )
 
     !-------------------------Done--------------------------------!
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)

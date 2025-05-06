@@ -6,7 +6,7 @@
 #SBATCH --time=0:30:00
 
 #SBATCH --job-name=channel_trial
-#SBATCH --output=status_planar_wall.out
+#SBATCH --output=status_ib_planar_wall.out
 
 module load openmpi
 

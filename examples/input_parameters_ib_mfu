@@ -1,0 +1,33 @@
+&params
+	! domain size
+	nx_global = 34
+	ny_global = 200
+	nz_global = 34
+	nxb = 10
+	nzb = 10
+	! (positive->CFL, negative->timestep size)
+	CFL = -0.001
+	! viscosity
+	nu = 3.076923076923077e-04 
+	! Pressure gradient
+	dPdx = 0.003275394114261
+	dPdz = 0.000000000000 
+	x_mass_cte = 0 ! (0->use dPdx, 1->constant mass flow)
+	y_mass_cte = 0
+	! nsteps, nsave, nstats, nmonitor
+	nsteps = 100
+	nsave = 100
+	nstats = 100
+	nmonitor = 10
+	filein = 'channel_output_ib_mfu/test.100000'
+	fileout = 'channel_output_ib_mfu/test'
+	! first number for output flow field
+	nstep_init = 0
+	init_type = 2, ! (0->reads previous file, 1->zero, 2->random)
+	grid_type = 2, ! (0->uniform, 1->stretched, 2->stretched with uniform buffers)
+	body_type = 3, ! (0->no body, 1->planar wall, 2-> double rotating cylinders 3->standing wave in x-direction)
+	body_param_1 = 0.0
+	body_param_2 = 0.0
+	body_param_3 = 0.0
+	min_buffer_width = 0.05
+/
