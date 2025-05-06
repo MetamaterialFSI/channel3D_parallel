@@ -533,6 +533,27 @@ Contains
     !-------------------------Done--------------------------------!
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)
 
+    ! Measure time
+    Allocate ( time_matrix( 1000, 17) )
+    Allocate ( error_matrix( 1000, 150) )
+    prev_time = MPI_WTIME()
+    IB_geo =0.d0
+    IB_op =0.d0
+    non_IB_proj=0.d0
+    E_1st=0.d0
+    IB_force=0.d0 
+    R_1st=0.d0
+    D_1st=0.d0
+    IB_possion=0.d0
+    proj_1st=0.d0
+    grad_1st=0.d0
+    proj_2nd=0.d0
+    apply_bc=0.d0
+    RK1_iter=0
+    RK2_iter=0
+    RK3_iter=0
+
+
   End Subroutine
   
 End Module initialization

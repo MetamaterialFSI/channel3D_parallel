@@ -86,6 +86,7 @@ Contains
 
     Real(Int64) :: to
 
+    prev_time_total = MPI_WTIME()
     ! save previous state
     to = t
     Uo = U
@@ -108,17 +109,29 @@ Contains
 
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
+      prev_time = MPI_WTIME()
       call setup_IB_geometry
+      last_time = MPI_WTIME()
+      IB_geo = IB_geo+last_time-prev_time
+      prev_time = MPI_WTIME()
       call setup_IB_operators
+      last_time = MPI_WTIME()
+      IB_op = IB_op+last_time-prev_time
     End If
 
+    prev_time = MPI_WTIME()
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
+    last_time = MPI_WTIME()
+    non_IB_proj = non_IB_proj+last_time-prev_time
     If ( body_type > 0 ) Then
       Call apply_boundary_conditions(U, V, W)
       Call compute_IB_projection
     End If
+    prev_time = MPI_WTIME()
     Call apply_boundary_conditions(U, V, W)
+    last_time = MPI_WTIME()
+    apply_bc=apply_bc+last_time-prev_time
 
     ! Vw(:,1,:) = -V(:,24,:)
     ! Vw(:,2,:) = -V(:,ny-23,:)
@@ -134,19 +147,32 @@ Contains
     W(2:nxg-1,2:nyg-1,2:nz-1) = Wo(2:nxg-1,2:nyg-1,2:nz-1) + dt*( rk_coef(2,1)*Fw1 + rk_coef(2,2)*Fw2 )
     t = to + rk_t(rk_step)*dt
 
+    
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
+      prev_time = MPI_WTIME()
       call setup_IB_geometry
+      last_time = MPI_WTIME()
+      IB_geo = IB_geo+last_time-prev_time
+      prev_time = MPI_WTIME()
       call setup_IB_operators
+      last_time = MPI_WTIME()
+      IB_op = IB_op+last_time-prev_time
     End If
 
+    prev_time = MPI_WTIME()
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
+    last_time = MPI_WTIME()
+    non_IB_proj = non_IB_proj+last_time-prev_time
     If ( body_type > 0 ) Then
       Call apply_boundary_conditions(U, V, W)
       Call compute_IB_projection
     End If
+    prev_time = MPI_WTIME()
     Call apply_boundary_conditions(U, V, W)
+    last_time = MPI_WTIME()
+    apply_bc=apply_bc+last_time-prev_time
 
     ! Vw(:,1,:) = -V(:,24,:)
     ! Vw(:,2,:) = -V(:,ny-23,:)
@@ -165,19 +191,32 @@ Contains
          dt*( rk_coef(3,1)*Fw1 + rk_coef(3,2)*Fw2 + rk_coef(3,3)*Fw3 )
     t = to + rk_t(rk_step)*dt
 
+    
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
+      prev_time = MPI_WTIME()
       call setup_IB_geometry
+      last_time = MPI_WTIME()
+      IB_geo = IB_geo+last_time-prev_time
+      prev_time = MPI_WTIME()
       call setup_IB_operators
+      last_time = MPI_WTIME()
+      IB_op = IB_op+last_time-prev_time
     End If
 
+    prev_time = MPI_WTIME()
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
+    last_time = MPI_WTIME()
+    non_IB_proj = non_IB_proj+last_time-prev_time
     If ( body_type > 0 ) Then
       Call apply_boundary_conditions(U, V, W)
       Call compute_IB_projection
     End If
+    prev_time = MPI_WTIME()
     Call apply_boundary_conditions(U, V, W)
+    last_time = MPI_WTIME()
+    apply_bc=apply_bc+last_time-prev_time
 
     ! compute mean pressure gradient for constant mass flow in x
     If ( x_mass_cte == 1 ) Then
@@ -194,6 +233,9 @@ Contains
        dPdy = dPdy/dt ! to be used later by rhs_*
        Call apply_boundary_conditions(U, V, W)
     End If
+    last_time_total = MPI_WTIME()
+    total_time = last_time_total-prev_time_total
+    
 
   End Subroutine compute_time_step_RK3
 
