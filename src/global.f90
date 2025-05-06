@@ -230,7 +230,7 @@ Module global
   Integer(Int32), Dimension(:), Allocatable :: send_counts_U, displs_U
   Integer(Int32), Dimension(:), Allocatable :: send_counts_V, displs_V
   Integer(Int32), Dimension(:), Allocatable :: send_counts_W, displs_W
-  Integer(Int32), Dimension(:), Allocatable :: send_counts_weights, displs_weights
+  Integer(Int32), Dimension(:), Allocatable :: send_counts_nb, displs_nb
   Integer(Int32) :: local_size_U, local_size_V, local_size_W, local_size_nb
 
   ! regularization and interpolation support, weights, and indices
