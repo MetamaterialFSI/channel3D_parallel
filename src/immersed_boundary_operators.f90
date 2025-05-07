@@ -183,15 +183,20 @@ Contains
     Call MPI_AllGatherv(W_(:, :, 2:nz-1), local_size_W, MPI_REAL8, &
                  W_global(:, :, 2:nz_global-1), send_counts_W, displs_W, MPI_REAL8, MPI_COMM_WORLD, ierr)
 
-    aux_surface_vector = global_regT(U_global, V_global, W_global)
+    regT_buffer_vector = global_regT(U_global, V_global, W_global)
 
     ! Gather regT values from all partitions
-    Call MPI_Allgatherv(aux_surface_vector(nb_start : nb_end), local_size_nb, MPI_REAL8, &
-                 regT(1 : nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
-    Call MPI_Allgatherv(aux_surface_vector(nb + nb_start : nb + nb_end), local_size_nb, MPI_REAL8, &
-                 regT(nb + 1 : 2 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
-    Call MPI_Allgatherv(aux_surface_vector(2 * nb + nb_start : 2 * nb + nb_end), local_size_nb, MPI_REAL8, &
-                 regT(2 * nb + 1 : 3 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    Call MPI_Allgatherv(regT_buffer_vector(nb_start : nb_end), local_size_nb, MPI_REAL8, &
+                 regT_buffer_scalar, send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    regT(1 : nb) = regT_buffer_scalar
+
+    Call MPI_Allgatherv(regT_buffer_vector(nb + nb_start : nb + nb_end), local_size_nb, MPI_REAL8, &
+                 regT_buffer_scalar, send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    regT(nb + 1 : 2 * nb) = regT_buffer_scalar
+
+    Call MPI_Allgatherv(regT_buffer_vector(2 * nb + nb_start : 2 * nb + nb_end), local_size_nb, MPI_REAL8, &
+                 regT_buffer_scalar, send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    regT(2 * nb + 1 : 3 * nb) = regT_buffer_scalar
 
   End Function regT
 

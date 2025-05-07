@@ -497,9 +497,13 @@ Contains
     Allocate ( rhs_ib (3 * nb) )
     Allocate ( aux_surface_vector (3 * nb) )
     Allocate ( aux_surface_scalar (nb) )
+    Allocate ( regT_buffer_vector (3 * nb) )
+    Allocate ( regT_buffer_scalar (nb) )
     rhs_ib = 0d0
     aux_surface_vector = 0d0
     aux_surface_scalar = 0d0
+    regT_buffer_vector = 0d0
+    regT_buffer_scalar = 0d0
     Allocate ( Fibu (nx,nyg,nzg) )
     Allocate ( Fibv (nxg,ny,nzg) )
     Allocate ( Fibw (nxg,nyg,nz) )
