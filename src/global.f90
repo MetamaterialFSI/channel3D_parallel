@@ -249,6 +249,7 @@ Module global
   ! immersed body auxilliary variables
   Real(Int64), Dimension(:),     Allocatable :: aux_surface_scalar, aux_surface_vector, rhs_ib
   Real(Int64), Dimension(:,:,:), Allocatable :: Fibu, Fibv, Fibw
+  Logical(Int32) :: moving_z_flag ! True for moving in z direction; False: stationary in z direction (for identifying the partition)
 
   ! variables for speed test
   Real(Int64),    Dimension(:,:),   Allocatable :: time_matrix, error_matrix

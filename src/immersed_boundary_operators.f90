@@ -358,4 +358,56 @@ Contains
   
   End Subroutine global_regw
 
+  subroutine global_to_local_face(k_global, k_local, rank, k1_global, k2_global, nprocs)
+    implicit none
+    integer, intent(in)  :: k_global        ! global face index
+    integer, intent(out) :: k_local         ! local index
+    integer, intent(out) :: rank      ! MPI rank that owns this index
+    integer, intent(in)  :: k1_global(:), k2_global(:)
+    integer, intent(in)  :: nprocs
+  
+    integer :: p
+  
+    rank = -1
+    k_local    = -1
+  
+    do p = 0, nprocs - 1
+      if (k_global >= k1_global(p) .and. k_global < k2_global(p)) then
+        rank = p
+        k_local = k_global - k1_global(p) + 1
+        return
+      end if
+    end do
+  
+    print *, 'Error: global face index ', k_global, ' not owned by any rank.'
+    stop
+  end subroutine global_to_local_face
+  
+  subroutine global_to_local_center(k_global, k_local, rank, kg1_global, kg2_global, nprocs)
+    implicit none
+    integer, intent(in)  :: k_global        ! global center index
+    integer, intent(out) :: k_local         ! local index
+    integer, intent(out) :: rank      ! MPI rank that owns this index
+    integer, intent(in)  :: kg1_global(:), kg2_global(:)
+    integer, intent(in)  :: nprocs
+  
+    integer :: p
+  
+    rank = -1
+    k_local    = -1
+  
+    do p = 0, nprocs - 1
+      if (k_global >= kg1_global(p) .and. k_global < kg2_global(p)) then
+        rank = p
+        k_local = k_global - kg1_global(p) + 1
+        return
+      end if
+    end do
+  
+    print *, 'Error: global center index ', k_global, ' not owned by any rank.'
+    stop
+  end subroutine global_to_local_center
+  
+
+
 End Module immersed_boundary_operators

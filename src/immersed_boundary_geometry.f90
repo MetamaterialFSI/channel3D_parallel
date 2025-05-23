@@ -64,6 +64,7 @@ Contains
       Case (1) ! Static planar wall centered at y = 0
         If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
         moving_body = .False.
+        moving_z_flag = .False.
 
         ub = 0d0
         ! Reference points are the center of the domain
@@ -99,6 +100,7 @@ Contains
       Case (2) ! Double rotating cylinders
         If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
         moving_body = .True. ! should be False, but set to True for speed test
+        moving_z_flag = .False.
         nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
         nb_end = 0         ! Initialize to the lowest possible index
         y_ref_index = 1 ! The grid has to be uniform for this case, so it doesn't matter what y_ref_index is
@@ -158,6 +160,7 @@ Contains
         If ( grid_type /= 2 ) Stop 'Error: body type is incompatible with grid type'
         If ( body_param_1 > min_buffer_width ) Stop 'Error: IB amplitude is bigger than the minimum buffer width'
         moving_body = .True.
+        moving_z_flag = .False.
 
         ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
         ! (i.e., fall between an nb_start and nb_end)
