@@ -45,18 +45,25 @@ Contains
   Subroutine compute_IB_projection
 
     ! - E u* + ub 
+    !WRITE(*,*) 'myid',myid,'compute_E'
+    E_internal_flag=.true.
     prev_time = MPI_WTIME()
     rhs_ib = -regT(U, V, W) + ub
     last_time = MPI_WTIME()
     E_1st = E_1st+last_time-prev_time
+    E_internal_flag=.false.
 
     ! solve for IB forcing
+    !WRITE(*,*) 'myid',myid,'solve force'
+    R_internal_flag=.true.
     prev_time = MPI_WTIME()
     call bicgstab(fb, rhs_ib)
     last_time = MPI_WTIME()
     IB_force = IB_force +last_time-prev_time
+    R_internal_flag=.false.
 
     ! U_reg = R f
+    !WRITE(*,*) 'myid',myid,'compute_regu'
     prev_time = MPI_WTIME()
     Call regu(U_reg, fb)
     Call regv(V_reg, fb)

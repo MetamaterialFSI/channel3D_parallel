@@ -144,6 +144,11 @@ Contains
          grad_1st=grad_1st/3
          proj_2nd=proj_2nd/3
          apply_bc = apply_bc/3
+         E_subset=E_subset/3
+         E_transfer=E_transfer/3
+         E_update_subset=E_update_subset/3
+         R_subset=R_subset/3
+         R_transfer=R_transfer/3
          !WRITE(*,*) 'write output stats'
          tmp_t=t+REAL(nstep_init)*dt
          !WRITE(*,*) 'store_index=',store_index
@@ -164,6 +169,11 @@ Contains
          time_matrix(store_index,15)=RK2_iter 
          time_matrix(store_index,16)=RK3_iter 
          time_matrix(store_index,17)=total_time
+         time_matrix(store_index,18)=E_transfer
+         time_matrix(store_index,19)=E_update_subset
+         time_matrix(store_index,20)=E_subset
+         time_matrix(store_index,21)=R_subset
+         time_matrix(store_index,22)=R_transfer
          error_matrix (store_index,1:50)=RK1_error
          error_matrix (store_index,51:100)=RK2_error
          error_matrix (store_index,101:150)=RK3_error
@@ -199,6 +209,11 @@ Contains
          RK1_error=0.d0
          RK2_error=0.d0
          RK3_error=0.d0
+         E_subset=0.e0
+         E_update_subset=0.d0
+         E_subset=0.d0
+         R_subset=0.d0
+         R_transfer=0.d0
        end if
 
        ! Sanity check 

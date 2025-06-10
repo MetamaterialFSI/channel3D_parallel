@@ -53,6 +53,9 @@ Contains
     ! restriction for MPI boundaries
     If ( nslices_z<2 ) Stop 'Error: nslices_z must be at least 2' 
 
+    ! restriction for IBPM-MPI support cell
+    IF (nslices_z<suppz) Stop 'Error: nslices_z must be grater than 2'
+
     ! domain decomposition. Must be consistent with fftw
     Do i = 0, nprocs-1
        ! range index for faces in each processor
@@ -61,11 +64,19 @@ Contains
        ! range index for centers in each processor
        kg1_global(i) = i*nslices_z   + 1
        kg2_global(i) = kg1_global(i) + nslices_z + 1
-    End Do    
+    End Do   
 
     ! remaining planes in last processor
     k2_global (nprocs-1) = nz_global 
     kg2_global(nprocs-1) = nz_global + 1
+
+    ! for debug
+    if ( myid ==0 ) then
+      WRITE(*,*) 'k1_global',k1_global
+      WRITE(*,*) 'k2_global',k2_global
+      WRITE(*,*) 'kg1_global',kg1_global
+      WRITE(*,*) 'kg2_global',kg2_global
+    end if
 
     ! face points
     nx = nx_global
@@ -137,6 +148,11 @@ Contains
     Allocate (V_interim  ( nxm+2,     ny, nzm+2) )
     Allocate (W_interim  ( nxm+2,  nym+2,    nz) )
     Allocate (P_interim  ( nxm+2,  nym+2, nzm+2) )
+
+    ! arrays for support cell for immersed boundary part: first half for left boundary; second half for right boundary
+    Allocate (U_supp  (    nx,  nym+2, suppz*2+1) )
+    Allocate (V_supp  ( nxm+2,     ny, suppz*2+1) )
+    Allocate (W_supp  ( nxm+2,  nym+2, suppz*2+1) )
 
     Allocate (Vw ( nxm+2, 2, nzm+2) )
 
@@ -255,6 +271,11 @@ Contains
     Allocate ( buffer_vs(nxg, ny), buffer_vr(nxg, ny) )
     Allocate ( buffer_ws(nxg,nyg), buffer_wr(nxg,nyg) )
     Allocate ( buffer_ps(2:nxg-1,2:nyg-1), buffer_pr(2:nxg-1,2:nyg-1) ) 
+
+    !------------------------suuport cell communications------------------------!
+    Allocate ( buffer_usupp_s(nx ,nyg,suppz+1), buffer_usupp_r(nx ,nyg,suppz+1) )
+    Allocate ( buffer_vsupp_s(nxg, ny,suppz+1), buffer_vsupp_r(nxg, ny,suppz+1) )
+    Allocate ( buffer_wsupp_s(nxg,nyg,suppz+1), buffer_wsupp_r(nxg,nyg,suppz+1) )
 
     !---------------------------Fourier transform---------------------------!
     If ( myid==0 ) Write(*,*) 'initializing FFT...'
@@ -517,16 +538,28 @@ Contains
     Allocate ( u_x_indices( nweights, nb) )
     Allocate ( u_y_indices( nweights, nb) )
     Allocate ( u_z_indices( nweights, nb) )
+    Allocate ( u_z_local_indices( nweights, nb) )
+    Allocate ( u_proc( nweights, nb) )
+    Allocate ( U_subset( nweights, nb) )
+    Allocate ( u_z_supp_idx( nweights, nb) )
     
     Allocate ( v_weights  ( nweights, nb) )
     Allocate ( v_x_indices( nweights, nb) )
     Allocate ( v_y_indices( nweights, nb) )
     Allocate ( v_z_indices( nweights, nb) )
+    Allocate ( v_z_local_indices( nweights, nb) )
+    Allocate ( v_proc( nweights, nb) )
+    Allocate ( V_subset( nweights, nb) )
+    Allocate ( v_z_supp_idx( nweights, nb) )
     
     Allocate ( w_weights  ( nweights, nb) )
     Allocate ( w_x_indices( nweights, nb) )
     Allocate ( w_y_indices( nweights, nb) )
     Allocate ( w_z_indices( nweights, nb) )
+    Allocate ( w_z_local_indices( nweights, nb) )
+    Allocate ( w_proc( nweights, nb) )
+    Allocate ( W_subset( nweights, nb) )
+    Allocate ( w_z_supp_idx( nweights, nb) )
 
     Allocate( send_counts_nb(nprocs), displs_nb(nprocs) )
 
@@ -534,7 +567,7 @@ Contains
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)
 
     ! Measure time
-    Allocate ( time_matrix( 1000, 17) )
+    Allocate ( time_matrix( 1000, 22) )
     Allocate ( error_matrix( 1000, 150) )
     prev_time = MPI_WTIME()
     IB_geo =0.d0
@@ -552,6 +585,11 @@ Contains
     RK1_iter=0
     RK2_iter=0
     RK3_iter=0
+    E_subset=0.e0
+    E_update_subset=0.d0
+    E_subset=0.d0
+    R_subset=0.d0
+    R_transfer=0.d0
 
 
   End Subroutine

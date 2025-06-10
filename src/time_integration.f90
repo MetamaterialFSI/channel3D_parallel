@@ -126,6 +126,7 @@ Contains
     non_IB_proj = non_IB_proj+last_time-prev_time
     If ( body_type > 0 ) Then
       Call apply_boundary_conditions(U, V, W)
+      !WRITE(*,*) 'myid',myid,'compute_IB_proj'
       Call compute_IB_projection
     End If
     prev_time = MPI_WTIME()

@@ -179,7 +179,7 @@ Contains
             y_ref_index(k) = 1
             y_ref_index(k + nxb) = ny_global
 
-            If (zb(k) >= z(1) .and. nb_start > k) then
+            If (zb(k) >= z(2) .and. nb_start > k) then
               nb_start = k
             End If
             If (zb(k + nxb) <= z(nz-1) .and. nb_end < k + nxb) then
@@ -259,7 +259,7 @@ Contains
             y_ref_index(k) = 1
             y_ref_index(k + nxb) = ny_global
 
-            If (zb(k) >= z(1) .and. nb_start > k) then
+            If (zb(k) >= z(2) .and. nb_start > k) then
               nb_start = k
             End If
             If (zb(k + nxb) <= z(nz-1) .and. nb_end < k + nxb) then

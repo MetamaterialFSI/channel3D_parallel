@@ -107,6 +107,7 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_global, V_global, W_global
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_reg, V_reg, W_reg
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_interim, V_interim, W_interim, P_interim
+  Real(Int64), Allocatable, Dimension(:,:,:) :: U_supp, V_supp, W_supp! first 1:suppz is for left boundary; suppz+1:2*suppz is for right boundary
 
   ! local auxiliary 
   Real(Int64), Allocatable, Dimension(:,:,:) :: term_1, term_2
@@ -131,6 +132,10 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:) :: buffer_vs, buffer_vr
   Real(Int64), Allocatable, Dimension(:,:) :: buffer_ws, buffer_wr
   Real(Int64), Allocatable, Dimension(:,:) :: buffer_ps, buffer_pr
+  ! local auxiliary arrays for IBPM support cells
+  Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_usupp_s, buffer_usupp_r
+  Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_vsupp_s, buffer_vsupp_r
+  Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_wsupp_s, buffer_wsupp_r
   
   ! local auxiliary planes for FFTW
   Type(C_PTR) :: cplane_fft
@@ -238,10 +243,10 @@ Module global
   Integer(Int32), parameter :: suppy = 2
   Integer(Int32), parameter :: suppz = 2
   Integer(Int32), parameter :: nweights = (2 * suppx + 1) * (2 * suppy + 1) * (2 * suppz + 1)
-  Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights
-  Integer(Int32), Dimension(:,:),   Allocatable :: u_x_indices, u_y_indices, u_z_indices
-  Integer(Int32), Dimension(:,:),   Allocatable :: v_x_indices, v_y_indices, v_z_indices
-  Integer(Int32), Dimension(:,:),   Allocatable :: w_x_indices, w_y_indices, w_z_indices
+  Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights,U_subset,V_subset,W_subset
+  Integer(Int32), Dimension(:,:),   Allocatable :: u_x_indices, u_y_indices, u_z_indices, u_z_local_indices,u_proc,u_z_supp_idx
+  Integer(Int32), Dimension(:,:),   Allocatable :: v_x_indices, v_y_indices, v_z_indices, v_z_local_indices,v_proc,v_z_supp_idx
+  Integer(Int32), Dimension(:,:),   Allocatable :: w_x_indices, w_y_indices, w_z_indices, w_z_local_indices,w_proc, w_z_supp_idx
   Integer(Int32), Dimension(:),     Allocatable :: x_pivot_index, xm_pivot_index
   Integer(Int32), Dimension(:),     Allocatable :: y_pivot_index, ym_pivot_index
   Integer(Int32), Dimension(:),     Allocatable :: z_pivot_index, zm_pivot_index
@@ -254,8 +259,10 @@ Module global
   ! variables for speed test
   Real(Int64),    Dimension(:,:),   Allocatable :: time_matrix, error_matrix
   Real(Int64), Dimension(1:50):: RK1_error, RK2_error, RK3_error
-  Real(Int64) :: prev_time, last_time, prev_time_total, last_time_total ! for calculate time interval
+  Real(Int64) :: prev_time, last_time, prev_time_total, last_time_total,prev_internal,last_internal ! for calculate time interval
   Real(Int64) ::IB_geo, IB_op,non_IB_proj,E_1st, IB_force, R_1st, D_1st, IB_possion, proj_1st, grad_1st,proj_2nd,apply_bc, total_time
+  Real(Int64) ::E_subset, E_update_subset, E_transfer, R_subset, R_transfer
+  Logical(Int32) :: E_internal_flag, R_internal_flag
   Integer(Int32) ::RK1_iter, RK2_iter,RK3_iter
   Integer(Int32) :: store_index
   

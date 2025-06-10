@@ -687,7 +687,7 @@ Contains
        
        Do i=1,store_index
         !Write(33,'(999F15.8)') (time_matrix(i,j), j=1,12)
-        Write(33,'(999E15.8)') (time_matrix(i,j), j=1,17)
+        Write(33,'(999E15.8)') (time_matrix(i,j), j=1,22)
 
        End do
        
