@@ -263,11 +263,11 @@ Contains
     ! update the subset matrix
     prev_internal = MPI_WTIME()
     !WRITE(*,*) 'myid',myid,'update the subset matrix U'
-    Call update_IB_subset(U_,U_supp,U_subset,1)
+    !Call update_IB_subset(U_,U_supp,U_subset,1)
     !WRITE(*,*) 'myid',myid,'update the subset matrix V'
-    Call update_IB_subset(V_,V_supp,V_subset,2)
+    !Call update_IB_subset(V_,V_supp,V_subset,2)
     !WRITE(*,*) 'myid',myid,'update the subset matrix W'
-    Call update_IB_subset(W_,W_supp,W_subset,3)
+    !Call update_IB_subset(W_,W_supp,W_subset,3)
     last_internal = MPI_WTIME()
     IF (E_internal_flag) then
       E_update_subset = E_update_subset +last_internal-prev_internal
@@ -285,7 +285,8 @@ Contains
     
     !WRITE(*,*) 'myid',myid,'compute regT'
     prev_internal = MPI_WTIME()
-    aux_surface_vector = subset_regT(U_subset, V_subset, W_subset)
+    !aux_surface_vector = subset_regT(U_subset, V_subset, W_subset)
+    aux_surface_vector = local_regT(U_, V_, W_, U_supp, V_supp, W_supp)
     last_internal = MPI_WTIME()
     IF (E_internal_flag) then
       E_subset = E_subset +last_internal-prev_internal
@@ -477,55 +478,57 @@ Contains
   ! Output: regT                                  !
   !                                               !
   !-----------------------------------------------!
-  ! Function local_regT(U_, V_, W_, U_supp, V_supp, W_supp)
-  !   Implicit None
-  !   Real(Int64), Dimension(nweights, nb), Intent(In) :: U_
-  !   Real(Int64), Dimension(nweights, nb), Intent(In) :: V_
-  !   Real(Int64), Dimension(nweights, nb), Intent(In) :: W_
-  !   Real(Int64), Dimension(3 * nb):: local_regT
-  !   Real(Int64): u_select,v_select,w_select
-  !   ! integer :: u_xi, u_yi, u_zi,u_zi_supp,u_zi_loc
-  !   ! integer :: v_xi, u_yi, u_zi,u_zi_supp,u_zi_loc
-  !   ! integer :: u_xi, u_yi, u_zi,u_zi_supp,u_zi_loc
+  Function local_regT(U_, V_, W_, Usupp, Vsupp, Wsupp)
+    Implicit None
+    Real(Int64), Dimension(nx, nyg, nzg), Intent(In) :: U_
+    Real(Int64), Dimension(nxg, ny, nzg), Intent(In) :: V_
+    Real(Int64), Dimension(nxg, nyg, nz), Intent(In) :: W_
+    Real(Int64), Dimension(nx, nyg, suppz*2+1), Intent(In) :: Usupp
+    Real(Int64), Dimension(nxg, ny, suppz*2+1), Intent(In) :: Vsupp
+    Real(Int64), Dimension(nxg, nyg, suppz*2+1), Intent(In) :: Wsupp
+    Real(Int64), Dimension(3 * nb):: local_regT
+    integer :: proc_idx
+    !Real(Int64): u_select,v_select,w_select
+    ! integer :: u_xi, u_yi, u_zi,u_zi_supp,u_zi_loc
+    ! integer :: v_xi, u_yi, u_zi,u_zi_supp,u_zi_loc
+    ! integer :: u_xi, u_yi, u_zi,u_zi_supp,u_zi_loc
 
-  !   Integer(Int32) :: i, j
-  !   local_regT = 0.D0
+    Integer(Int32) :: i, j
+    local_regT = 0.D0
      
-  !   Do j = nb_start, nb_end
-  !     Do i = 1, nweights
-  !       ! get data of U
-  !       proc_idx = u_proc(i, j)
-  !       if ( proc_idx .eq. myid ) then
-  !         u_select=U_()
-  !       end if
-  !       if (proc_idx == myid) then
-  !         ! Write into local F
-  !         local_regT(j         ) = local_regT(j)          &
-  !         + u_weights(i, j) * U_(i,j)
-  !         local_regT(j + nb    ) = local_regT(j + nb)     &
-  !         + v_weights(i, j) * V_(i,j)
-  !         local_regT(j + 2 * nb) = local_regT(j + 2 * nb) &
-  !         + w_weights(i, j) * W_(i,j)
-  !         F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j+(id-1)*nb)
-  !       else
-  !         if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
-  !           WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
-  !           stop 'Error: zi_supp out of [1..suppz]'
-  !         END IF
-  !         F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j+(id-1)*nb)
-  !         !print *, 'Error: unexpected proc_idx =', proc_idx, ' for myid =', myid
-  !         !stop
-  !       end if
-  !       local_regT(j         ) = local_regT(j)          &
-  !         + u_weights(i, j) * U_(i,j)
-  !         local_regT(j + nb    ) = local_regT(j + nb)     &
-  !         + v_weights(i, j) * V_(i,j)
-  !         local_regT(j + 2 * nb) = local_regT(j + 2 * nb) &
-  !         + w_weights(i, j) * W_(i,j)
-  !     End Do
-  !   End Do
+    Do j = nb_start, nb_end
+      Do i = 1, nweights
+        ! get data of U
+        proc_idx = u_proc(i, j)
+        if ( proc_idx .eq. myid ) then
+          local_regT(j) = local_regT(j)+ &
+          u_weights(i, j) * U_(u_x_indices(i, j),u_y_indices(i, j),u_z_local_indices(i, j))
+        else
+          local_regT(j) = local_regT(j)+ &
+          u_weights(i, j) * Usupp(u_x_indices(i, j),u_y_indices(i, j),u_z_supp_idx(i, j))
+        end if
+        ! get data of V
+        proc_idx = v_proc(i, j)
+        if ( proc_idx .eq. myid ) then
+          local_regT(j + nb) = local_regT(j + nb)+ &
+          v_weights(i, j) * V_(v_x_indices(i, j),v_y_indices(i, j),v_z_local_indices(i, j))
+        else
+          local_regT(j + nb) = local_regT(j + nb)+ &
+          v_weights(i, j) * Vsupp(v_x_indices(i, j),v_y_indices(i, j),v_z_supp_idx(i, j))
+        end if
+        ! get data of W
+        proc_idx = w_proc(i, j)
+        if ( proc_idx .eq. myid ) then
+          local_regT(j + 2 * nb) = local_regT(j + 2 * nb)+ &
+          w_weights(i, j) * W_(w_x_indices(i, j),w_y_indices(i, j),w_z_local_indices(i, j))
+        else
+          local_regT(j + 2 * nb) = local_regT(j + 2 * nb)+ &
+          w_weights(i, j) * Wsupp(w_x_indices(i, j),w_y_indices(i, j),w_z_supp_idx(i, j))
+        end if
+      End Do
+    End Do
 
-  ! End Function local_regT
+  End Function local_regT
 !-----------------------------------------------------------------------
 !  Generalized “subset_regu” for U, V, or W:
 !    - id = 1 -> U

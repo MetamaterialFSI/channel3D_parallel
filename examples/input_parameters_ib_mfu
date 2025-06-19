@@ -2,11 +2,11 @@
 	! domain size
 	nx_global = 34
 	ny_global = 200
-	nz_global = 66
-	nxb = 10
-	nzb = 20
+	nz_global = 130
+	nxb = 20
+	nzb = 40
 	! (positive->CFL, negative->timestep size)
-	CFL = -0.001
+	CFL = -0.0005
 	! viscosity
 	nu = 3.076923076923077e-04 
 	! Pressure gradient
@@ -15,7 +15,7 @@
 	x_mass_cte = 0 ! (0->use dPdx, 1->constant mass flow)
 	y_mass_cte = 0
 	! nsteps, nsave, nstats, nmonitor
-	nsteps = 5000
+	nsteps = 1000
 	nsave =1000
 	nstats = 1
 	nmonitor = 10
