@@ -64,7 +64,6 @@ Contains
 
       utau_    = dPdx ** 0.5d0
       dPdx_ref = dPdx
-      store_index = 1
 
       Print params
        
