@@ -187,12 +187,6 @@ Contains
             End If 
           End Do
         End Do
-        if ( istep .eq. 1 ) then
-          WRITE(*,*) 'myid',myid,'nb_start',nb_start,'nb_end',nb_end,'local_nb',nb_end-nb_start+1,'zb_start',zb(nb_start),'zb_end',zb(nb_end),'z(1)',z(1),'z(nz)',z(nz)
-        
-          !WRITE(*,*) 'myid',myid,'zb_start',zb(nb_start),'zb_end',zb(nb_end),'z(1)',z(1),'z(nz)',z(nz)
-        
-        end if
         ! Vector arrays
         ub(1:nb) = 0d0
         ub(2 * nb + 1 : 3 * nb) = 0d0
@@ -273,8 +267,6 @@ Contains
             
           End Do
         End Do
-        ! debug line
-        !WRITE(*,*) 'myid',myid,'nb_start',nb_start,'nb_end',nb_end,'local_nb',nb_end-nb_start+1
         ! Vector arrays
         ub(1:nb) = 0d0
         ub(2 * nb + 1 : 3 * nb) = 0d0

@@ -452,143 +452,22 @@ Contains
     
   End Subroutine update_ghost_interior_planes
 
-    !--------------------------------------------------!
-  !          Update ghost interior planes            !
-  !--------------------------------------------------!
-  Subroutine reduce_ghost_interior_planes(F,id)
-
-    Real   (Int64), Intent(InOut) :: F(:,:,:)    
-    Integer(Int32), Intent(In)    :: id
-
-    Integer(Int32) :: sendto, recvfrom
-    Integer(Int32) :: tagto,  tagfrom
-    
-    If (id == 1) Then
-      !----------------------update U-----------------------!
-      ! send to top processor, receive from bottom one
-      sendto   = myid + 1
-      tagto    = myid + 1
-      recvfrom = myid - 1
-      tagfrom  = myid 
-      If ( myid==0 ) Then 
-         recvfrom = MPI_PROC_NULL
-         tagfrom  = MPI_ANY_TAG
-      End If
-      If ( myid==nprocs-1 ) Then
-         sendto = MPI_PROC_NULL
-         tagto  = 0
-      End If
-      buffer_us = F(:,:,nzg) ! send buffer
-      Call Mpi_sendrecv(buffer_us, nx*nyg, Mpi_real8, sendto, tagto,        &
-           buffer_ur, nx*nyg, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
-           istat, ierr)   
-      If ( myid/=0 ) F(:,:,2) = F(:,:,2)+buffer_ur ! received buffer
-      
-      ! send to bottom processor, receive from top one
-      sendto   = myid - 1
-      tagto    = myid - 1
-      recvfrom = myid + 1
-      tagfrom  = myid 
-      If ( myid==0 ) Then
-         sendto = MPI_PROC_NULL
-         tagto  = 0
-      End If
-      If ( myid==nprocs-1 ) Then
-         recvfrom = MPI_PROC_NULL
-         tagfrom  = MPI_ANY_TAG
-      End If
-      buffer_us = F(:,:,1)  ! send buffer
-      Call Mpi_sendrecv(buffer_us, nx*nyg, Mpi_real8, sendto, tagto,        &
-           buffer_ur, nx*nyg, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
-           istat, ierr)   
-      If ( myid/=nprocs-1 ) F(:,:,nzg-1) = F(:,:,nzg-1)+buffer_ur ! received buffer
-
-    Elseif (id == 2) Then
-      !----------------------update V-----------------------!
-      ! send to top processor, receive from bottom one
-      sendto   = myid + 1
-      tagto    = myid + 1
-      recvfrom = myid - 1
-      tagfrom  = myid 
-      If ( myid==0 ) Then
-         recvfrom = MPI_PROC_NULL
-         tagfrom  = MPI_ANY_TAG
-      End If
-      If ( myid==nprocs-1 ) Then
-         sendto = MPI_PROC_NULL
-         tagto  = 0
-      End If
-      buffer_vs = F(:,:,nzg) ! send buffer
-      Call Mpi_sendrecv(buffer_vs, nxg*ny, Mpi_real8, sendto, tagto,        &
-           buffer_vr, nxg*ny, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
-           istat, ierr)   
-      If ( myid/=0 ) F(:,:,2) = F(:,:,2)+buffer_vr ! received buffer
-      
-      ! send to bottom processor, receive from top one
-      sendto   = myid - 1
-      tagto    = myid - 1
-      recvfrom = myid + 1
-      tagfrom  = myid 
-      If ( myid==0 ) Then
-         sendto = MPI_PROC_NULL
-         tagto  = 0
-      End If
-      If ( myid==nprocs-1 ) Then
-         recvfrom = MPI_PROC_NULL
-         tagfrom  = MPI_ANY_TAG
-      End If
-      buffer_vs = F(:,:,1)  ! send buffer
-      Call Mpi_sendrecv(buffer_vs, nxg*ny, Mpi_real8, sendto, tagto,        &
-           buffer_vr, nxg*ny, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
-           istat, ierr)   
-      If ( myid/=nprocs-1 ) F(:,:,nzg-1) = F(:,:,nzg-1)+buffer_vr ! received buffer
-      
-    Elseif (id == 3) Then
-      !----------------------update W-----------------------!
-      ! send to top processor, receive from bottom one
-      sendto   = myid + 1
-      tagto    = myid + 1
-      recvfrom = myid - 1
-      tagfrom  = myid 
-      If ( myid==0 ) Then
-         recvfrom = MPI_PROC_NULL
-         tagfrom  = MPI_ANY_TAG
-      End If
-      If ( myid==nprocs-1 ) Then
-         sendto = MPI_PROC_NULL
-         tagto  = 0
-      End If
-      buffer_ws = F(:,:,nz)    ! send buffer
-      Call Mpi_sendrecv(buffer_ws, nxg*nyg, Mpi_real8, sendto, tagto,        &
-           buffer_wr, nxg*nyg, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
-           istat, ierr)   
-      If ( myid/=0 ) F(:,:,2) = F(:,:,2)+buffer_wr ! received buffer
-      
-      ! send to bottom processor, receive from top one
-      sendto   = myid - 1
-      tagto    = myid - 1
-      recvfrom = myid + 1
-      tagfrom  = myid 
-      If ( myid==0 ) Then
-         sendto = MPI_PROC_NULL
-         tagto  = 0
-      End If
-      If ( myid==nprocs-1 ) Then
-         recvfrom = MPI_PROC_NULL
-         tagfrom  = MPI_ANY_TAG
-      End If
-      buffer_ws = F(:,:,1)  ! send buffer
-      Call Mpi_sendrecv(buffer_ws, nxg*nyg, Mpi_real8, sendto, tagto,        &
-           buffer_wr, nxg*nyg, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
-           istat, ierr)   
-      If ( myid/=nprocs-1 ) F(:,:,nz-1) = F(:,:,nz-1)+buffer_wr ! received buffer     
-    End if  
-    
-  End Subroutine reduce_ghost_interior_planes
-
-  !--------------------------------------------------!
-  !          Update support interior planes          !
-  !--------------------------------------------------!
+!-------------------------------------------------------------------------------
+!  interior_planes_update_support
+!
+!  Purpose:
+!    Sends interior velocity planes to update the ghost/support layers of
+!    neighboring processors (F_supp). Handles periodic boundaries.
+!
+!  Inputs:
+!    F       : Field array (U, V, or W)
+!    F_supp  : Support array to be updated
+!    id      : Component ID (1=U, 2=V, 3=W)
+!
+!  Notes:
+!    - Periodic z-direction assumed
+!    - Communication occurs in both directions
+!-------------------------------------------------------------------------------
   Subroutine interior_planes_update_support(F,F_supp,id)
 
     Real   (Int64), Intent(InOut) :: F(:,:,:)    
@@ -734,9 +613,25 @@ Contains
     
   End Subroutine interior_planes_update_support
 
-  !--------------------------------------------------!
-  !          Update interior planes from support cells!
-  !--------------------------------------------------!
+!-------------------------------------------------------------------------------
+!  support_update_interior_planes
+!
+!  Purpose:
+!    Updates interior planes (F) using ghost/support planes (F_supp)
+!    from neighboring processors in the z-direction. This subroutine
+!    performs a **summation** of received support layers onto the
+!    corresponding interior layers — additive contribution is critical
+!    for correct formulation (e.g., immersed boundary forcing).
+!
+!  Inputs:
+!    F       : Field array (U, V, or W) to be updated
+!    F_supp  : Support/ghost array
+!    id      : Component ID (1=U, 2=V, 3=W)
+!
+!  Notes:
+!    - Assumes periodic domain in z-direction.
+!    - Performs additive update, **not overwrite**.
+!-------------------------------------------------------------------------------
   Subroutine support_update_interior_planes(F,F_supp,id)
 
     Real   (Int64), Intent(InOut) :: F(:,:,:)    
@@ -746,7 +641,6 @@ Contains
     Integer(Int32) :: sendto, recvfrom
     Integer(Int32) :: tagto,  tagfrom
     
-    !WRITE(*,*) 'supp2interior myid:',myid,'id:',id
     If (id == 1) Then
       !----------------------update U-----------------------!
       ! send to top processor, receive from bottom one
