@@ -74,30 +74,35 @@ Contains
 
 
     ! rhs_p = D R f
+    !WRITE(*,*) 'myid',myid,'compute divergence'
     prev_time = MPI_WTIME()
     Call divergence(rhs_p, U_reg, V_reg, W_reg)
     last_time = MPI_WTIME()
     D_1st = D_1st +last_time-prev_time
 
     prev_time = last_time
+    !WRITE(*,*) 'myid',myid,'solve possion'
     Call solve_poisson_equation(rhs_p)
     last_time = MPI_WTIME()
     IB_possion = IB_possion +last_time-prev_time
 
     ! Pnp1 = P* - Linv D R f
     prev_time = MPI_WTIME()
+    !WRITE(*,*) 'myid',myid,'proj 1st'
     rhs_p = P_interim - rhs_p
     last_time = MPI_WTIME()
     proj_1st = proj_1st +last_time-prev_time
 
     ! U, V, W = G Pnp1
     prev_time = MPI_WTIME()
+    !WRITE(*,*) 'myid',myid,'compute grad'
     call gradient(U, V, W, rhs_p)
     last_time = MPI_WTIME()
     grad_1st = grad_1st +last_time-prev_time
 
     ! Unp1 = U** - R f - G Pnp1
     prev_time = MPI_WTIME()
+    !WRITE(*,*) 'myid',myid,'proj 2'
     U = U_interim - U_reg - U
     V = V_interim - V_reg - V
     W = W_interim - W_reg - W
@@ -105,6 +110,7 @@ Contains
     Call apply_boundary_conditions(U, V, W)
     last_time = MPI_WTIME()
     proj_2nd = proj_2nd +last_time-prev_time
+    !WRITE(*,*) 'myid',myid,'finish IB_proj'
 
   End Subroutine compute_IB_projection
 
@@ -186,7 +192,7 @@ Contains
       Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
       ! If (myid == 0) Write(*,*)  "......Iteration = ",iter,", residual = ", error
     End Do
-    If (iter .eq. cg_max_iter) Then
+    If (iter .eq. cg_max_iter+1) Then
       Write(*,*)  "......WARNING, bicgstab used maximum number of iterations"
       Write(*,*)  "......Iterations = ",iter,", residual = ", error
     End If

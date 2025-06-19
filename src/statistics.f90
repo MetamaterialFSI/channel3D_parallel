@@ -147,6 +147,7 @@ Contains
          E_subset=E_subset/3
          E_transfer=E_transfer/3
          E_update_subset=E_update_subset/3
+         E_gatherf=E_gatherf/3
          R_subset=R_subset/3
          R_transfer=R_transfer/3
          !WRITE(*,*) 'write output stats'
@@ -172,11 +173,12 @@ Contains
          time_matrix(store_index,18)=E_transfer
          time_matrix(store_index,19)=E_update_subset
          time_matrix(store_index,20)=E_subset
-         time_matrix(store_index,21)=R_subset
-         time_matrix(store_index,22)=R_transfer
-         error_matrix (store_index,1:50)=RK1_error
-         error_matrix (store_index,51:100)=RK2_error
-         error_matrix (store_index,101:150)=RK3_error
+         time_matrix(store_index,21)=E_gatherf
+         time_matrix(store_index,22)=R_subset
+         time_matrix(store_index,23)=R_transfer
+         error_matrix (store_index,1:50)=RK1_error(1:50)
+         error_matrix (store_index,51:100)=RK2_error(1:50)
+         error_matrix (store_index,101:150)=RK3_error(1:50)
          !WRITE(*,*) 't,tau_w=',tau_w_log(store_index,1),tau_w_log(store_index,2)
          if (store_index .eq. 1000 .or. istep .eq. nsteps) then
            Call output_time
@@ -212,6 +214,7 @@ Contains
          E_subset=0.e0
          E_update_subset=0.d0
          E_subset=0.d0
+         E_gatherf=0.d0
          R_subset=0.d0
          R_transfer=0.d0
        end if

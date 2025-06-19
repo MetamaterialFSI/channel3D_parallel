@@ -663,7 +663,7 @@ Contains
 
   End Subroutine output_statistics
 
-    !----------------------------------------------!
+  !----------------------------------------------!
   !   Write 1d data in a single txt file         !
   !----------------------------------------------!
   Subroutine output_time
@@ -687,7 +687,7 @@ Contains
        
        Do i=1,store_index
         !Write(33,'(999F15.8)') (time_matrix(i,j), j=1,12)
-        Write(33,'(999E15.8)') (time_matrix(i,j), j=1,22)
+        Write(33,'(999E15.8)') (time_matrix(i,j), j=1,23)
 
        End do
        

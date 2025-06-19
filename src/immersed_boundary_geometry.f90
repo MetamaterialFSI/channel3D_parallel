@@ -179,14 +179,20 @@ Contains
             y_ref_index(k) = 1
             y_ref_index(k + nxb) = ny_global
 
-            If (zb(k) >= z(2) .and. nb_start > k) then
+            If (zb(k) >= z(1) .and. nb_start > k) then
               nb_start = k
             End If
-            If (zb(k + nxb) <= z(nz-1) .and. nb_end < k + nxb) then
+            If (zb(k + nxb) < z(nz-1) .and. nb_end < k + nxb) then
               nb_end = k + nxb
-            End If  
+            End If 
           End Do
         End Do
+        if ( istep .eq. 1 ) then
+          WRITE(*,*) 'myid',myid,'nb_start',nb_start,'nb_end',nb_end,'local_nb',nb_end-nb_start+1,'zb_start',zb(nb_start),'zb_end',zb(nb_end),'z(1)',z(1),'z(nz)',z(nz)
+        
+          !WRITE(*,*) 'myid',myid,'zb_start',zb(nb_start),'zb_end',zb(nb_end),'z(1)',z(1),'z(nz)',z(nz)
+        
+        end if
         ! Vector arrays
         ub(1:nb) = 0d0
         ub(2 * nb + 1 : 3 * nb) = 0d0
@@ -258,15 +264,17 @@ Contains
 
             y_ref_index(k) = 1
             y_ref_index(k + nxb) = ny_global
-
             If (zb(k) >= z(2) .and. nb_start > k) then
               nb_start = k
             End If
-            If (zb(k + nxb) <= z(nz-1) .and. nb_end < k + nxb) then
+            If (zb(k + nxb) < z(nz) .and. nb_end < k + nxb) then
               nb_end = k + nxb
-            End If  
+            End If 
+            
           End Do
         End Do
+        ! debug line
+        !WRITE(*,*) 'myid',myid,'nb_start',nb_start,'nb_end',nb_end,'local_nb',nb_end-nb_start+1
         ! Vector arrays
         ub(1:nb) = 0d0
         ub(2 * nb + 1 : 3 * nb) = 0d0

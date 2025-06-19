@@ -452,6 +452,140 @@ Contains
     
   End Subroutine update_ghost_interior_planes
 
+    !--------------------------------------------------!
+  !          Update ghost interior planes            !
+  !--------------------------------------------------!
+  Subroutine reduce_ghost_interior_planes(F,id)
+
+    Real   (Int64), Intent(InOut) :: F(:,:,:)    
+    Integer(Int32), Intent(In)    :: id
+
+    Integer(Int32) :: sendto, recvfrom
+    Integer(Int32) :: tagto,  tagfrom
+    
+    If (id == 1) Then
+      !----------------------update U-----------------------!
+      ! send to top processor, receive from bottom one
+      sendto   = myid + 1
+      tagto    = myid + 1
+      recvfrom = myid - 1
+      tagfrom  = myid 
+      If ( myid==0 ) Then 
+         recvfrom = MPI_PROC_NULL
+         tagfrom  = MPI_ANY_TAG
+      End If
+      If ( myid==nprocs-1 ) Then
+         sendto = MPI_PROC_NULL
+         tagto  = 0
+      End If
+      buffer_us = F(:,:,nzg) ! send buffer
+      Call Mpi_sendrecv(buffer_us, nx*nyg, Mpi_real8, sendto, tagto,        &
+           buffer_ur, nx*nyg, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+           istat, ierr)   
+      If ( myid/=0 ) F(:,:,2) = F(:,:,2)+buffer_ur ! received buffer
+      
+      ! send to bottom processor, receive from top one
+      sendto   = myid - 1
+      tagto    = myid - 1
+      recvfrom = myid + 1
+      tagfrom  = myid 
+      If ( myid==0 ) Then
+         sendto = MPI_PROC_NULL
+         tagto  = 0
+      End If
+      If ( myid==nprocs-1 ) Then
+         recvfrom = MPI_PROC_NULL
+         tagfrom  = MPI_ANY_TAG
+      End If
+      buffer_us = F(:,:,1)  ! send buffer
+      Call Mpi_sendrecv(buffer_us, nx*nyg, Mpi_real8, sendto, tagto,        &
+           buffer_ur, nx*nyg, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+           istat, ierr)   
+      If ( myid/=nprocs-1 ) F(:,:,nzg-1) = F(:,:,nzg-1)+buffer_ur ! received buffer
+
+    Elseif (id == 2) Then
+      !----------------------update V-----------------------!
+      ! send to top processor, receive from bottom one
+      sendto   = myid + 1
+      tagto    = myid + 1
+      recvfrom = myid - 1
+      tagfrom  = myid 
+      If ( myid==0 ) Then
+         recvfrom = MPI_PROC_NULL
+         tagfrom  = MPI_ANY_TAG
+      End If
+      If ( myid==nprocs-1 ) Then
+         sendto = MPI_PROC_NULL
+         tagto  = 0
+      End If
+      buffer_vs = F(:,:,nzg) ! send buffer
+      Call Mpi_sendrecv(buffer_vs, nxg*ny, Mpi_real8, sendto, tagto,        &
+           buffer_vr, nxg*ny, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+           istat, ierr)   
+      If ( myid/=0 ) F(:,:,2) = F(:,:,2)+buffer_vr ! received buffer
+      
+      ! send to bottom processor, receive from top one
+      sendto   = myid - 1
+      tagto    = myid - 1
+      recvfrom = myid + 1
+      tagfrom  = myid 
+      If ( myid==0 ) Then
+         sendto = MPI_PROC_NULL
+         tagto  = 0
+      End If
+      If ( myid==nprocs-1 ) Then
+         recvfrom = MPI_PROC_NULL
+         tagfrom  = MPI_ANY_TAG
+      End If
+      buffer_vs = F(:,:,1)  ! send buffer
+      Call Mpi_sendrecv(buffer_vs, nxg*ny, Mpi_real8, sendto, tagto,        &
+           buffer_vr, nxg*ny, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+           istat, ierr)   
+      If ( myid/=nprocs-1 ) F(:,:,nzg-1) = F(:,:,nzg-1)+buffer_vr ! received buffer
+      
+    Elseif (id == 3) Then
+      !----------------------update W-----------------------!
+      ! send to top processor, receive from bottom one
+      sendto   = myid + 1
+      tagto    = myid + 1
+      recvfrom = myid - 1
+      tagfrom  = myid 
+      If ( myid==0 ) Then
+         recvfrom = MPI_PROC_NULL
+         tagfrom  = MPI_ANY_TAG
+      End If
+      If ( myid==nprocs-1 ) Then
+         sendto = MPI_PROC_NULL
+         tagto  = 0
+      End If
+      buffer_ws = F(:,:,nz)    ! send buffer
+      Call Mpi_sendrecv(buffer_ws, nxg*nyg, Mpi_real8, sendto, tagto,        &
+           buffer_wr, nxg*nyg, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+           istat, ierr)   
+      If ( myid/=0 ) F(:,:,2) = F(:,:,2)+buffer_wr ! received buffer
+      
+      ! send to bottom processor, receive from top one
+      sendto   = myid - 1
+      tagto    = myid - 1
+      recvfrom = myid + 1
+      tagfrom  = myid 
+      If ( myid==0 ) Then
+         sendto = MPI_PROC_NULL
+         tagto  = 0
+      End If
+      If ( myid==nprocs-1 ) Then
+         recvfrom = MPI_PROC_NULL
+         tagfrom  = MPI_ANY_TAG
+      End If
+      buffer_ws = F(:,:,1)  ! send buffer
+      Call Mpi_sendrecv(buffer_ws, nxg*nyg, Mpi_real8, sendto, tagto,        &
+           buffer_wr, nxg*nyg, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+           istat, ierr)   
+      If ( myid/=nprocs-1 ) F(:,:,nz-1) = F(:,:,nz-1)+buffer_wr ! received buffer     
+    End if  
+    
+  End Subroutine reduce_ghost_interior_planes
+
   !--------------------------------------------------!
   !          Update support interior planes          !
   !--------------------------------------------------!
@@ -497,6 +631,7 @@ Contains
       If ( myid==0 ) Then
          sendto = nprocs-1
          tagto  = nprocs-1
+         if (2+suppz .gt. nzg-1) Stop 'Error: 2+suppz grater than nzg-1'
          buffer_usupp_s(:,:,1:suppz) = F(:,:,3:2+suppz)  ! send buffer
       ELSEIf ( myid==nprocs-1 ) Then
          recvfrom = 0
@@ -524,7 +659,7 @@ Contains
      ELSEIf ( myid==nprocs-1 ) Then
         sendto = 0
         tagto  = 0
-        if (nzg-suppz-1 .lt. 2) Stop 'Error: nzg-suppz-1 grater than 2'
+        if (nzg-suppz-2 .lt. 2) Stop 'Error: nzg-suppz-2 less than 2'
         buffer_vsupp_s = F(:,:,nzg-suppz-2:nzg-2) ! send buffer
      ELSE
       buffer_vsupp_s = F(:,:,nzg-suppz-1:nzg-1) ! send buffer
@@ -570,6 +705,7 @@ Contains
         tagto  = 0
       ELSE
       End If
+      if (nz-suppz-1 .lt. 2) Stop 'Error: nz-suppz-1 grater than 2'
       buffer_wsupp_s = F(:,:,nz-suppz-1:nz-1)    ! send buffer
       Call Mpi_sendrecv(buffer_wsupp_s, nxg*nyg*(suppz+1), Mpi_real8, sendto, tagto,        &
       buffer_wsupp_r, nxg*nyg*(suppz+1), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
@@ -594,6 +730,7 @@ Contains
            istat, ierr)   
       F_supp(:,:,suppz+2:2*suppz+1) = buffer_wsupp_r(:,:,1:suppz) ! received buffer     
     End if  
+    Call Mpi_barrier(MPI_COMM_WORLD, ierr) 
     
   End Subroutine interior_planes_update_support
 
@@ -609,6 +746,7 @@ Contains
     Integer(Int32) :: sendto, recvfrom
     Integer(Int32) :: tagto,  tagfrom
     
+    !WRITE(*,*) 'supp2interior myid:',myid,'id:',id
     If (id == 1) Then
       !----------------------update U-----------------------!
       ! send to top processor, receive from bottom one
@@ -653,7 +791,7 @@ Contains
       buffer_usupp_r, nx*nyg*(suppz+1), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
            istat, ierr)   
       IF (myid==nprocs-1) THEN
-        if (nzg-suppz-1 .lt. 2) Stop 'Error: nzg-suppz-1 grater than 2'
+        if (nzg-suppz-2 .lt. 2) Stop 'Error: nzg-suppz-1 less than 2'
         F(:,:,nzg-suppz-2:nzg-2) = F(:,:,nzg-suppz-2:nzg-2)+buffer_usupp_r ! received buffer
       ELSE
         F(:,:,nzg-suppz-1:nzg-1) = F(:,:,nzg-suppz-1:nzg-1)+buffer_usupp_r ! received buffer
@@ -748,7 +886,9 @@ Contains
       buffer_wsupp_r, nxg*nyg*(suppz+1), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
            istat, ierr)   
       F(:,:,nz-suppz-1:nz-1) = F(:,:,nz-suppz-1:nz-1)+ buffer_wsupp_r ! received buffer     
-    End if  
+    End if 
+    Call Mpi_barrier(MPI_COMM_WORLD, ierr) 
+    !WRITE(*,*) 'Done:supp2interior myid:',myid,'id:',id
     
   End Subroutine support_update_interior_planes
 

@@ -171,15 +171,15 @@ Contains
       End Do
     End Do
 
-    !local_size_nb = nb_end - nb_start + 1
+    local_size_nb = nb_end - nb_start + 1
 
     ! ! Gather send_counts
-    ! Call MPI_Allgather(local_size_nb, 1, MPI_INT, send_counts_nb, 1, MPI_INT, MPI_COMM_WORLD, ierr)
+    Call MPI_Allgather(local_size_nb, 1, MPI_INT, send_counts_nb, 1, MPI_INT, MPI_COMM_WORLD, ierr)
 
-    ! displs_nb(1) = 0
-    ! Do i = 2, nprocs
-    !   displs_nb(i) = displs_nb(i-1) + send_counts_nb(i-1)
-    ! End Do
+    displs_nb(1) = 0
+    Do i = 2, nprocs
+      displs_nb(i) = displs_nb(i-1) + send_counts_nb(i-1)
+    End Do
 
   End Subroutine setup_IB_operators
 
@@ -247,9 +247,11 @@ Contains
     !              V_global(:, :, 2:nzm_global+1), send_counts_V, displs_V, MPI_REAL8, MPI_COMM_WORLD, ierr)
     ! Call MPI_AllGatherv(W_(:, :, 2:nz-1), local_size_W, MPI_REAL8, &
     !              W_global(:, :, 2:nz_global-1), send_counts_W, displs_W, MPI_REAL8, MPI_COMM_WORLD, ierr)
-    ! !Gather U, V, W fields into the subset field
+    !Gather U, V, W fields into the subset field
     ! update the support vector for U, V,W
-    !WRITE(*,*) 'myid',myid,'update the support vector'
+    if ( myid .eq. 0 ) then
+      !WRITE(*,*) 'myid',myid,'update the support vector'
+    end if
     prev_internal = MPI_WTIME()
     Call interior_planes_update_support(U_,U_supp,1)
     Call interior_planes_update_support(V_,V_supp,2)
@@ -272,28 +274,43 @@ Contains
     end if
 
     !regT_global = global_regT(U_global, V_global, W_global)
-    !WRITE(*,*) 'myid',myid,'compute regT'
-    prev_internal = MPI_WTIME()
-    regT = subset_regT(U_subset, V_subset, W_subset)
-    last_internal = MPI_WTIME()
-    IF (E_internal_flag) then
-      E_subset = E_subset +last_internal-prev_internal
-    end if
-
-
-
-    ! Gather regT values from all partitions
+    ! aux_surface_vector = global_regT(U_global, V_global, W_global)
+    ! ! Gather regT values from all partitions
     ! Call MPI_Allgatherv(aux_surface_vector(nb_start : nb_end), local_size_nb, MPI_REAL8, &
     !              regT_global(1 : nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
     ! Call MPI_Allgatherv(aux_surface_vector(nb + nb_start : nb + nb_end), local_size_nb, MPI_REAL8, &
     !              regT_global(nb + 1 : 2 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
     ! Call MPI_Allgatherv(aux_surface_vector(2 * nb + nb_start : 2 * nb + nb_end), local_size_nb, MPI_REAL8, &
     !              regT_global(2 * nb + 1 : 3 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    
+    !WRITE(*,*) 'myid',myid,'compute regT'
+    prev_internal = MPI_WTIME()
+    aux_surface_vector = subset_regT(U_subset, V_subset, W_subset)
+    last_internal = MPI_WTIME()
+    IF (E_internal_flag) then
+      E_subset = E_subset +last_internal-prev_internal
+    end if
+    ! Gather regT values from all partitions
+    prev_internal = MPI_WTIME()
+    Call MPI_Allgatherv(aux_surface_vector(nb_start : nb_end), local_size_nb, MPI_REAL8, &
+                 regT(1 : nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    Call MPI_Allgatherv(aux_surface_vector(nb + nb_start : nb + nb_end), local_size_nb, MPI_REAL8, &
+                 regT(nb + 1 : 2 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    Call MPI_Allgatherv(aux_surface_vector(2 * nb + nb_start : 2 * nb + nb_end), local_size_nb, MPI_REAL8, &
+                 regT(2 * nb + 1 : 3 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    last_internal = MPI_WTIME()
+    IF (E_internal_flag) then
+      E_gatherf = E_gatherf +last_internal-prev_internal
+    end if
+
+
+
     ! if ( NORM2(regT-regT_global) .gt. 1E-8 ) then
+    !   WRITE(*,*) 'global_regT not equal to subset_regT'
     !   if ( myid .eq. 0 ) then
     !     WRITE(*,*) 'global_regT not equal to subset_regT'
-    !     WRITE(*,*) 'global_regT',regT_global
-    !     WRITE(*,*) 'subset_regT',regT
+    !     !WRITE(*,*) 'global_regT',regT_global
+    !     !WRITE(*,*) 'subset_regT',regT
     !   end if
     ! end if
   End Function regT
@@ -323,11 +340,28 @@ Contains
     !               U_local(:, :, 2:nzm+1), local_size_U, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
     !Call scatter_IB_subset(U_, U_supp, U_subset, 1)
     prev_internal = MPI_WTIME()
+    if ( myid .eq. 0 ) then
+      !WRITE(*,*) 'myid',myid,'update the interior plane U'
+    end if
     Call support_update_interior_planes(U_,U_supp,1)
+    !!Call reduce_ghost_interior_planes(U_,1)
     last_internal = MPI_WTIME()
     IF (R_internal_flag) then
       R_transfer = R_transfer +last_internal-prev_internal
     end if
+
+    ! debug line
+    !WRITE(*,*) 'myid',myid,'update the interior plane U'
+    ! Call interior_planes_update_support(U_,U_supp,1)
+    ! Call update_IB_subset(U_,U_supp,U_subset,1)
+    ! if ( NORM2(U_local(:,:,2:nzm+1)-U_(:,:,2:nzm+1)) .gt. 1E-8 ) then
+    !   WRITE(*,*) 'global_regu not equal to subset_regu'
+    !   if ( myid .eq. 0 ) then
+    !     WRITE(*,*) 'global_regu not equal to subset_regu'
+    !     !WRITE(*,*) 'global_regT',regT_global
+    !     !WRITE(*,*) 'subset_regT',regT
+    !   end if
+    ! end if
 
   End Subroutine regu
 
@@ -339,6 +373,7 @@ Contains
     Call subset_reg(V_,V_supp,f_,2)
     !Call scatter_IB_subset(V_, V_supp, V_subset, 2)
     Call support_update_interior_planes(V_,V_supp,2)
+    !Call reduce_ghost_interior_planes(V_,2)
     !Call global_regv(V_global, f_)
 
     ! If (myid == 0) Then
@@ -361,6 +396,7 @@ Contains
     Call subset_reg(W_,W_supp,f_,3)
     !Call scatter_IB_subset(W_, W_supp, W_subset, 3)
     Call support_update_interior_planes(W_,W_supp,3)
+    !Call reduce_ghost_interior_planes(W_,3)
     !Call global_regw(W_global, f_)
 
     ! If (myid == 0) Then
@@ -433,6 +469,63 @@ Contains
     End Do
 
   End Function subset_regT
+
+  !-----------------------------------------------!
+  !          Interpolation to body points         !
+  !                                               !
+  ! Input: U_, V_, W_                             !
+  ! Output: regT                                  !
+  !                                               !
+  !-----------------------------------------------!
+  ! Function local_regT(U_, V_, W_, U_supp, V_supp, W_supp)
+  !   Implicit None
+  !   Real(Int64), Dimension(nweights, nb), Intent(In) :: U_
+  !   Real(Int64), Dimension(nweights, nb), Intent(In) :: V_
+  !   Real(Int64), Dimension(nweights, nb), Intent(In) :: W_
+  !   Real(Int64), Dimension(3 * nb):: local_regT
+  !   Real(Int64): u_select,v_select,w_select
+  !   ! integer :: u_xi, u_yi, u_zi,u_zi_supp,u_zi_loc
+  !   ! integer :: v_xi, u_yi, u_zi,u_zi_supp,u_zi_loc
+  !   ! integer :: u_xi, u_yi, u_zi,u_zi_supp,u_zi_loc
+
+  !   Integer(Int32) :: i, j
+  !   local_regT = 0.D0
+     
+  !   Do j = nb_start, nb_end
+  !     Do i = 1, nweights
+  !       ! get data of U
+  !       proc_idx = u_proc(i, j)
+  !       if ( proc_idx .eq. myid ) then
+  !         u_select=U_()
+  !       end if
+  !       if (proc_idx == myid) then
+  !         ! Write into local F
+  !         local_regT(j         ) = local_regT(j)          &
+  !         + u_weights(i, j) * U_(i,j)
+  !         local_regT(j + nb    ) = local_regT(j + nb)     &
+  !         + v_weights(i, j) * V_(i,j)
+  !         local_regT(j + 2 * nb) = local_regT(j + 2 * nb) &
+  !         + w_weights(i, j) * W_(i,j)
+  !         F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j+(id-1)*nb)
+  !       else
+  !         if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+  !           WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+  !           stop 'Error: zi_supp out of [1..suppz]'
+  !         END IF
+  !         F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j+(id-1)*nb)
+  !         !print *, 'Error: unexpected proc_idx =', proc_idx, ' for myid =', myid
+  !         !stop
+  !       end if
+  !       local_regT(j         ) = local_regT(j)          &
+  !         + u_weights(i, j) * U_(i,j)
+  !         local_regT(j + nb    ) = local_regT(j + nb)     &
+  !         + v_weights(i, j) * V_(i,j)
+  !         local_regT(j + 2 * nb) = local_regT(j + 2 * nb) &
+  !         + w_weights(i, j) * W_(i,j)
+  !     End Do
+  !   End Do
+
+  ! End Function local_regT
 !-----------------------------------------------------------------------
 !  Generalized “subset_regu” for U, V, or W:
 !    - id = 1 -> U
@@ -614,28 +707,37 @@ Contains
     if (next == nprocs) next = 0
   
     ! Check ownership among {prev, myid, next}
-    if (k_global >= k1_global(prev)+1 .and. k_global <= k2_global(prev)-1) then
-      rank = prev
-    elseif (k_global >= k1_global(myid)+1 .and. k_global <= k2_global(myid)-1) then
+    if (k_global >= k1_global(myid)+1 .and. k_global <= k2_global(myid)-1) then
       rank = myid
+    elseif (k_global >= k1_global(prev)+1 .and. k_global <= k2_global(prev)-1) then
+      rank = prev
     elseif (k_global >= k1_global(next)+1 .and. k_global <= k2_global(next)-1) then
       rank = next
     else
       print *, 'Error: Face index ', k_global, ' not in {', prev, ',', myid, ',', next, '}.'
       stop
     end if
-  
+    k_loc = k_global - k1_global(rank) + 1
     if (rank == myid) then
       ! Locally owned -> compute k_loc
-      k_loc = k_global - k1_global(myid) + 1
       k_sup = -1
     else  ! rank == next
-      k_loc = k_global - k1_global(rank) + 1
-      if ( k_loc>nz/2 ) then
-        k_sup = k_global - (k2_global(prev) - suppz)+2
-      else
-        k_sup = (k_global - k1_global(next)) + (suppz+1)
+      if ( nprocs .eq. 2 ) then
+        ! special case for only 2 processors: prev=next
+        if ( k_loc>nz/2 ) then
+          k_sup = k_global - (k2_global(prev) - suppz)+2
+        else
+          k_sup = (k_global - k1_global(next)) + (suppz+1)
+        end if
+      else 
+        if ( rank .eq. prev ) then
+          k_sup = k_global - (k2_global(prev) - suppz)+2
+        elseif (rank .eq. next) then
+          k_sup = (k_global - k1_global(next)) + (suppz+1)
+        end if
+        
       end if
+      
     
     end if
   end subroutine global_to_local_face
@@ -667,31 +769,60 @@ Contains
     elseif (k_global >= (kg1_global(myid)+1) .and. &
             k_global <= (kg2_global(myid)-1)) then
       rank = myid
-    elseif (k_global >= (kg1_global(next+1)+1) .and. &
-            k_global <= (kg2_global(next+1)-1)) then
+    elseif (k_global >= (kg1_global(next)+1) .and. &
+            k_global <= (kg2_global(next)-1)) then
       rank = next
     else
       print *, 'Error: Center index ', k_global, ' not in {', prev, ',', myid, ',', next, '}.'
       stop
     end if
-  
+
+    k_loc = k_global - kg1_global(rank) + 1
     if (rank == myid) then
       ! Locally owned -> compute k_loc
-      k_loc = k_global - kg1_global(myid) + 1
       k_sup = -1
     else  ! rank == next
-      k_loc = k_global - kg1_global(rank) + 1
-      if ( k_loc>nzg/2 ) then
-        neighbor_top_start = (kg2_global(prev) - suppz - 2)
-        k_sup = k_global - neighbor_top_start
-        if ( rank .eq. nprocs-1 ) then
-          k_sup=k_sup+1
+      if ( nprocs .eq. 2 ) then
+        ! special case for only 2 processors: prev=next
+        if ( k_loc>nzg/2 ) then
+          neighbor_top_start = (kg2_global(prev) - suppz - 2)
+          k_sup = k_global - neighbor_top_start
+          if ( rank .eq. nprocs-1 ) then
+            k_sup=k_sup+1
+          end if
+        else
+          k_sup = (k_global - (kg1_global(next) + 1)) + (suppz + 2)
         end if
-      else
-        k_sup = (k_global - (kg1_global(next) + 1)) + (suppz + 2)
+      else 
+        if ( rank .eq. prev ) then
+          k_sup = k_global - (kg2_global(prev) - suppz)+2
+          if ( rank .eq. nprocs-1 ) then
+            k_sup=k_sup+1
+          end if
+        elseif (rank .eq. next) then
+          k_sup = (k_global - (kg1_global(next) + 1)) + (suppz + 2)
+        end if
+        
       end if
+      
     
     end if
+    ! if (rank == myid) then
+    !   ! Locally owned -> compute k_loc
+    !   k_sup = -1
+    ! else  ! rank == next
+    !   k_loc = k_global - kg1_global(rank) + 1
+    !   if ( k_loc>nzg/2 ) then
+    !     neighbor_top_start = (kg2_global(prev) - suppz - 2)
+    !     k_sup = k_global - neighbor_top_start
+    !     if ( rank .eq. nprocs-1 ) then
+    !       k_sup=k_sup+1
+    !     end if
+    !   else
+    !     k_sup = (k_global - (kg1_global(next) + 1)) + (suppz + 2)
+    !   end if
+    
+    ! end if
   end subroutine global_to_local_center
   
   
@@ -752,16 +883,16 @@ Contains
           xi = v_x_indices(i, j)
           yi = v_y_indices(i, j)
           zi = v_z_local_indices(i, j)
-          !zi_global = v_z_indices(i, j)
           zi_supp = v_z_supp_idx(i, j)
+          !zi_global = v_z_indices(i, j)
           !f_global=V_global(xi,yi,zi_global)
         case (3)
           proc_idx = w_proc(i, j)
           xi = w_x_indices(i, j)
           yi = w_y_indices(i, j)
           zi = w_z_local_indices(i, j)
-          !zi_global = w_z_indices(i, j)
           zi_supp = w_z_supp_idx(i, j)
+          !zi_global = w_z_indices(i, j)
           !f_global=W_global(xi,yi,zi_global)
         case default
           print *, 'Error in update_IB_subset: invalid id =', id
