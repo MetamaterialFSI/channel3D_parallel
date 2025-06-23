@@ -113,66 +113,12 @@ Contains
     local_size_nb = nb_end - nb_start + 1
 
     ! Gather send_counts
-    Call MPI_Gather(local_size_nb * nweights, 1, MPI_INT, send_counts_weights, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+    Call MPI_Allgather(local_size_nb, 1, MPI_INT, send_counts_nb, 1, MPI_INT, MPI_COMM_WORLD, ierr)
 
-    If (myid == 0) Then
-      displs_weights(1) = 0
-      Do i = 2, nprocs
-        displs_weights(i) = displs_weights(i-1) + send_counts_weights(i-1)
-      End Do
-      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_REAL8, &
-                       u_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_REAL8, &
-                       v_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_REAL8, &
-                       w_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-
-      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
-                       u_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
-                       u_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
-                       u_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
-                       v_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
-                       v_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
-                       v_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
-                       w_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
-                       w_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(MPI_IN_PLACE, 0, MPI_INT, &
-                       w_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-    Else
-
-      call MPI_GATHERV(u_weights(:, nb_start:nb_end), local_size_nb * nweights, MPI_REAL8, &
-                       u_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(v_weights(:, nb_start:nb_end), local_size_nb * nweights, MPI_REAL8, &
-                       v_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(w_weights(:, nb_start:nb_end), local_size_nb * nweights, MPI_REAL8, &
-                       w_weights, send_counts_weights, displs_weights, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-
-      call MPI_GATHERV(u_x_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                       u_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(u_y_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                       u_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(u_z_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                       u_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(v_x_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                       v_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(v_y_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                       v_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(v_z_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                       v_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(w_x_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                       w_x_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(w_y_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                       w_y_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_GATHERV(w_z_indices(:, nb_start:nb_end), local_size_nb * nweights, MPI_INT, &
-                       w_z_indices, send_counts_weights, displs_weights, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-    End If
+    displs_nb(1) = 0
+    Do i = 2, nprocs
+      displs_nb(i) = displs_nb(i-1) + send_counts_nb(i-1)
+    End Do
 
   End Subroutine setup_IB_operators
 
@@ -230,16 +176,27 @@ Contains
     Real(Int64), Dimension(3 * nb):: regT
 
     ! Gather U, V, W fields into global fields
-    Call MPI_Gatherv(U_(:, :, 2:nzm+1), local_size_U, MPI_REAL8, &
-                 U_global(:, :, 2:nzm_global+1), send_counts_U, displs_U, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-    Call MPI_Gatherv(V_(:, :, 2:nzm+1), local_size_V, MPI_REAL8, &
-                 V_global(:, :, 2:nzm_global+1), send_counts_V, displs_V, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-    Call MPI_Gatherv(W_(:, :, 2:nz-1), local_size_W, MPI_REAL8, &
-                 W_global(:, :, 2:nz_global-1), send_counts_W, displs_W, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+    Call MPI_Allgatherv(U_(:, :, 2:nzm+1), local_size_U, MPI_REAL8, &
+                 U_global(:, :, 2:nzm_global+1), send_counts_U, displs_U, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    Call MPI_AllGatherv(V_(:, :, 2:nzm+1), local_size_V, MPI_REAL8, &
+                 V_global(:, :, 2:nzm_global+1), send_counts_V, displs_V, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    Call MPI_AllGatherv(W_(:, :, 2:nz-1), local_size_W, MPI_REAL8, &
+                 W_global(:, :, 2:nz_global-1), send_counts_W, displs_W, MPI_REAL8, MPI_COMM_WORLD, ierr)
 
-    If (myid==0) Then
-      regT = global_regT(U_global, V_global, W_global)
-    End If
+    regT_buffer_vector = global_regT(U_global, V_global, W_global)
+
+    ! Gather regT values from all partitions
+    Call MPI_Allgatherv(regT_buffer_vector(nb_start : nb_end), local_size_nb, MPI_REAL8, &
+                 regT_buffer_scalar, send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    regT(1 : nb) = regT_buffer_scalar
+
+    Call MPI_Allgatherv(regT_buffer_vector(nb + nb_start : nb + nb_end), local_size_nb, MPI_REAL8, &
+                 regT_buffer_scalar, send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    regT(nb + 1 : 2 * nb) = regT_buffer_scalar
+
+    Call MPI_Allgatherv(regT_buffer_vector(2 * nb + nb_start : 2 * nb + nb_end), local_size_nb, MPI_REAL8, &
+                 regT_buffer_scalar, send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    regT(2 * nb + 1 : 3 * nb) = regT_buffer_scalar
 
   End Function regT
 
@@ -248,8 +205,12 @@ Contains
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
     Real(Int64), Dimension(nx, nyg, nzg), Intent(Out) :: U_
 
-    If (myid==0) Then
-      Call global_regu(U_global, f_)
+    Call global_regu(U_global, f_)
+
+    If (myid == 0) Then
+      Call MPI_Reduce(MPI_IN_PLACE, U_global, nx_global * nyg_global * nzg_global, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+    Else
+      Call MPI_Reduce(U_global, U_global, nx_global * nyg_global * nzg_global, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
     End If
 
     Call MPI_Scatterv(U_global(:, :, 2:nzm_global+1), send_counts_U, displs_U, MPI_REAL8, &
@@ -262,8 +223,12 @@ Contains
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
     Real(Int64), Dimension(nxg, ny, nzg), Intent(Out) :: V_
 
-    If (myid==0) Then
-      Call global_regv(V_global, f_)
+    Call global_regv(V_global, f_)
+
+    If (myid == 0) Then
+      Call MPI_Reduce(MPI_IN_PLACE, V_global, nxg_global * ny_global * nzg_global, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+    Else
+      Call MPI_Reduce(V_global, V_global, nxg_global * ny_global * nzg_global, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
     End If
 
     Call MPI_Scatterv(V_global(:, :, 2:nzm_global+1), send_counts_V, displs_V, MPI_REAL8, &
@@ -277,8 +242,12 @@ Contains
     Real(Int64), Dimension(nxg, nyg, nz), Intent(Out) :: W_
     Integer(Int32) :: i, j
 
-    If (myid==0) Then
-      Call global_regw(W_global, f_)
+    Call global_regw(W_global, f_)
+
+    If (myid == 0) Then
+      Call MPI_Reduce(MPI_IN_PLACE, W_global, nxg_global * nyg_global * nz_global, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+    Else
+      Call MPI_Reduce(W_global, W_global, nxg_global * nyg_global * nz_global, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
     End If
 
     Call MPI_Scatterv(W_global(:, :, 2:nz_global-1), send_counts_W, displs_W, MPI_REAL8, &
@@ -303,7 +272,7 @@ Contains
     Integer(Int32) :: i, j
     global_regT = 0.D0
      
-    Do j = 1, nb
+    Do j = nb_start, nb_end
       Do i = 1, nweights
         global_regT(j         ) = global_regT(j)          &
           + u_weights(i, j) * U_(u_x_indices(i, j), u_y_indices(i, j), u_z_indices(i, j))
@@ -332,7 +301,7 @@ Contains
 
     U_ = 0.D0
 
-    Do j = 1, nb
+    Do j = nb_start, nb_end
       Do i = 1, nweights
         U_(u_x_indices(i, j), u_y_indices(i, j), u_z_indices(i, j)) = &
           U_(u_x_indices(i, j), u_y_indices(i, j), u_z_indices(i, j)) &
@@ -358,7 +327,7 @@ Contains
 
     V_ = 0.D0
 
-    Do j = 1, nb
+    Do j = nb_start, nb_end
       Do i = 1, nweights
         V_(v_x_indices(i, j), v_y_indices(i, j), v_z_indices(i, j)) = &
           V_(v_x_indices(i, j), v_y_indices(i, j), v_z_indices(i, j)) &
@@ -384,7 +353,7 @@ Contains
 
     W_ = 0.D0
 
-    Do j = 1, nb
+    Do j = nb_start, nb_end
       Do i = 1, nweights
         W_(w_x_indices(i, j), w_y_indices(i, j), w_z_indices(i, j)) = &
           W_(w_x_indices(i, j), w_y_indices(i, j), w_z_indices(i, j)) &
