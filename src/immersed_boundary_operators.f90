@@ -171,7 +171,7 @@ Contains
 
     local_size_nb = nb_end - nb_start + 1
 
-    ! ! Gather send_counts
+    ! Gather send_counts
     Call MPI_Allgather(local_size_nb, 1, MPI_INT, send_counts_nb, 1, MPI_INT, MPI_COMM_WORLD, ierr)
 
     displs_nb(1) = 0
