@@ -114,7 +114,7 @@ Contains
 
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
-    If ( body_type > 0 ) Then
+    If ( trim(body_type) /= 'none' ) Then
       Call apply_boundary_conditions(U, V, W)
       Call compute_IB_projection
     End If
@@ -142,7 +142,7 @@ Contains
 
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
-    If ( body_type > 0 ) Then
+    If ( trim(body_type) /= 'none' ) Then
       Call apply_boundary_conditions(U, V, W)
       Call compute_IB_projection
     End If
@@ -173,7 +173,7 @@ Contains
 
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
-    If ( body_type > 0 ) Then
+    If ( trim(body_type) /= 'none' ) Then
       Call apply_boundary_conditions(U, V, W)
       Call compute_IB_projection
     End If

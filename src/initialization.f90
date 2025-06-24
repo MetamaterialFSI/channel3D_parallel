@@ -231,7 +231,7 @@ Contains
     Lz = z_global(nz_global) - z_global(1)
 
     ! For initial IB implementation only!
-    If ( body_type > 0) Then
+    If ( trim(body_type) /= 'none' ) Then
       Allocate( U_global(nx_global,  nyg_global, nzg_global) )
       Allocate( V_global(nxg_global, ny_global,  nzg_global) )
       Allocate( W_global(nxg_global, nyg_global, nz_global ) )

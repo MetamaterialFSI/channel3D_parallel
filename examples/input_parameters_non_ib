@@ -21,7 +21,7 @@
 	fileout = 'channel_output_non_ib/test'
 	! first number for output flow field
 	nstep_init = 0
-	init_type = 0, ! (0->reads previous file, 1->zero, 2->random)
-	grid_type = 1, ! (0->uniform, 1->stretched)
-	body_type = 0, ! (0->no body)
+	init_type = 0 ! (0->reads previous file, 1->zero, 2->random)
+	grid_type = 1 ! (0->uniform, 1->stretched)
+	body_type = 'none'
 /

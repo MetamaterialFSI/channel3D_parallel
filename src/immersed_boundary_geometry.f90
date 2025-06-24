@@ -13,20 +13,20 @@ Contains
     Integer(Int32) :: nxb1, nxb2
     Real   (Int64) :: r, r1, r2
 
-    Select Case (body_type)
-      Case (0) ! No IB
+    Select Case (trim(body_type))
+      Case ('none') ! No IB
         nxb = 0
         nzb = 0
         nb = 0
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
 
-      Case (1) ! Static planar IB wall centered at y = 1
+      Case ('center_wall') ! Static planar IB wall centered at y = 1
         nb = nxb * nzb
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
 
-      Case (2) ! Double concentric cylinders
+      Case ('double_cylinders_z') ! Double concentric cylinders with axis parallel to z
         r1 = body_param_1
         r2 = body_param_2
         dzb = real(Lzp / nzb, 8)
@@ -36,12 +36,12 @@ Contains
         nxb = nxb1 + nxb2
         nb = nxb * nzb
 
-      Case (3) ! Top and bottom wall undergoing standing wave motion
+      Case ('standing_wave') ! Top and bottom wall undergoing standing wave motion
         nb = 2 * nxb * nzb
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
 
-      Case (4) ! Top and bottom wall undergoing travelling wave motion
+      Case ('traveling wave') ! Top and bottom wall undergoing traveling wave motion
         nb = 2 * nxb * nzb
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
@@ -55,13 +55,13 @@ Contains
     Integer(Int32) :: i, j, k, l, nxb1, nxb2
     Real   (Int64) :: a1, a2, r1, r2, xc, yc, theta, dsb1, dsb2, phi
 
-    Select Case (body_type)
-      Case (0) ! No IB
+    Select Case (trim(body_type))
+      Case ('none') ! No IB
         moving_body = .False.
         nb_start = 0
         nb_end = -1
 
-      Case (1) ! Static planar wall centered at y = 0
+      Case ('center_wall') ! Static planar wall centered at y = 0
         If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
         moving_body = .False.
         moving_z_flag = .False.
@@ -97,7 +97,7 @@ Contains
           normals(nb + k) = -1d0
         End Do
 
-      Case (2) ! Double rotating cylinders
+      Case ('double_cylinders_z') ! Double rotating cylinders
         If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
         moving_body = .False. ! should be False, but set to True for speed test
         moving_z_flag = .False.
@@ -156,7 +156,7 @@ Contains
           End If
         End Do
 
-      Case (3) ! Top and bottom wall undergoing standing wave motion in x-direction
+      Case ('standing_wave') ! Top and bottom wall undergoing standing wave motion in x-direction
         If ( grid_type /= 2 ) Stop 'Error: body type is incompatible with grid type'
         If ( body_param_1 > min_buffer_width ) Stop 'Error: IB amplitude is bigger than the minimum buffer width'
         moving_body = .True.
@@ -234,7 +234,7 @@ Contains
           End Do
         End Do
 
-      Case (4) ! Top and bottom wall undergoing traveling wave motion
+      Case ('traveling_wave') ! Top and bottom wall undergoing traveling wave motion
         If ( grid_type /= 2 ) Stop 'Error: body type is incompatible with grid type'
         If ( body_param_1 > min_buffer_width ) Stop 'Error: IB amplitude is bigger than the minimum buffer width'
         moving_body = .True.

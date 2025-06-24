@@ -48,7 +48,7 @@ Contains
 
       Call check_divergence(max_divergence)
       
-      If ( body_type > 0 ) Then
+      If ( trim(body_type) /= 'none' ) Then
         Call check_slip(max_slip)
       End If
 
@@ -82,7 +82,7 @@ Contains
         
         Write(*,*) ' '
         write(*,*) 'Maximum divergence          :', max_divergence
-        If ( body_type > 0 ) Then
+        If ( trim(body_type) /= 'none' ) Then
           write(*,*) 'Maximum IB slip             :', max_slip
         End If
         write(*,*) 'Elapsed time (s)            :', time2-time1

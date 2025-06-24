@@ -46,6 +46,7 @@ Contains
     cg_tol = 1e-8
     cg_max_iter = 50
     t_init = 0d0
+    body_type = 'none'
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
@@ -64,6 +65,7 @@ Contains
 
       utau_    = dPdx ** 0.5d0
       dPdx_ref = dPdx
+      Call to_lower(body_type)
 
       Print params
        
@@ -94,7 +96,7 @@ Contains
     Call Mpi_bcast (    nmonitor,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   init_type,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   grid_type,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
-    Call Mpi_bcast (   body_type,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   body_type,len(body_type),MPI_character,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  x_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  y_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
 
@@ -661,5 +663,20 @@ Contains
     End If
 
   End Subroutine output_statistics
+
+  !----------------------------------------------------------------!
+  !   Subroutine to change the case of a string to all lower case  !
+  !----------------------------------------------------------------!
+  Subroutine to_lower(str)
+    character(*), intent(in out) :: str
+    integer :: i
+
+    Do i = 1, len(str)
+      Select Case(str(i:i))
+        case("A":"Z")
+          str(i:i) = achar(iachar(str(i:i))+32)
+      End Select
+    End Do  
+  End Subroutine to_Lower
 
 End Module input_output
