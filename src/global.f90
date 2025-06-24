@@ -198,7 +198,7 @@ Module global
   Real(Int64), Dimension(:,:,:), Allocatable :: Fw1, Fw2, Fw3
 
   ! body mode
-  Integer(Int32) :: body_type
+  Character(200) :: body_type
   Logical(Int32) :: moving_body
 
   ! body points
