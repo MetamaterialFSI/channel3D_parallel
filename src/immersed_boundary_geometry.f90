@@ -99,7 +99,7 @@ Contains
 
       Case (2) ! Double rotating cylinders
         If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
-        moving_body = .True. ! should be False, but set to True for speed test
+        moving_body = .False. ! should be False, but set to True for speed test
         moving_z_flag = .False.
         nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
         nb_end = 0         ! Initialize to the lowest possible index
@@ -107,8 +107,8 @@ Contains
 
         r1 = body_param_1
         r2 = body_param_2
-        xc = 2.d0
-        yc = 2.0d0
+        xc = 1.d0
+        yc = 1.0d0
         nxb1 = Int(2 * 3.14159 * r1 / dxb)
         nxb2 = Int(2 * 3.14159 * r2 / dxb)
         nxb = nxb1 + nxb2

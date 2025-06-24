@@ -134,7 +134,6 @@ Contains
     W(2:nxg-1,2:nyg-1,2:nz-1) = Wo(2:nxg-1,2:nyg-1,2:nz-1) + dt*( rk_coef(2,1)*Fw1 + rk_coef(2,2)*Fw2 )
     t = to + rk_t(rk_step)*dt
 
-    
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
       call setup_IB_geometry
@@ -166,7 +165,6 @@ Contains
          dt*( rk_coef(3,1)*Fw1 + rk_coef(3,2)*Fw2 + rk_coef(3,3)*Fw3 )
     t = to + rk_t(rk_step)*dt
 
-    
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
       call setup_IB_geometry
@@ -196,7 +194,6 @@ Contains
        dPdy = dPdy/dt ! to be used later by rhs_*
        Call apply_boundary_conditions(U, V, W)
     End If
-    
 
   End Subroutine compute_time_step_RK3
 

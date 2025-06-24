@@ -23,7 +23,7 @@ Contains
 
     Integer(Int32) :: jj
     Real   (Int64) :: dUdy_wall_b, dUdy_wall_t
-    Real   (Int64) ::   UV_wall_b,   UV_wall_t, tmp_t
+    Real   (Int64) ::   UV_wall_b,   UV_wall_t
 
     ! if pressure not computed 
     pressure_computed = .False.
@@ -127,8 +127,7 @@ Contains
        Call compute_mean_mass_flow_V(V,Qflow_y)
 
        ! write statistics
-       !Call output_statistics
-
+       Call output_statistics
 
        ! Sanity check 
        If ( Any( Isnan(U) ) ) Stop 'Error: NaNs!'

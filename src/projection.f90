@@ -56,11 +56,8 @@ Contains
     Call regw(W_reg, fb)
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
 
-
     ! rhs_p = D R f
     Call divergence(rhs_p, U_reg, V_reg, W_reg)
-
-
     Call solve_poisson_equation(rhs_p)
 
     ! Pnp1 = P* - Linv D R f
@@ -147,7 +144,7 @@ Contains
       Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
       ! If (myid == 0) Write(*,*)  "......Iteration = ",iter,", residual = ", error
     End Do
-    If (iter .eq. cg_max_iter+1) Then
+    If (iter .eq. cg_max_iter + 1) Then
       Write(*,*)  "......WARNING, bicgstab used maximum number of iterations"
       Write(*,*)  "......Iterations = ",iter,", residual = ", error
     End If

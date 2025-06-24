@@ -120,15 +120,15 @@ Contains
 
     n_uniform = 1
 
-    Do i=1,nx_global
-       x_global(i) = Real(i-1,8)
+    Do i = 1, nx_global
+      x_global(i) = Real(i-1,8)
     End Do
-    x_global = 4d0*x_global/x_global(nx_global-1)
+    x_global = Lxp * x_global / x_global(nx_global - 1)
 
-    Do i=1,nz_global
-       z_global(i) = Real(i-1,8)
+    Do i = 1, nz_global
+      z_global(i) = Real(i-1,8)
     End Do
-    z_global = 0.25d0*z_global/z_global(nz_global-1)
+    z_global = Lzp * z_global / z_global(nz_global - 1)
 
     Select Case (grid_type)
       Case (0) ! Uniform grid
@@ -136,7 +136,7 @@ Contains
         Do i=1,ny_global
           y_global(i) = Real(i-1,8)
         End Do
-        y_global = 4d0*y_global/Maxval(y_global)
+        y_global = 2d0 * y_global / Maxval(y_global)
 
       Case (1) ! Stretched grid wall to wall
         If ( myid==0 ) Write(*,*) 'Generating stretched y grid'
