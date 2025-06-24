@@ -199,18 +199,18 @@ Contains
     Real(Int64), Dimension(3 * nb):: regT
 
     ! update support cells from interior points
-    Call interior_planes_update_support(U_,U_supp,1)
-    Call interior_planes_update_support(V_,V_supp,2)
-    Call interior_planes_update_support(W_,W_supp,3)
+    Call interior_planes_update_support(U_, U_supp, 1)
+    Call interior_planes_update_support(V_, V_supp, 2)
+    Call interior_planes_update_support(W_, W_supp, 3)
 
     ! compute local_regT
-    aux_surface_vector = local_regT(U_, V_, W_, U_supp, V_supp, W_supp)
+    regT_buffer_vector = local_regT(U_, V_, W_, U_supp, V_supp, W_supp)
     ! Gather regT values from all partitions
-    Call MPI_Allgatherv(aux_surface_vector(nb_start : nb_end), local_size_nb, MPI_REAL8, &
+    Call MPI_Allgatherv(regT_buffer_vector(nb_start : nb_end), local_size_nb, MPI_REAL8, &
                  regT(1 : nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
-    Call MPI_Allgatherv(aux_surface_vector(nb + nb_start : nb + nb_end), local_size_nb, MPI_REAL8, &
+    Call MPI_Allgatherv(regT_buffer_vector(nb + nb_start : nb + nb_end), local_size_nb, MPI_REAL8, &
                  regT(nb + 1 : 2 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
-    Call MPI_Allgatherv(aux_surface_vector(2 * nb + nb_start : 2 * nb + nb_end), local_size_nb, MPI_REAL8, &
+    Call MPI_Allgatherv(regT_buffer_vector(2 * nb + nb_start : 2 * nb + nb_end), local_size_nb, MPI_REAL8, &
                  regT(2 * nb + 1 : 3 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
 
   End Function regT
@@ -221,9 +221,9 @@ Contains
     Real(Int64), Dimension(nx, nyg, nzg), Intent(Out) :: U_
 
     ! compute local_reg for each partition
-    Call local_reg(U_,U_supp,f_,1)
+    Call local_reg(U_, U_supp,f_, 1)
     ! update the interior points from other partitions
-    Call support_update_interior_planes(U_,U_supp,1)
+    Call support_update_interior_planes(U_, U_supp, 1)
 
   End Subroutine regu
 
@@ -231,9 +231,11 @@ Contains
     Implicit None
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
     Real(Int64), Dimension(nxg, ny, nzg), Intent(Out) :: V_
-
-    Call local_reg(V_,V_supp,f_,2)
-    Call support_update_interior_planes(V_,V_supp,2)
+    
+    ! compute local_reg for each partition
+    Call local_reg(V_, V_supp, f_, 2)
+    ! update the interior points from other partitions
+    Call support_update_interior_planes(V_, V_supp, 2)
 
   End Subroutine regv
 
@@ -243,9 +245,11 @@ Contains
     Real(Int64), Dimension(nxg, nyg, nz), Intent(Out) :: W_
     Integer(Int32) :: i, j
 
+    ! compute local_reg for each partition
     Call local_reg(W_,W_supp,f_,3)
+    ! update the interior points from other partitions
     Call support_update_interior_planes(W_,W_supp,3)
-  
+
   End Subroutine regw
 
   !-----------------------------------------------!
@@ -318,7 +322,7 @@ Contains
   !  Uses global weights u_weights, v_weights, w_weights; and
   !  dx, dy, dymin, dz, sb(:), nb_start, nb_end, nweights, nb.
   !-----------------------------------------------------------------------
-  subroutine local_reg(F,F_supp, f_,id)
+  subroutine local_reg(F, F_supp, f_, id)
     implicit none
     integer, intent(in)  :: id
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_

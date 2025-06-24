@@ -83,7 +83,7 @@ Contains
             If (zb(k) >= z(1) .and. nb_start > k) then
               nb_start = k
             End If
-            If (zb(k) <= z(nz-1) .and. nb_end < k) then
+            If (zb(k) < z(nz-1) .and. nb_end < k) then
               nb_end = k
             End If
           End Do
@@ -151,7 +151,7 @@ Contains
           If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
             nb_start = (j-1) * nxb + 1
           End If
-          If (zb(j * nxb) <= z(nz-1) .and. nb_end < j * nxb) then
+          If (zb(j * nxb) < z(nz-1) .and. nb_end < j * nxb) then
             nb_end = j * nxb
           End If
         End Do
