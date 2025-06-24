@@ -1,10 +1,10 @@
 &params
 	! domain size
-	nx_global = 66
-	ny_global = 66
-	nz_global = 66
+	nx_global = 34
+	ny_global = 33
+	nz_global = 12
 	nxb = 0 ! Is determined in the code such that dxb / dx matches dzb / dz
-	nzb = 32
+	nzb = 6
 	! (positive->CFL, negative->timestep size)
 	CFL = -0.01
 	! viscosity
@@ -17,16 +17,16 @@
 	! nsteps, nsave, nstats, nmonitor
 	nsteps = 5000
 	nsave = 100
-	nstats = 1
+	nstats = 1000
 	nmonitor = 1
 	filein = ''
-	fileout = 'channel_output_ib_double_rotating_cylinders_Nx34/test'
+	fileout = 'channel_output_ib_double_rotating_cylinders/test'
 	! first number for output flow field
 	nstep_init = 0
 	init_type = 1, ! (0->reads previous file, 1->zero, 2->random)
 	grid_type = 0, ! (0->uniform, 1->stretched, 2->stretched with uniform buffers)
-	body_type = 0, ! (0->no body, 1->planar wall, 2-> double rotating cylinders 3->standing wave in x-direction)
-	body_param_1 = 0.75 ! radius of inner cylinder
-	body_param_2 = 1.5 ! radius of outer cylinder
+	body_type = 2, ! (0->no body, 1->planar wall, 2-> double rotating cylinders 3->standing wave in x-direction)
+	body_param_1 = 0.15 ! radius of inner cylinder
+	body_param_2 = 0.3 ! radius of outer cylinder
 	body_param_3 = 0.015 ! tangential velocity at the inner cylinder radius
 /
