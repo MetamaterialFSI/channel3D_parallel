@@ -144,7 +144,7 @@ Contains
       Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
       ! If (myid == 0) Write(*,*)  "......Iteration = ",iter,", residual = ", error
     End Do
-    If (iter .eq. cg_max_iter) Then
+    If (iter .eq. cg_max_iter + 1) Then
       Write(*,*)  "......WARNING, bicgstab used maximum number of iterations"
       Write(*,*)  "......Iterations = ",iter,", residual = ", error
     End If

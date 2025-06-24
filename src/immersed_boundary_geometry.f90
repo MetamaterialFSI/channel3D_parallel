@@ -64,6 +64,7 @@ Contains
       Case (1) ! Static planar wall centered at y = 0
         If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
         moving_body = .False.
+        moving_z_flag = .False.
 
         ub = 0d0
         ! Reference points are the center of the domain
@@ -84,21 +85,22 @@ Contains
             End If
             If (zb(k) < z(nz-1) .and. nb_end < k) then
               nb_end = k
-            End If  
+            End If
           End Do
         End Do
         sb = dxb * dzb
 
         ! Vector arrays
-        do k=1,nb
+        Do k=1,nb
           tangents_1(k) = 1d0
           tangents_2(2*nb + k) = -1d0
           normals(nb + k) = -1d0
-        end do
+        End Do
 
       Case (2) ! Double rotating cylinders
         If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
-        moving_body = .False.
+        moving_body = .False. ! should be False, but set to True for speed test
+        moving_z_flag = .False.
         nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
         nb_end = 0         ! Initialize to the lowest possible index
         y_ref_index = 1 ! The grid has to be uniform for this case, so it doesn't matter what y_ref_index is
@@ -142,22 +144,23 @@ Contains
             tangents_1(nb + i + (j - 1) * nxb + nxb1) = cos(theta)
           End Do
 
-          do i = 1, nb
+          Do i = 1, nb
             tangents_2(2 * nb + i) = 1d0
-          end do
+          End Do
 
           If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
             nb_start = (j-1) * nxb + 1
           End If
           If (zb(j * nxb) < z(nz-1) .and. nb_end < j * nxb) then
             nb_end = j * nxb
-          End If  
+          End If
         End Do
 
       Case (3) ! Top and bottom wall undergoing standing wave motion in x-direction
         If ( grid_type /= 2 ) Stop 'Error: body type is incompatible with grid type'
         If ( body_param_1 > min_buffer_width ) Stop 'Error: IB amplitude is bigger than the minimum buffer width'
         moving_body = .True.
+        moving_z_flag = .False.
 
         ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
         ! (i.e., fall between an nb_start and nb_end)
@@ -181,7 +184,7 @@ Contains
             End If
             If (zb(k + nxb) < z(nz-1) .and. nb_end < k + nxb) then
               nb_end = k + nxb
-            End If  
+            End If
           End Do
         End Do
         ! Vector arrays
@@ -225,7 +228,7 @@ Contains
             Else
               a1 = sqrt((xb(k) - (xb(k - 1))) ** 2                     + (yb(k) - yb(k - 1)) ** 2)
               a2 = sqrt((xb(k) - (xb(k + 1))) ** 2                     + (yb(k) - yb(k + 1)) ** 2)
-            End If 
+            End If
             sb(k)       = dzb * (0.5d0 * a1 + 0.5d0 * a2)
             sb(k + nxb) = dzb * (0.5d0 * a1 + 0.5d0 * a2) ! Assumes that the top and bottom wall undergo the same motion!
           End Do
@@ -261,7 +264,7 @@ Contains
             End If
             If (zb(k + nxb) < z(nz-1) .and. nb_end < k + nxb) then
               nb_end = k + nxb
-            End If  
+            End If
           End Do
         End Do
         ! Vector arrays
@@ -306,7 +309,7 @@ Contains
             Else
               a1 = sqrt((xb(k) - (xb(k - 1))) ** 2                     + (yb(k) - yb(k - 1)) ** 2)
               a2 = sqrt((xb(k) - (xb(k + 1))) ** 2                     + (yb(k) - yb(k + 1)) ** 2)
-            End If 
+            End If
             sb(k) = dzb * (0.5d0 * a1 + 0.5d0 * a2)
             ! Top wall
             k = i + nxb + 2 * nxb * (j - 1)
@@ -319,7 +322,7 @@ Contains
             Else
               a1 = sqrt((xb(k) - (xb(k - 1))) ** 2                     + (yb(k) - yb(k - 1)) ** 2)
               a2 = sqrt((xb(k) - (xb(k + 1))) ** 2                     + (yb(k) - yb(k + 1)) ** 2)
-            End If 
+            End If
             sb(k) = dzb * (0.5d0 * a1 + 0.5d0 * a2)
           End Do
         End Do

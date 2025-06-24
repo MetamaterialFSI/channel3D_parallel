@@ -107,6 +107,7 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_global, V_global, W_global
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_reg, V_reg, W_reg
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_interim, V_interim, W_interim, P_interim
+  Real(Int64), Allocatable, Dimension(:,:,:) :: U_supp, V_supp, W_supp! first 1:suppz is for left boundary; suppz+1:2*suppz is for right boundary
 
   ! local auxiliary 
   Real(Int64), Allocatable, Dimension(:,:,:) :: term_1, term_2
@@ -131,6 +132,10 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:) :: buffer_vs, buffer_vr
   Real(Int64), Allocatable, Dimension(:,:) :: buffer_ws, buffer_wr
   Real(Int64), Allocatable, Dimension(:,:) :: buffer_ps, buffer_pr
+  ! local auxiliary arrays for IBPM support cells
+  Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_usupp_s, buffer_usupp_r
+  Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_vsupp_s, buffer_vsupp_r
+  Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_wsupp_s, buffer_wsupp_r
   
   ! local auxiliary planes for FFTW
   Type(C_PTR) :: cplane_fft
@@ -238,10 +243,10 @@ Module global
   Integer(Int32), parameter :: suppy = 2
   Integer(Int32), parameter :: suppz = 2
   Integer(Int32), parameter :: nweights = (2 * suppx + 1) * (2 * suppy + 1) * (2 * suppz + 1)
-  Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights
-  Integer(Int32), Dimension(:,:),   Allocatable :: u_x_indices, u_y_indices, u_z_indices
-  Integer(Int32), Dimension(:,:),   Allocatable :: v_x_indices, v_y_indices, v_z_indices
-  Integer(Int32), Dimension(:,:),   Allocatable :: w_x_indices, w_y_indices, w_z_indices
+  Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights,U_subset,V_subset,W_subset
+  Integer(Int32), Dimension(:,:),   Allocatable :: u_x_indices, u_y_indices, u_z_indices, u_z_local_indices,u_proc,u_z_supp_idx
+  Integer(Int32), Dimension(:,:),   Allocatable :: v_x_indices, v_y_indices, v_z_indices, v_z_local_indices,v_proc,v_z_supp_idx
+  Integer(Int32), Dimension(:,:),   Allocatable :: w_x_indices, w_y_indices, w_z_indices, w_z_local_indices,w_proc, w_z_supp_idx
   Integer(Int32), Dimension(:),     Allocatable :: x_pivot_index, xm_pivot_index
   Integer(Int32), Dimension(:),     Allocatable :: y_pivot_index, ym_pivot_index
   Integer(Int32), Dimension(:),     Allocatable :: z_pivot_index, zm_pivot_index
@@ -250,5 +255,7 @@ Module global
   Real(Int64), Dimension(:),     Allocatable :: aux_surface_scalar, aux_surface_vector, rhs_ib
   Real(Int64), Dimension(:),     Allocatable :: regT_buffer_scalar, regT_buffer_vector
   Real(Int64), Dimension(:,:,:), Allocatable :: Fibu, Fibv, Fibw
+  Logical(Int32) :: moving_z_flag ! True for moving in z direction; False: stationary in z direction (for identifying the partition)
+
   
 End Module global

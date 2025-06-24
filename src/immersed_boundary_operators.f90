@@ -19,6 +19,8 @@ Contains
   Subroutine setup_IB_operators
     Integer(Int32) :: i, j, k, l, ii, jj, kk, count
     character(len=50) :: filename
+    integer :: k_local,k_supp         ! local index
+    integer :: proc_id      ! MPI rank that owns this index
 
     !-----------------Find the indices of the flow grid points closest to the body points---------------------!
     Do l = nb_start, nb_end
@@ -52,6 +54,13 @@ Contains
             u_x_indices(count, l) = ii
             u_y_indices(count, l) = jj + 1 ! plus one for ghost cell
             u_z_indices(count, l) = kk + 1 ! plus one for ghost cell
+            ! calculate the support cell index
+            If ( moving_z_flag .Or. istep <= 1 ) Then
+              call global_to_local_center(kk + 1, k_supp, k_local, proc_id)
+              u_z_local_indices(count, l) = k_local
+              u_z_supp_idx(count, l) = k_supp
+              u_proc(count, l) = proc_id 
+            End If 
 
             u_weights(count, l) =  dx * dymin * dz &
               * deltafnc( x_global(ii), xb(l), dx,    Lxp) &
@@ -72,10 +81,17 @@ Contains
             jj = y_pivot_index(l) + j
             kk = Modulo(zm_pivot_index(l) + k - 1, nzm_global - 1) + 1
 
-            count = count+1
+            count = count + 1
             v_x_indices(count, l) = ii + 1 ! plus one for ghost cell
             v_y_indices(count, l) = jj
             v_z_indices(count, l) = kk + 1 ! plus one for ghost cell
+            ! calculate the support cell index
+            If ( moving_z_flag .Or. istep <= 1 ) Then
+              call global_to_local_center(kk + 1, k_supp, k_local, proc_id)
+              v_z_local_indices(count, l) = k_local
+              v_z_supp_idx(count, l) = k_supp
+              v_proc(count, l) = proc_id 
+            End If 
 
             v_weights(count, l) = dx * dymin * dz &
               * deltafnc(xm_global(ii), xb(l), dx,    Lxp) &
@@ -96,10 +112,17 @@ Contains
             jj = ym_pivot_index(l) + j
             kk = Modulo(z_pivot_index(l) + k - 2, nz_global - 2 ) + 2
 
-            count = count + 1
+            count = count + 1 
             w_x_indices(count, l) = ii + 1 ! plus one for ghost cell
             w_y_indices(count, l) = jj + 1 ! plus one for ghost cell
             w_z_indices(count, l) = kk
+            ! calculate the support cell index
+            If ( moving_z_flag .Or. istep <= 1 ) Then
+              call global_to_local_face(kk, k_supp, k_local, proc_id)
+              w_z_local_indices(count, l) = k_local
+              w_z_supp_idx(count, l) = k_supp
+              w_proc(count, l) = proc_id 
+            End If 
 
             w_weights(count, l) = dx * dymin * dz &
               * deltafnc(xm_global(ii), xb(l), dx,    Lxp) &
@@ -170,33 +193,25 @@ Contains
 
   Function regT(U_, V_, W_)
     Implicit None
-    Real(Int64), Dimension(nx, nyg, nzg), Intent(In) :: U_
-    Real(Int64), Dimension(nxg, ny, nzg), Intent(In) :: V_
-    Real(Int64), Dimension(nxg, nyg, nz), Intent(In) :: W_
+    Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: U_(:, :, :)
+    Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: V_(:, :, :)
+    Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: W_(:, :, :)
     Real(Int64), Dimension(3 * nb):: regT
 
-    ! Gather U, V, W fields into global fields
-    Call MPI_Allgatherv(U_(:, :, 2:nzm+1), local_size_U, MPI_REAL8, &
-                 U_global(:, :, 2:nzm_global+1), send_counts_U, displs_U, MPI_REAL8, MPI_COMM_WORLD, ierr)
-    Call MPI_AllGatherv(V_(:, :, 2:nzm+1), local_size_V, MPI_REAL8, &
-                 V_global(:, :, 2:nzm_global+1), send_counts_V, displs_V, MPI_REAL8, MPI_COMM_WORLD, ierr)
-    Call MPI_AllGatherv(W_(:, :, 2:nz-1), local_size_W, MPI_REAL8, &
-                 W_global(:, :, 2:nz_global-1), send_counts_W, displs_W, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    ! update support cells from interior points
+    Call interior_planes_update_support(U_, U_supp, 1)
+    Call interior_planes_update_support(V_, V_supp, 2)
+    Call interior_planes_update_support(W_, W_supp, 3)
 
-    regT_buffer_vector = global_regT(U_global, V_global, W_global)
-
+    ! compute local_regT
+    regT_buffer_vector = local_regT(U_, V_, W_, U_supp, V_supp, W_supp)
     ! Gather regT values from all partitions
     Call MPI_Allgatherv(regT_buffer_vector(nb_start : nb_end), local_size_nb, MPI_REAL8, &
-                 regT_buffer_scalar, send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
-    regT(1 : nb) = regT_buffer_scalar
-
+                 regT(1 : nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
     Call MPI_Allgatherv(regT_buffer_vector(nb + nb_start : nb + nb_end), local_size_nb, MPI_REAL8, &
-                 regT_buffer_scalar, send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
-    regT(nb + 1 : 2 * nb) = regT_buffer_scalar
-
+                 regT(nb + 1 : 2 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
     Call MPI_Allgatherv(regT_buffer_vector(2 * nb + nb_start : 2 * nb + nb_end), local_size_nb, MPI_REAL8, &
-                 regT_buffer_scalar, send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
-    regT(2 * nb + 1 : 3 * nb) = regT_buffer_scalar
+                 regT(2 * nb + 1 : 3 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
 
   End Function regT
 
@@ -205,16 +220,10 @@ Contains
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
     Real(Int64), Dimension(nx, nyg, nzg), Intent(Out) :: U_
 
-    Call global_regu(U_global, f_)
-
-    If (myid == 0) Then
-      Call MPI_Reduce(MPI_IN_PLACE, U_global, nx_global * nyg_global * nzg_global, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-    Else
-      Call MPI_Reduce(U_global, U_global, nx_global * nyg_global * nzg_global, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-    End If
-
-    Call MPI_Scatterv(U_global(:, :, 2:nzm_global+1), send_counts_U, displs_U, MPI_REAL8, &
-                  U_(:, :, 2:nzm+1), local_size_U, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+    ! compute local_reg for each partition
+    Call local_reg(U_, U_supp,f_, 1)
+    ! update the interior points from other partitions
+    Call support_update_interior_planes(U_, U_supp, 1)
 
   End Subroutine regu
 
@@ -222,17 +231,11 @@ Contains
     Implicit None
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
     Real(Int64), Dimension(nxg, ny, nzg), Intent(Out) :: V_
-
-    Call global_regv(V_global, f_)
-
-    If (myid == 0) Then
-      Call MPI_Reduce(MPI_IN_PLACE, V_global, nxg_global * ny_global * nzg_global, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-    Else
-      Call MPI_Reduce(V_global, V_global, nxg_global * ny_global * nzg_global, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-    End If
-
-    Call MPI_Scatterv(V_global(:, :, 2:nzm_global+1), send_counts_V, displs_V, MPI_REAL8, &
-                  V_(:, :, 2:nzm+1), local_size_V, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+    
+    ! compute local_reg for each partition
+    Call local_reg(V_, V_supp, f_, 2)
+    ! update the interior points from other partitions
+    Call support_update_interior_planes(V_, V_supp, 2)
 
   End Subroutine regv
 
@@ -242,125 +245,293 @@ Contains
     Real(Int64), Dimension(nxg, nyg, nz), Intent(Out) :: W_
     Integer(Int32) :: i, j
 
-    Call global_regw(W_global, f_)
+    ! compute local_reg for each partition
+    Call local_reg(W_,W_supp,f_,3)
+    ! update the interior points from other partitions
+    Call support_update_interior_planes(W_,W_supp,3)
 
-    If (myid == 0) Then
-      Call MPI_Reduce(MPI_IN_PLACE, W_global, nxg_global * nyg_global * nz_global, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-    Else
-      Call MPI_Reduce(W_global, W_global, nxg_global * nyg_global * nz_global, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-    End If
-
-    Call MPI_Scatterv(W_global(:, :, 2:nz_global-1), send_counts_W, displs_W, MPI_REAL8, &
-                  W_(:, :, 2:nz-1), local_size_W, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-  
   End Subroutine regw
 
   !-----------------------------------------------!
   !          Interpolation to body points         !
   !                                               !
   ! Input: U_, V_, W_                             !
-  ! Output: regT                                  !
+  ! Output: local_regT                                  !
   !                                               !
   !-----------------------------------------------!
-  Function global_regT(U_, V_, W_)
+  Function local_regT(U_, V_, W_, Usupp, Vsupp, Wsupp)
     Implicit None
-    Real(Int64), Dimension(nx_global, nyg_global, nzg_global), Intent(In) :: U_
-    Real(Int64), Dimension(nxg_global, ny_global, nzg_global), Intent(In) :: V_
-    Real(Int64), Dimension(nxg_global, nyg_global, nz_global), Intent(In) :: W_
-    Real(Int64), Dimension(3 * nb):: global_regT
+    Real(Int64), Dimension(nx, nyg, nzg), Intent(In) :: U_
+    Real(Int64), Dimension(nxg, ny, nzg), Intent(In) :: V_
+    Real(Int64), Dimension(nxg, nyg, nz), Intent(In) :: W_
+    Real(Int64), Dimension(nx, nyg, suppz*2+1), Intent(In) :: Usupp
+    Real(Int64), Dimension(nxg, ny, suppz*2+1), Intent(In) :: Vsupp
+    Real(Int64), Dimension(nxg, nyg, suppz*2+1), Intent(In) :: Wsupp
+    Real(Int64), Dimension(3 * nb):: local_regT
+    integer :: proc_idx
 
     Integer(Int32) :: i, j
-    global_regT = 0.D0
+    local_regT = 0.D0
      
     Do j = nb_start, nb_end
       Do i = 1, nweights
-        global_regT(j         ) = global_regT(j)          &
-          + u_weights(i, j) * U_(u_x_indices(i, j), u_y_indices(i, j), u_z_indices(i, j))
-        global_regT(j + nb    ) = global_regT(j + nb)     &
-          + v_weights(i, j) * V_(v_x_indices(i, j), v_y_indices(i, j), v_z_indices(i, j))
-        global_regT(j + 2 * nb) = global_regT(j + 2 * nb) &
-          + w_weights(i, j) * W_(w_x_indices(i, j), w_y_indices(i, j), w_z_indices(i, j))
+        ! get data of U
+        proc_idx = u_proc(i, j)
+        if ( proc_idx .eq. myid ) then
+          local_regT(j) = local_regT(j)+ &
+          u_weights(i, j) * U_(u_x_indices(i, j),u_y_indices(i, j),u_z_local_indices(i, j))
+        else
+          local_regT(j) = local_regT(j)+ &
+          u_weights(i, j) * Usupp(u_x_indices(i, j),u_y_indices(i, j),u_z_supp_idx(i, j))
+        end if
+        ! get data of V
+        proc_idx = v_proc(i, j)
+        if ( proc_idx .eq. myid ) then
+          local_regT(j + nb) = local_regT(j + nb)+ &
+          v_weights(i, j) * V_(v_x_indices(i, j),v_y_indices(i, j),v_z_local_indices(i, j))
+        else
+          local_regT(j + nb) = local_regT(j + nb)+ &
+          v_weights(i, j) * Vsupp(v_x_indices(i, j),v_y_indices(i, j),v_z_supp_idx(i, j))
+        end if
+        ! get data of W
+        proc_idx = w_proc(i, j)
+        if ( proc_idx .eq. myid ) then
+          local_regT(j + 2 * nb) = local_regT(j + 2 * nb)+ &
+          w_weights(i, j) * W_(w_x_indices(i, j),w_y_indices(i, j),w_z_local_indices(i, j))
+        else
+          local_regT(j + 2 * nb) = local_regT(j + 2 * nb)+ &
+          w_weights(i, j) * Wsupp(w_x_indices(i, j),w_y_indices(i, j),w_z_supp_idx(i, j))
+        end if
       End Do
     End Do
+  End Function local_regT
 
-  End Function global_regT
-
-  !-----------------------------------------------!
-  !      Regularization of the x-component of     ! 
-  !      f_ to U grid points                      !
-  !                                               !
-  ! Input: f_                                     !
-  ! Output: global_regu                           !
-  !                                               !
-  !-----------------------------------------------!
-  Subroutine global_regu(U_, f_)
-    Implicit None
+  !-----------------------------------------------------------------------
+  !  Generalized “subset_regu” for U, V, or W:
+  !    - id = 1 -> U
+  !    - id = 2 -> V
+  !    - id = 3 -> W
+  !
+  !  Inputs:
+  !    id        : 1->U, 2->V, 3->W
+  !    f_        : real(8) array of length nb (f_ for each body point)
+  !
+  !  Output:
+  !    subset    : real(8)(nweights, nb)  (subset_regu for chosen field)
+  !
+  !  Uses global weights u_weights, v_weights, w_weights; and
+  !  dx, dy, dymin, dz, sb(:), nb_start, nb_end, nweights, nb.
+  !-----------------------------------------------------------------------
+  subroutine local_reg(F, F_supp, f_, id)
+    implicit none
+    integer, intent(in)  :: id
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
-    Real(Int64), Dimension(nx_global, nyg_global, nzg_global), Intent(Out) :: U_
-    Integer(Int32) :: i, j
+    Real(Int64), Intent(InOut) :: F(:,:,:)    
+    Real(Int64), Intent(InOut) :: F_supp(:,:,:)   
+    integer :: i, j
+    integer :: proc_idx
+    integer :: xi, yi, zi,zi_supp,zi_loc
+    Real(Int64) :: factor, weight
 
-    U_ = 0.D0
+    ! Initialize output to zero
+    F = 0.0
+    F_supp =0.0
 
-    Do j = nb_start, nb_end
-      Do i = 1, nweights
-        U_(u_x_indices(i, j), u_y_indices(i, j), u_z_indices(i, j)) = &
-          U_(u_x_indices(i, j), u_y_indices(i, j), u_z_indices(i, j)) &
-           + u_weights(i, j) * 1.d0 / (dx * dymin * dz) * sb(j) * f_(j)
-      End Do
-    End Do
+    ! Determine scaling factor based on id
+    factor = 1.0 / (dx * dymin * dz)
 
-  End Subroutine global_regu
+    ! Loop over body points and accumulate using the appropriate weight array
+    do j = nb_start, nb_end
+      do i = 1, nweights
+        select case (id)
+        case (1)
+          proc_idx = u_proc(i, j)
+          xi       = u_x_indices(i, j)
+          yi       = u_y_indices(i, j)
+          zi_loc   = u_z_local_indices(i, j)
+          zi_supp  = u_z_supp_idx(i, j)
+          weight = u_weights(i,j)
+        case (2)
+          proc_idx = v_proc(i, j)
+          xi       = v_x_indices(i, j)
+          yi       = v_y_indices(i, j)
+          zi_loc   = v_z_local_indices(i, j)
+          zi_supp  = v_z_supp_idx(i, j)
+          weight = v_weights(i,j)
+        case (3)
+          proc_idx = w_proc(i, j)
+          xi       = w_x_indices(i, j)
+          yi       = w_y_indices(i, j)
+          zi_loc   = w_z_local_indices(i, j)
+          zi_supp  = w_z_supp_idx(i, j)
+          weight = w_weights(i,j)
+        case default
+          print *, 'Error in scatter_IB_subset: invalid id =', id
+          stop
+        end select
+        if (proc_idx == myid) then
+          ! Write into local F
+          F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j+(id-1)*nb)
+        else
+          if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+            WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+            stop 'Error: zi_supp out of [1..suppz]'
+          END IF
+          F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j+(id-1)*nb)
+          !print *, 'Error: unexpected proc_idx =', proc_idx, ' for myid =', myid
+          !stop
+        end if
+      end do
+    end do
+  end subroutine local_reg
 
-  !-----------------------------------------------!
-  !      Regularization of the y-component of     ! 
-  !      f_ to V grid points                      !
-  !                                               !
-  ! Input: f_                                     !
-  ! Output: global_regv                           !
-  !                                               !
-  !-----------------------------------------------!
-  Subroutine global_regv(V_, f_)
-    Implicit None
-    Real(Int64), Dimension(3 * nb), Intent(In) :: f_
-    Real(Int64), Dimension(nxg_global, ny_global, nzg_global), Intent(Out) :: V_
-    Integer(Int32) :: i, j
+  !-------------------------------------------------------------------------------
+  !  global_to_local_face
+  !
+  !  Purpose:
+  !    Determines the owner rank, local index, and support index (if needed)
+  !    of a given global face index in the z-direction.
+  !
+  !  Inputs:
+  !    k_global : Global face index in z-direction
+  !
+  !  Outputs:
+  !    k_sup    : Index in F_supp if the face is in a neighboring rank
+  !               (1..suppz+1 from left, suppz+2..2*suppz+1 from right), -1 if local
+  !    k_loc    : Local index in F if the face is local
+  !    rank     : Rank (myid, prev, or next) that owns k_global
+  !
+  !  Notes:
+  !    - Special handling when nprocs = 2 (prev == next)
+  !-------------------------------------------------------------------------------
+  subroutine global_to_local_face(k_global, k_sup, k_loc, rank)
+    implicit none
+    integer, intent(in)  :: k_global
+    integer, intent(out) :: k_sup, k_loc, rank
+    integer :: prev, next
 
-    V_ = 0.D0
+    ! Initialize outputs
+    rank  = -1
+    k_sup = -1
+    k_loc = -1
 
-    Do j = nb_start, nb_end
-      Do i = 1, nweights
-        V_(v_x_indices(i, j), v_y_indices(i, j), v_z_indices(i, j)) = &
-          V_(v_x_indices(i, j), v_y_indices(i, j), v_z_indices(i, j)) &
-           + v_weights(i, j) * 1.d0 / (dx * dymin * dz) * sb(j) * f_(j + nb)
-      End Do
-    End Do
+    ! Determine periodic neighbors
+    prev = myid - 1
+    if (prev < 0) prev = nprocs - 1
+    next = myid + 1
+    if (next == nprocs) next = 0
 
-  End Subroutine global_regv
-  
-  !-----------------------------------------------!
-  !      Regularization of the z-component of     ! 
-  !      f_ to W grid points                      !
-  !                                               !
-  ! Input: f_                                     !
-  ! Output: global_regw                           !
-  !                                               !
-  !-----------------------------------------------!
-  Subroutine global_regw(W_, f_)
-    Implicit None
-    Real(Int64), Dimension(3 * nb), Intent(In) :: f_
-    Real(Int64), Dimension(nxg_global, nyg_global, nz_global), Intent(Out) :: W_
-    Integer(Int32) :: i, j
+    ! Check ownership among {prev, myid, next}
+    if (k_global >= k1_global(myid)+1 .and. k_global <= k2_global(myid)-1) then
+      rank = myid
+    elseif (k_global >= k1_global(prev)+1 .and. k_global <= k2_global(prev)-1) then
+      rank = prev
+    elseif (k_global >= k1_global(next)+1 .and. k_global <= k2_global(next)-1) then
+      rank = next
+    else
+      print *, 'Error: Face index ', k_global, ' not in {', prev, ',', myid, ',', next, '}.'
+      stop
+    end if
+    k_loc = k_global - k1_global(rank) + 1
+    if (rank == myid) then
+      ! Locally owned -> compute k_loc
+      k_sup = -1
+    else  ! rank == next or rank == prev
+      if ( nprocs .eq. 2 ) then
+        ! special case for only 2 processors: prev == next
+        if ( k_loc>nz/2 ) then
+          k_sup = k_global - (k2_global(prev) - suppz)+2
+        else
+          k_sup = (k_global - k1_global(next)) + (suppz+1)
+        end if
+      else 
+        if ( rank .eq. prev ) then
+          k_sup = k_global - (k2_global(prev) - suppz)+2
+        elseif (rank .eq. next) then
+          k_sup = (k_global - k1_global(next)) + (suppz+1)
+        end if
+      end if
+    end if
+  end subroutine global_to_local_face
 
-    W_ = 0.D0
+  !-------------------------------------------------------------------------------
+  !  global_to_local_center
+  !
+  !  Purpose:
+  !    Determines the owner rank, local index, and support index (if needed)
+  !    of a given global center index in the z-direction.
+  !
+  !  Inputs:
+  !    k_global : Global center index in z-direction
+  !
+  !  Outputs:
+  !    k_sup    : Index in F_supp if the center is in a neighboring rank
+  !               (1..suppz from left, suppz+1..2*suppz from right), -1 if local
+  !    k_loc    : Local index in F if the center is local
+  !    rank     : Rank (myid, prev, or next) that owns k_global
+  !
+  !  Notes:
+  !    - Special handling when nprocs = 2 (prev == next)
+  !-------------------------------------------------------------------------------
+  subroutine global_to_local_center(k_global, k_sup, k_loc, rank)
+    implicit none
+    integer, intent(in)  :: k_global
+    integer, intent(out) :: k_sup, k_loc, rank
+    integer :: prev, next, neighbor_top_start
 
-    Do j = nb_start, nb_end
-      Do i = 1, nweights
-        W_(w_x_indices(i, j), w_y_indices(i, j), w_z_indices(i, j)) = &
-          W_(w_x_indices(i, j), w_y_indices(i, j), w_z_indices(i, j)) &
-           + w_weights(i, j) * 1.d0 / (dx * dymin * dz) * sb(j) * f_(j + 2 * nb)
-      End Do
-    End Do
-  
-  End Subroutine global_regw
+    ! Initialize outputs
+    rank  = -1
+    k_sup = -1
+    k_loc = -1
+
+    ! Determine periodic neighbors
+    prev = myid - 1
+    if (prev < 0) prev = nprocs - 1
+    next = myid + 1
+    if (next == nprocs) next = 0
+
+    ! Check ownership among {prev, myid, next}
+    if (k_global >= (kg1_global(prev)+1) .and. &
+        k_global <= (kg2_global(prev)-1)) then
+      rank = prev
+    elseif (k_global >= (kg1_global(myid)+1) .and. &
+            k_global <= (kg2_global(myid)-1)) then
+      rank = myid
+    elseif (k_global >= (kg1_global(next)+1) .and. &
+            k_global <= (kg2_global(next)-1)) then
+      rank = next
+    else
+      print *, 'Error: Center index ', k_global, ' not in {', prev, ',', myid, ',', next, '}.'
+      stop
+    end if
+
+    k_loc = k_global - kg1_global(rank) + 1
+    if (rank == myid) then
+      ! Locally owned -> compute k_loc
+      k_sup = -1
+    else  ! rank == next
+      if ( nprocs .eq. 2 ) then
+        ! special case for only 2 processors: prev=next
+        if ( k_loc>nzg/2 ) then
+          neighbor_top_start = (kg2_global(prev) - suppz - 2)
+          k_sup = k_global - neighbor_top_start
+          if ( rank .eq. nprocs-1 ) then
+            k_sup=k_sup+1
+          end if
+        else
+          k_sup = (k_global - (kg1_global(next) + 1)) + (suppz + 2)
+        end if
+      else 
+        if ( rank .eq. prev ) then
+          k_sup = k_global - (kg2_global(prev) - suppz)+2
+          if ( rank .eq. nprocs-1 ) then
+            k_sup=k_sup+1
+          end if
+        elseif (rank .eq. next) then
+          k_sup = (k_global - (kg1_global(next) + 1)) + (suppz + 2)
+        end if
+      end if
+    end if
+  end subroutine global_to_local_center
 
 End Module immersed_boundary_operators
