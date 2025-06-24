@@ -104,7 +104,6 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: Uo,Vo,Wo,Po
   Real(Int64), Allocatable, Dimension(:,:,:) :: Uoo,Voo,Woo,Poo
   Real(Int64), Allocatable, Dimension(:,:,:) :: Vw 
-  Real(Int64), Allocatable, Dimension(:,:,:) :: U_global, V_global, W_global
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_reg, V_reg, W_reg
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_interim, V_interim, W_interim, P_interim
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_supp, V_supp, W_supp! first 1:suppz is for left boundary; suppz+1:2*suppz is for right boundary
@@ -232,11 +231,8 @@ Module global
   Real(Int64) :: cg_tol
 
   ! immersed boundary operator variables
-  Integer(Int32), Dimension(:), Allocatable :: send_counts_U, displs_U
-  Integer(Int32), Dimension(:), Allocatable :: send_counts_V, displs_V
-  Integer(Int32), Dimension(:), Allocatable :: send_counts_W, displs_W
   Integer(Int32), Dimension(:), Allocatable :: send_counts_nb, displs_nb
-  Integer(Int32) :: local_size_U, local_size_V, local_size_W, local_size_nb
+  Integer(Int32) :: local_size_nb
 
   ! regularization and interpolation support, weights, and indices
   Integer(Int32), parameter :: suppx = 2

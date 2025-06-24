@@ -70,14 +70,6 @@ Contains
     k2_global (nprocs-1) = nz_global 
     kg2_global(nprocs-1) = nz_global + 1
 
-    ! for debug
-    if ( myid ==0 ) then
-      WRITE(*,*) 'k1_global',k1_global
-      WRITE(*,*) 'k2_global',k2_global
-      WRITE(*,*) 'kg1_global',kg1_global
-      WRITE(*,*) 'kg2_global',kg2_global
-    end if
-
     ! face points
     nx = nx_global
     ny = ny_global
@@ -229,34 +221,6 @@ Contains
     Lx = x_global(nx_global) - x_global(1)
     Ly = y_global(ny_global) - y_global(1)
     Lz = z_global(nz_global) - z_global(1)
-
-    ! For initial IB implementation only!
-    If ( trim(body_type) /= 'none' ) Then
-      Allocate( U_global(nx_global,  nyg_global, nzg_global) )
-      Allocate( V_global(nxg_global, ny_global,  nzg_global) )
-      Allocate( W_global(nxg_global, nyg_global, nz_global ) )
-      Allocate( send_counts_U(nprocs), displs_U(nprocs) )
-      Allocate( send_counts_V(nprocs), displs_V(nprocs) )
-      Allocate( send_counts_W(nprocs), displs_W(nprocs) )
-
-      local_size_U = nx * nyg * nzm
-      local_size_V = nxg * ny * nzm
-      local_size_W = nxg * nyg * (nz-2)
-
-      ! Gather send_counts
-      Call MPI_Allgather(local_size_U, 1, MPI_INT, send_counts_U, 1, MPI_INT, MPI_COMM_WORLD, ierr)
-      Call MPI_Allgather(local_size_V, 1, MPI_INT, send_counts_V, 1, MPI_INT, MPI_COMM_WORLD, ierr)
-      Call MPI_Allgather(local_size_W, 1, MPI_INT, send_counts_W, 1, MPI_INT, MPI_COMM_WORLD, ierr)
-
-      displs_U(1) = 0
-      displs_V(1) = 0
-      displs_W(1) = 0
-      Do i = 2, nprocs
-        displs_U(i) = displs_U(i-1) + send_counts_U(i-1)
-        displs_V(i) = displs_V(i-1) + send_counts_V(i-1)
-        displs_W(i) = displs_W(i-1) + send_counts_W(i-1)
-      End Do
-    End If
 
     !--------------------------Boundary conditions--------------------------!
     ! local velocity, initial z-planes
