@@ -54,7 +54,7 @@ Contains
     If ( nslices_z<2 ) Stop 'Error: nslices_z must be at least 2' 
 
     ! restriction for IBPM-MPI support cell
-    IF (nslices_z<suppz+1) Stop 'Error: nslices_z must be grater than suppz+1'
+    If ( nslices_z<suppz+1 ) Stop 'Error: nslices_z must be greater than suppz+1'
 
     ! domain decomposition. Must be consistent with fftw
     Do i = 0, nprocs-1

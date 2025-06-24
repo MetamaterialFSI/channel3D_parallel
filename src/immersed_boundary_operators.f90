@@ -38,15 +38,6 @@ Contains
       ! index of largest zm value that is smaller than zb(l), accounting for periodicity, but not for ghost cells
       zm_pivot_index(l) = Modulo(Int((zb(l) + 0.5 * dz) / dz) - 1, nzm_global - 1) + 1 
     End Do
-    ! debug line
-    ! Do l=2,nzg_global-1
-    !   call global_to_local_center(l, k_supp, k_local, proc_id)
-    !   WRITE(*,*) 'Center: myid',myid,'proc_id',proc_id,'k_global',l,'k_local',k_local,'supp_idx',k_supp        
-    ! end do
-    ! Do l=2,nz_global-1
-    !   call global_to_local_face(l, k_supp, k_local, proc_id)
-    !   WRITE(*,*) 'Face: myid',myid,'proc_id',proc_id,'k_global',l,'k_local',k_local,'supp_idx',k_supp        
-    ! end do
 
     !----Find the flow grid indices and corresponding DDF weights within the support of the DDF at each body point----!
     ! u velocity locations
@@ -59,25 +50,17 @@ Contains
             jj = ym_pivot_index(l) + j
             kk = Modulo(zm_pivot_index(l) + k - 1, nzm_global - 1) + 1
 
-            count = count + 1 
+            count = count + 1
             u_x_indices(count, l) = ii
             u_y_indices(count, l) = jj + 1 ! plus one for ghost cell
             u_z_indices(count, l) = kk + 1 ! plus one for ghost cell
             ! calculate the support cell index
-            if ( moving_z_flag ) then
+            If ( moving_z_flag .Or. istep <= 1 ) Then
               call global_to_local_center(kk + 1, k_supp, k_local, proc_id)
               u_z_local_indices(count, l) = k_local
               u_z_supp_idx(count, l) = k_supp
               u_proc(count, l) = proc_id 
-            Else
-              if ( istep .le. 1 ) then
-                call global_to_local_center(kk + 1, k_supp, k_local, proc_id)
-                u_z_local_indices(count, l) = k_local
-                u_z_supp_idx(count, l) = k_supp
-                u_proc(count, l) = proc_id
-              end if
-            end if 
-            
+            End If 
 
             u_weights(count, l) =  dx * dymin * dz &
               * deltafnc( x_global(ii), xb(l), dx,    Lxp) &
@@ -98,24 +81,17 @@ Contains
             jj = y_pivot_index(l) + j
             kk = Modulo(zm_pivot_index(l) + k - 1, nzm_global - 1) + 1
 
-            count = count+1          
+            count = count + 1
             v_x_indices(count, l) = ii + 1 ! plus one for ghost cell
             v_y_indices(count, l) = jj
             v_z_indices(count, l) = kk + 1 ! plus one for ghost cell
             ! calculate the support cell index
-            if ( moving_z_flag ) then
+            If ( moving_z_flag .Or. istep <= 1 ) Then
               call global_to_local_center(kk + 1, k_supp, k_local, proc_id)
               v_z_local_indices(count, l) = k_local
               v_z_supp_idx(count, l) = k_supp
               v_proc(count, l) = proc_id 
-            Else
-              if ( istep .le. 1 ) then
-                call global_to_local_center(kk + 1, k_supp, k_local, proc_id)
-                v_z_local_indices(count, l) = k_local
-                v_z_supp_idx(count, l) = k_supp
-                v_proc(count, l) = proc_id
-              end if
-            end if 
+            End If 
 
             v_weights(count, l) = dx * dymin * dz &
               * deltafnc(xm_global(ii), xb(l), dx,    Lxp) &
@@ -136,29 +112,17 @@ Contains
             jj = ym_pivot_index(l) + j
             kk = Modulo(z_pivot_index(l) + k - 2, nz_global - 2 ) + 2
 
-            count = count + 1           
+            count = count + 1 
             w_x_indices(count, l) = ii + 1 ! plus one for ghost cell
             w_y_indices(count, l) = jj + 1 ! plus one for ghost cell
             w_z_indices(count, l) = kk
             ! calculate the support cell index
-            if ( moving_z_flag ) then
+            If ( moving_z_flag .Or. istep <= 1 ) Then
               call global_to_local_face(kk, k_supp, k_local, proc_id)
               w_z_local_indices(count, l) = k_local
               w_z_supp_idx(count, l) = k_supp
               w_proc(count, l) = proc_id 
-            Else
-              if ( istep .le. 1 ) then
-                call global_to_local_face(kk, k_supp, k_local, proc_id)
-                w_z_local_indices(count, l) = k_local
-                w_z_supp_idx(count, l) = k_supp
-                w_proc(count, l) = proc_id
-              end if
-            end if 
-            ! if ( myid .ne. proc_id ) then
-            !   if ( k_supp.le.0 .or. k_supp .gt. 2*(suppz)+1 ) then
-            !     WRITE(*,*) 'W: myid',myid,'proc_id',proc_id,'k_global',kk+1,'k_local',k_local,'supp_idx',k_supp
-            !   end if 
-            ! end if
+            End If 
 
             w_weights(count, l) = dx * dymin * dz &
               * deltafnc(xm_global(ii), xb(l), dx,    Lxp) &
@@ -233,7 +197,6 @@ Contains
     Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: V_(:, :, :)
     Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: W_(:, :, :)
     Real(Int64), Dimension(3 * nb):: regT
-    Real(Int64), Dimension(3 * nb):: regT_global
 
     ! update support cells from interior points
     Call interior_planes_update_support(U_,U_supp,1)
@@ -256,7 +219,6 @@ Contains
     Implicit None
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
     Real(Int64), Dimension(nx, nyg, nzg), Intent(Out) :: U_
-    Real(Int64), Dimension(nx, nyg, nzg):: U_local
 
     ! compute local_reg for each partition
     Call local_reg(U_,U_supp,f_,1)
@@ -338,41 +300,39 @@ Contains
         end if
       End Do
     End Do
-
   End Function local_regT
-!-----------------------------------------------------------------------
-!  Generalized “subset_regu” for U, V, or W:
-!    - id = 1 -> U
-!    - id = 2 -> V
-!    - id = 3 -> W
-!
-!  Inputs:
-!    id        : 1->U, 2->V, 3->W
-!    f_        : real(8) array of length nb (f_ for each body point)
-!
-!  Output:
-!    subset    : real(8)(nweights, nb)  (subset_regu for chosen field)
-!
-!  Uses global weights u_weights, v_weights, w_weights; and
-!  dx, dy, dymin, dz, sb(:), nb_start, nb_end, nweights, nb.
-!-----------------------------------------------------------------------
+
+  !-----------------------------------------------------------------------
+  !  Generalized “subset_regu” for U, V, or W:
+  !    - id = 1 -> U
+  !    - id = 2 -> V
+  !    - id = 3 -> W
+  !
+  !  Inputs:
+  !    id        : 1->U, 2->V, 3->W
+  !    f_        : real(8) array of length nb (f_ for each body point)
+  !
+  !  Output:
+  !    subset    : real(8)(nweights, nb)  (subset_regu for chosen field)
+  !
+  !  Uses global weights u_weights, v_weights, w_weights; and
+  !  dx, dy, dymin, dz, sb(:), nb_start, nb_end, nweights, nb.
+  !-----------------------------------------------------------------------
   subroutine local_reg(F,F_supp, f_,id)
     implicit none
-  
     integer, intent(in)  :: id
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
     Real(Int64), Intent(InOut) :: F(:,:,:)    
     Real(Int64), Intent(InOut) :: F_supp(:,:,:)   
-  
     integer :: i, j
     integer :: proc_idx
     integer :: xi, yi, zi,zi_supp,zi_loc
     Real(Int64) :: factor, weight
-  
+
     ! Initialize output to zero
     F = 0.0
     F_supp =0.0
-  
+
     ! Determine scaling factor based on id
     factor = 1.0 / (dx * dymin * dz)
 
@@ -419,47 +379,44 @@ Contains
         end if
       end do
     end do
-  
   end subroutine local_reg
-  
-!-------------------------------------------------------------------------------
-!  global_to_local_face
-!
-!  Purpose:
-!    Determines the owner rank, local index, and support index (if needed)
-!    of a given global face index in the z-direction.
-!
-!  Inputs:
-!    k_global : Global face index in z-direction
-!
-!  Outputs:
-!    k_sup    : Index in F_supp if the face is in a neighboring rank
-!               (1..suppz+1 from left, suppz+2..2*suppz+1 from right), -1 if local
-!    k_loc    : Local index in F if the face is local
-!    rank     : Rank (myid, prev, or next) that owns k_global
-!
-!  Notes:
-!    - Special handling when nprocs = 2 (prev == next)
-!-------------------------------------------------------------------------------
+
+  !-------------------------------------------------------------------------------
+  !  global_to_local_face
+  !
+  !  Purpose:
+  !    Determines the owner rank, local index, and support index (if needed)
+  !    of a given global face index in the z-direction.
+  !
+  !  Inputs:
+  !    k_global : Global face index in z-direction
+  !
+  !  Outputs:
+  !    k_sup    : Index in F_supp if the face is in a neighboring rank
+  !               (1..suppz+1 from left, suppz+2..2*suppz+1 from right), -1 if local
+  !    k_loc    : Local index in F if the face is local
+  !    rank     : Rank (myid, prev, or next) that owns k_global
+  !
+  !  Notes:
+  !    - Special handling when nprocs = 2 (prev == next)
+  !-------------------------------------------------------------------------------
   subroutine global_to_local_face(k_global, k_sup, k_loc, rank)
     implicit none
-  
     integer, intent(in)  :: k_global
     integer, intent(out) :: k_sup, k_loc, rank
-  
     integer :: prev, next
-  
+
     ! Initialize outputs
     rank  = -1
     k_sup = -1
     k_loc = -1
-  
+
     ! Determine periodic neighbors
     prev = myid - 1
     if (prev < 0) prev = nprocs - 1
     next = myid + 1
     if (next == nprocs) next = 0
-  
+
     ! Check ownership among {prev, myid, next}
     if (k_global >= k1_global(myid)+1 .and. k_global <= k2_global(myid)-1) then
       rank = myid
@@ -475,9 +432,9 @@ Contains
     if (rank == myid) then
       ! Locally owned -> compute k_loc
       k_sup = -1
-    else  ! rank == next
+    else  ! rank == next or rank == prev
       if ( nprocs .eq. 2 ) then
-        ! special case for only 2 processors: prev=next
+        ! special case for only 2 processors: prev == next
         if ( k_loc>nz/2 ) then
           k_sup = k_global - (k2_global(prev) - suppz)+2
         else
@@ -489,51 +446,46 @@ Contains
         elseif (rank .eq. next) then
           k_sup = (k_global - k1_global(next)) + (suppz+1)
         end if
-        
       end if
-      
-    
     end if
   end subroutine global_to_local_face
-  
-!-------------------------------------------------------------------------------
-!  global_to_local_center
-!
-!  Purpose:
-!    Determines the owner rank, local index, and support index (if needed)
-!    of a given global center index in the z-direction.
-!
-!  Inputs:
-!    k_global : Global center index in z-direction
-!
-!  Outputs:
-!    k_sup    : Index in F_supp if the center is in a neighboring rank
-!               (1..suppz from left, suppz+1..2*suppz from right), -1 if local
-!    k_loc    : Local index in F if the center is local
-!    rank     : Rank (myid, prev, or next) that owns k_global
-!
-!  Notes:
-!    - Special handling when nprocs = 2 (prev == next)
-!-------------------------------------------------------------------------------
+
+  !-------------------------------------------------------------------------------
+  !  global_to_local_center
+  !
+  !  Purpose:
+  !    Determines the owner rank, local index, and support index (if needed)
+  !    of a given global center index in the z-direction.
+  !
+  !  Inputs:
+  !    k_global : Global center index in z-direction
+  !
+  !  Outputs:
+  !    k_sup    : Index in F_supp if the center is in a neighboring rank
+  !               (1..suppz from left, suppz+1..2*suppz from right), -1 if local
+  !    k_loc    : Local index in F if the center is local
+  !    rank     : Rank (myid, prev, or next) that owns k_global
+  !
+  !  Notes:
+  !    - Special handling when nprocs = 2 (prev == next)
+  !-------------------------------------------------------------------------------
   subroutine global_to_local_center(k_global, k_sup, k_loc, rank)
     implicit none
-  
     integer, intent(in)  :: k_global
     integer, intent(out) :: k_sup, k_loc, rank
-  
     integer :: prev, next, neighbor_top_start
-  
+
     ! Initialize outputs
     rank  = -1
     k_sup = -1
     k_loc = -1
-  
+
     ! Determine periodic neighbors
     prev = myid - 1
     if (prev < 0) prev = nprocs - 1
     next = myid + 1
     if (next == nprocs) next = 0
-  
+
     ! Check ownership among {prev, myid, next}
     if (k_global >= (kg1_global(prev)+1) .and. &
         k_global <= (kg2_global(prev)-1)) then
@@ -574,15 +526,8 @@ Contains
         elseif (rank .eq. next) then
           k_sup = (k_global - (kg1_global(next) + 1)) + (suppz + 2)
         end if
-        
       end if
-      
-    
     end if
   end subroutine global_to_local_center
-  
-  
-  
-
 
 End Module immersed_boundary_operators

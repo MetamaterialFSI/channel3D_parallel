@@ -452,22 +452,22 @@ Contains
     
   End Subroutine update_ghost_interior_planes
 
-!-------------------------------------------------------------------------------
-!  interior_planes_update_support
-!
-!  Purpose:
-!    Sends interior velocity planes to update the ghost/support layers of
-!    neighboring processors (F_supp). Handles periodic boundaries.
-!
-!  Inputs:
-!    F       : Field array (U, V, or W)
-!    F_supp  : Support array to be updated
-!    id      : Component ID (1=U, 2=V, 3=W)
-!
-!  Notes:
-!    - Periodic z-direction assumed
-!    - Communication occurs in both directions
-!-------------------------------------------------------------------------------
+  !-------------------------------------------------------------------------------
+  !  interior_planes_update_support
+  !
+  !  Purpose:
+  !    Sends interior velocity planes to update the ghost/support layers of
+  !    neighboring processors (F_supp). Handles periodic boundaries.
+  !
+  !  Inputs:
+  !    F       : Field array (U, V, or W)
+  !    F_supp  : Support array to be updated
+  !    id      : Component ID (1=U, 2=V, 3=W)
+  !
+  !  Notes:
+  !    - Periodic z-direction assumed
+  !    - Communication occurs in both directions
+  !-------------------------------------------------------------------------------
   Subroutine interior_planes_update_support(F,F_supp,id)
 
     Real   (Int64), Intent(InOut) :: F(:,:,:)    
@@ -485,16 +485,16 @@ Contains
       recvfrom = myid - 1
       tagfrom  = myid 
       If ( myid==0 ) Then 
-         recvfrom = nprocs-1
-         tagfrom  = 0
-         buffer_usupp_s = F(:,:,nzg-suppz-1:nzg-1) ! send buffer
+        recvfrom = nprocs-1
+        tagfrom  = 0
+        buffer_usupp_s = F(:,:,nzg-suppz-1:nzg-1) ! send buffer
       ELSEIf ( myid==nprocs-1 ) Then
-         sendto = 0
-         tagto  = 0
-         if (nzg-suppz-1 .lt. 2) Stop 'Error: nzg-suppz-1 grater than 2'
-         buffer_usupp_s = F(:,:,nzg-suppz-2:nzg-2) ! send buffer
+        sendto = 0
+        tagto  = 0
+        if (nzg-suppz-1 .lt. 2) Stop 'Error: nzg-suppz-1 less than 2'
+        buffer_usupp_s = F(:,:,nzg-suppz-2:nzg-2) ! send buffer
       ELSE
-         buffer_usupp_s = F(:,:,nzg-suppz-1:nzg-1) ! send buffer
+        buffer_usupp_s = F(:,:,nzg-suppz-1:nzg-1) ! send buffer
       End If
       
       Call Mpi_sendrecv(buffer_usupp_s, nx*nyg*(suppz+1), Mpi_real8, sendto, tagto,        &
@@ -508,14 +508,14 @@ Contains
       recvfrom = myid + 1
       tagfrom  = myid 
       If ( myid==0 ) Then
-         sendto = nprocs-1
-         tagto  = nprocs-1
-         if (2+suppz .gt. nzg-1) Stop 'Error: 2+suppz grater than nzg-1'
-         buffer_usupp_s(:,:,1:suppz) = F(:,:,3:2+suppz)  ! send buffer
+        sendto = nprocs-1
+        tagto  = nprocs-1
+        if (2+suppz .gt. nzg-1) Stop 'Error: 2+suppz greater than nzg-1'
+        buffer_usupp_s(:,:,1:suppz) = F(:,:,3:2+suppz)  ! send buffer
       ELSEIf ( myid==nprocs-1 ) Then
-         recvfrom = 0
-         tagfrom  = nprocs-1
-         buffer_usupp_s(:,:,1:suppz) = F(:,:,2:1+suppz)  ! send buffer
+        recvfrom = 0
+        tagfrom  = nprocs-1
+        buffer_usupp_s(:,:,1:suppz) = F(:,:,2:1+suppz)  ! send buffer
       ELSE
         buffer_usupp_s(:,:,1:suppz) = F(:,:,2:1+suppz)  ! send buffer
       End If
@@ -535,14 +535,14 @@ Contains
         recvfrom = nprocs-1
         tagfrom  = 0
         buffer_vsupp_s = F(:,:,nzg-suppz-1:nzg-1) ! send buffer
-     ELSEIf ( myid==nprocs-1 ) Then
+      ELSEIf ( myid==nprocs-1 ) Then
         sendto = 0
         tagto  = 0
         if (nzg-suppz-2 .lt. 2) Stop 'Error: nzg-suppz-2 less than 2'
         buffer_vsupp_s = F(:,:,nzg-suppz-2:nzg-2) ! send buffer
-     ELSE
-      buffer_vsupp_s = F(:,:,nzg-suppz-1:nzg-1) ! send buffer
-     End If
+      ELSE
+        buffer_vsupp_s = F(:,:,nzg-suppz-1:nzg-1) ! send buffer
+      End If
       Call Mpi_sendrecv(buffer_vsupp_s, nxg*ny*(suppz+1), Mpi_real8, sendto, tagto,        &
       buffer_vsupp_r, nxg*ny*(suppz+1), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
            istat, ierr)   
@@ -557,17 +557,17 @@ Contains
         sendto = nprocs-1
         tagto  = nprocs-1
         buffer_vsupp_s(:,:,1:suppz) = F(:,:,3:2+suppz)  ! send buffer
-     ELSEIf ( myid==nprocs-1 ) Then
+      ELSEIf ( myid==nprocs-1 ) Then
         recvfrom = 0
         tagfrom  = nprocs-1
         buffer_vsupp_s(:,:,1:suppz) = F(:,:,2:1+suppz)  ! send buffer
-     ELSE
+      ELSE
         buffer_vsupp_s(:,:,1:suppz) = F(:,:,2:1+suppz)  ! send buffer
-     End If
-      Call Mpi_sendrecv(buffer_vsupp_s(:,:,1:suppz), nxg*ny*suppz, Mpi_real8, sendto, tagto,        &
-      buffer_vsupp_r(:,:,1:suppz), nxg*ny*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
-           istat, ierr)   
-      F_supp(:,:,suppz+2:2*suppz+1) = buffer_vsupp_r(:,:,1:suppz) ! received buffer
+      End If
+        Call Mpi_sendrecv(buffer_vsupp_s(:,:,1:suppz), nxg*ny*suppz, Mpi_real8, sendto, tagto,        &
+        buffer_vsupp_r(:,:,1:suppz), nxg*ny*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+             istat, ierr)   
+        F_supp(:,:,suppz+2:2*suppz+1) = buffer_vsupp_r(:,:,1:suppz) ! received buffer
       
     Elseif (id == 3) Then
       !----------------------update W-----------------------!
@@ -584,7 +584,7 @@ Contains
         tagto  = 0
       ELSE
       End If
-      if (nz-suppz-1 .lt. 2) Stop 'Error: nz-suppz-1 grater than 2'
+      if (nz-suppz-1 .lt. 2) Stop 'Error: nz-suppz-1 less than 2'
       buffer_wsupp_s = F(:,:,nz-suppz-1:nz-1)    ! send buffer
       Call Mpi_sendrecv(buffer_wsupp_s, nxg*nyg*(suppz+1), Mpi_real8, sendto, tagto,        &
       buffer_wsupp_r, nxg*nyg*(suppz+1), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
@@ -613,25 +613,25 @@ Contains
     
   End Subroutine interior_planes_update_support
 
-!-------------------------------------------------------------------------------
-!  support_update_interior_planes
-!
-!  Purpose:
-!    Updates interior planes (F) using ghost/support planes (F_supp)
-!    from neighboring processors in the z-direction. This subroutine
-!    performs a **summation** of received support layers onto the
-!    corresponding interior layers — additive contribution is critical
-!    for correct formulation (e.g., immersed boundary forcing).
-!
-!  Inputs:
-!    F       : Field array (U, V, or W) to be updated
-!    F_supp  : Support/ghost array
-!    id      : Component ID (1=U, 2=V, 3=W)
-!
-!  Notes:
-!    - Assumes periodic domain in z-direction.
-!    - Performs additive update, **not overwrite**.
-!-------------------------------------------------------------------------------
+  !-------------------------------------------------------------------------------
+  !  support_update_interior_planes
+  !
+  !  Purpose:
+  !    Updates interior planes (F) using ghost/support planes (F_supp)
+  !    from neighboring processors in the z-direction. This subroutine
+  !    performs a **summation** of received support layers onto the
+  !    corresponding interior layers — additive contribution is critical
+  !    for correct formulation (e.g., immersed boundary forcing).
+  !
+  !  Inputs:
+  !    F       : Field array (U, V, or W) to be updated
+  !    F_supp  : Support/ghost array
+  !    id      : Component ID (1=U, 2=V, 3=W)
+  !
+  !  Notes:
+  !    - Assumes periodic domain in z-direction.
+  !    - Performs additive update, **not overwrite**.
+  !-------------------------------------------------------------------------------
   Subroutine support_update_interior_planes(F,F_supp,id)
 
     Real   (Int64), Intent(InOut) :: F(:,:,:)    
@@ -649,12 +649,12 @@ Contains
       recvfrom = myid - 1
       tagfrom  = myid 
       If ( myid==0 ) Then 
-         recvfrom = nprocs-1
-         tagfrom  = 0
+        recvfrom = nprocs-1
+        tagfrom  = 0
       End If
       If ( myid==nprocs-1 ) Then
-         sendto = 0
-         tagto  = 0
+        sendto = 0
+        tagto  = 0
       End If
       buffer_usupp_s(:,:,1:suppz) = F_supp(:,:,suppz+2:2*suppz+1) ! send buffer
       Call Mpi_sendrecv(buffer_usupp_s(:,:,1:suppz), nx*nyg*suppz, Mpi_real8, sendto, tagto,        &
@@ -673,12 +673,12 @@ Contains
       recvfrom = myid + 1
       tagfrom  = myid 
       If ( myid==0 ) Then
-         sendto = nprocs-1
-         tagto  = nprocs-1
+        sendto = nprocs-1
+        tagto  = nprocs-1
       End If
       If ( myid==nprocs-1 ) Then
-         recvfrom = 0
-         tagfrom  = nprocs-1
+        recvfrom = 0
+        tagfrom  = nprocs-1
       End If
       buffer_usupp_s = F_supp(:,:,1:suppz+1)  ! send buffer
       Call Mpi_sendrecv(buffer_usupp_s, nx*nyg*(suppz+1), Mpi_real8, sendto, tagto,        &
@@ -702,11 +702,11 @@ Contains
       If ( myid==0 ) Then 
         recvfrom = nprocs-1
         tagfrom  = 0
-     End If
-     If ( myid==nprocs-1 ) Then
+      End If
+      If ( myid==nprocs-1 ) Then
         sendto = 0
         tagto  = 0
-     End If
+      End If
       buffer_vsupp_s(:,:,1:suppz) = F_supp(:,:,suppz+2:2*suppz+1)  ! send buffer
       Call Mpi_sendrecv(buffer_vsupp_s(:,:,1:suppz), nxg*ny*suppz, Mpi_real8, sendto, tagto,        &
       buffer_vsupp_r(:,:,1:suppz), nxg*ny*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
@@ -725,11 +725,11 @@ Contains
       If ( myid==0 ) Then
         sendto = nprocs-1
         tagto  = nprocs-1
-     End If
-     If ( myid==nprocs-1 ) Then
+      End If
+      If ( myid==nprocs-1 ) Then
         recvfrom = 0
         tagfrom  = nprocs-1
-     End If
+      End If
       buffer_vsupp_s = F_supp(:,:,1:1+suppz)  ! send buffer
       Call Mpi_sendrecv(buffer_vsupp_s, nxg*ny*(suppz+1), Mpi_real8, sendto, tagto,        &
       buffer_vsupp_r, nxg*ny*(suppz+1), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
@@ -751,11 +751,11 @@ Contains
       If ( myid==0 ) Then 
         recvfrom = nprocs-1
         tagfrom  = 0
-     End If
-     If ( myid==nprocs-1 ) Then
+      End If
+      If ( myid==nprocs-1 ) Then
         sendto = 0
         tagto  = 0
-     End If
+      End If
       buffer_wsupp_s(:,:,1:suppz) = F_supp(:,:,suppz+2:2*suppz+1)  ! send buffer
       Call Mpi_sendrecv(buffer_wsupp_s(:,:,1:suppz), nxg*nyg*suppz, Mpi_real8, sendto, tagto,        &
       buffer_wsupp_r(:,:,1:suppz), nxg*nyg*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
@@ -770,11 +770,11 @@ Contains
       If ( myid==0 ) Then
         sendto = nprocs-1
         tagto  = nprocs-1
-     End If
-     If ( myid==nprocs-1 ) Then
+      End If
+      If ( myid==nprocs-1 ) Then
         recvfrom = 0
         tagfrom  = nprocs-1
-     End If
+      End If
       buffer_wsupp_s = F_supp(:,:,1:suppz+1)  ! send buffer
       Call Mpi_sendrecv(buffer_wsupp_s, nxg*nyg*(suppz+1), Mpi_real8, sendto, tagto,        &
       buffer_wsupp_r, nxg*nyg*(suppz+1), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
@@ -782,7 +782,6 @@ Contains
       F(:,:,nz-suppz-1:nz-1) = F(:,:,nz-suppz-1:nz-1)+ buffer_wsupp_r ! received buffer     
     End if 
     Call Mpi_barrier(MPI_COMM_WORLD, ierr) 
-    !WRITE(*,*) 'Done:supp2interior myid:',myid,'id:',id
     
   End Subroutine support_update_interior_planes
 
