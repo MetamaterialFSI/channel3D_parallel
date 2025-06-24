@@ -3,6 +3,12 @@ build/*
 bin/*
 install/*
 
+# Examples
+examples/channel_output*
+
+# Tools
+tools/__pycache__/*
+
 # Prerequisites
 *.d
 
