@@ -41,7 +41,7 @@ Contains
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
 
-      Case ('traveling wave') ! Top and bottom wall undergoing traveling wave motion
+      Case ('traveling_wave') ! Top and bottom wall undergoing traveling wave motion
         nb = 2 * nxb * nzb
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
