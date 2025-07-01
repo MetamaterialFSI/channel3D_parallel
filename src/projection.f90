@@ -108,46 +108,43 @@ Contains
 
   End Function schur
 
-  Subroutine bicgstab( x, b)
+  Subroutine bicgstab( bcg_x, bcg_b)
     Integer :: j, iter
-    Real(Int64), Dimension(3*nb), Intent(In) :: b
-    Real(Int64), Dimension(3*nb), Intent(Inout) :: x
-    Real(Int64), Dimension(3*nb) :: r, rhat, p, nu, h, sv, tv
+    Real(Int64), Dimension(3*nb), Intent(In) :: bcg_b
+    Real(Int64), Dimension(3*nb), Intent(Inout) :: bcg_x
     Real(Int64) :: rho_o, rho_n, alpha, om, eps, error, bta
 
     !initialize
     error = 1.d0
     eps = cg_tol * cg_tol
     iter = 0
-    r = b - schur( x)
-    rhat = r
+    bcg_r = bcg_b - schur(bcg_x)
+    bcg_rhat = bcg_r
     rho_o = 1.d0
     alpha = 1.d0
     om = 1.d0
-    nu = 0.d0
-    p = 0.d0
+    bcg_nu = 0.d0
+    bcg_p = 0.d0
     Do While ((iter .le. cg_max_iter) .and. (error .ge. eps))
-      rho_n = dot_product(rhat, r)
-      bta = (rho_n/rho_o) * (alpha/om)
+      rho_n = dot_product(bcg_rhat, bcg_r)
+      bta = (rho_n / rho_o) * (alpha / om)
       rho_o = rho_n
-      p = r + bta * (p - om * nu)
-      nu = schur(p)
-      alpha = rho_n/dot_product(rhat, nu)
-      h = x + alpha * p
-      sv = r - alpha * nu
-      tv = schur(sv )
-      om = dot_product( tv, sv)/ dot_product(tv, tv)
-      x = h + om * sv
-      r = sv - om * tv
-      error = dot_product( r, r)
+      bcg_p = bcg_r + bta * (bcg_p - om * bcg_nu)
+      bcg_nu = schur(bcg_p)
+      alpha = rho_n / dot_product(bcg_rhat, bcg_nu)
+      bcg_h = bcg_x + alpha * bcg_p
+      bcg_sv = bcg_r - alpha * bcg_nu
+      bcg_tv = schur(bcg_sv )
+      om = dot_product( bcg_tv, bcg_sv) / dot_product(bcg_tv, bcg_tv)
+      bcg_x = bcg_h + om * bcg_sv
+      bcg_r = bcg_sv - om * bcg_tv
+      error = dot_product( bcg_r, bcg_r)
       iter = iter + 1
       Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
-      ! If (myid == 0) Write(*,*)  "......Iteration = ",iter,", residual = ", error
     End Do
     If (iter .eq. cg_max_iter + 1) Then
       Write(*,*)  "......WARNING, bicgstab used maximum number of iterations"
-      Write(*,*)  "......Iterations = ",iter,", residual = ", error
+      Write(*,*)  "......Iterations = ",iter,", |residual| = ", Abs(bcg_r)
     End If
   End Subroutine
-
 End Module projection
