@@ -144,7 +144,7 @@ Contains
     End Do
     If (iter .eq. cg_max_iter + 1) Then
       Write(*,*)  "......WARNING, bicgstab used maximum number of iterations"
-      Write(*,*)  "......Iterations = ",iter,", |residual| = ", Abs(bcg_r)
+      Write(*,*)  "......Iterations = ",iter,", max |residual| = ", Maxval(Abs(bcg_r))
     End If
   End Subroutine
 End Module projection
