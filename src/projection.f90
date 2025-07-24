@@ -142,9 +142,9 @@ Contains
       iter = iter + 1
       Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
     End Do
-    If (iter .eq. cg_max_iter + 1 .and. myid == 0) Then
-      Write(*,*)  "......WARNING, bicgstab used maximum number of iterations"
-      Write(*,*)  "......Iterations = ",iter,", max |residual| = ", Maxval(Abs(bcg_r))
+    If (iter .gt. cg_max_iter .and. myid == 0) Then
+      Write(*,*)  "......WARNING, bicgstab used maximum number of iterations (", cg_max_iter, ")"
+      Write(*,*)  "......max |residual| = ", Maxval(Abs(bcg_r))
     End If
   End Subroutine
 End Module projection
