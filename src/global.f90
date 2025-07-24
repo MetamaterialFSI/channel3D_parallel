@@ -253,5 +253,8 @@ Module global
   Real(Int64), Dimension(:,:,:), Allocatable :: Fibu, Fibv, Fibw
   Logical(Int32) :: moving_z_flag ! True for moving in z direction; False: stationary in z direction (for identifying the partition)
 
+  ! BiCGSTAB arrays
+  Real(Int64), Dimension(:), Allocatable :: bcg_r, bcg_rhat, bcg_p, bcg_nu, bcg_h, bcg_sv, bcg_tv
+
   
 End Module global

@@ -529,12 +529,19 @@ Contains
     Allocate ( W_subset( nweights, nb) )
     Allocate ( w_z_supp_idx( nweights, nb) )
 
-    Allocate( send_counts_nb(nprocs), displs_nb(nprocs) )
+    Allocate ( send_counts_nb(nprocs), displs_nb(nprocs) )
+
+    !--------------------Initialize BiCGSTAB arrays---------------!    
+    Allocate ( bcg_r( 3 * nb) )
+    Allocate ( bcg_rhat( 3 * nb) )
+    Allocate ( bcg_p( 3 * nb) )
+    Allocate ( bcg_nu( 3 * nb) )
+    Allocate ( bcg_h( 3 * nb) )
+    Allocate ( bcg_sv( 3 * nb) )
+    Allocate ( bcg_tv( 3 * nb) )
 
     !-------------------------Done--------------------------------!
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)
-
-
 
   End Subroutine
   
