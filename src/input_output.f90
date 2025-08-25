@@ -46,7 +46,7 @@ Contains
     cg_tol = 1e-8
     cg_max_iter = 50
     t_init = 0d0
-
+    
     ! processor 0 reads the data
     If ( myid==0 ) Then
       Write(*,*) 'reading input parameters...'
@@ -64,6 +64,7 @@ Contains
 
       utau_    = dPdx ** 0.5d0
       dPdx_ref = dPdx
+      store_index = 1
 
       Print params
        
@@ -661,5 +662,35 @@ Contains
     End If
 
   End Subroutine output_statistics
+    !----------------------------------------------!
+  !   Write 1d data in a single txt file         !
+  !----------------------------------------------!
+  Subroutine output_response
+
+    Character(200) :: fname
+    Character(8)   :: ext
+    Integer(Int32) :: i
+ 
+    If ( myid==0 ) Then
+ 
+       Write(ext,'(I8)') istep + nstep_init
+       
+       fname = Trim(Adjustl(fileout))//'_responds.dat'
+       !Write(*,*) 'writting ',Trim(Adjustl(fname))
+       if (istep + nstep_init .eq. 1) then
+         Open(33,file=fname,form="formatted",status="replace") 
+       Else
+         Open(33,file=fname,form="formatted",status="unknown",position="append") 
+       end if 
+       
+       Do i=1,store_index
+         Write(33,'(3F15.8)') tau_w_log(i,1),tau_w_log(i,2), dPdx
+       End do
+       
+       Close(33)
+ 
+    End If
+ 
+  End Subroutine output_response
 
 End Module input_output

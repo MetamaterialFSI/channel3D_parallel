@@ -23,7 +23,7 @@ Contains
 
     Integer(Int32) :: jj
     Real   (Int64) :: dUdy_wall_b, dUdy_wall_t
-    Real   (Int64) ::   UV_wall_b,   UV_wall_t
+    Real   (Int64) ::   UV_wall_b,   UV_wall_t, tmp_t
 
     ! if pressure not computed 
     pressure_computed = .False.
@@ -117,6 +117,7 @@ Contains
        UV_wall_t = 0d0 
 
        ! friction velocity
+       tau_w = ( UV_wall_t - UV_wall_b - nu*dUdy_wall_t + nu*dUdy_wall_b )/Ly
        utau = ( ( UV_wall_t - UV_wall_b - nu*dUdy_wall_t + nu*dUdy_wall_b )/Ly )**0.5d0
 
        ! friction Reynolds number
@@ -127,7 +128,25 @@ Contains
        Call compute_mean_mass_flow_V(V,Qflow_y)
 
        ! write statistics
-       Call output_statistics
+       !Call output_statistics
+       if (myid .eq. 0) Then
+         !WRITE(*,*) 'write output stats'
+         tmp_t=t+REAL(nstep_init)*dt
+         !WRITE(*,*) 'tmp_t=',tmp_t
+         tau_w_log(store_index,1)=tmp_t
+         tau_w_log(store_index,2)=tau_w 
+         !WRITE(*,*) 't,tau_w=',tau_w_log(store_index,1),tau_w_log(store_index,2)
+         if (store_index .eq. 1000 .or. istep .eq. nsteps) then
+           Call output_response
+           store_index=1
+         elseif ( istep==1) then
+          Call output_response
+          !store_index=store_index+1
+          store_index=1
+         else
+           store_index=store_index+1
+         end if
+       end if
 
        ! Sanity check 
        If ( Any( Isnan(U) ) ) Stop 'Error: NaNs!'

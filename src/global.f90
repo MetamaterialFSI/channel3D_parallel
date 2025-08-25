@@ -181,7 +181,7 @@ Module global
 
   ! statistics
   Integer(Int32) :: nstats, Retau_int
-  Real   (Int64) :: Retau, utau, Qflow_x, Qflow_y
+  Real   (Int64) :: Retau, utau, Qflow_x, Qflow_y, tau_w
   Real   (Int64), Dimension(:), Allocatable ::  Umean,  Vmean,  Wmean
   Real   (Int64), Dimension(:), Allocatable :: U2mean, V2mean, W2mean, UVmean
 
@@ -250,5 +250,8 @@ Module global
   Real(Int64), Dimension(:),     Allocatable :: aux_surface_scalar, aux_surface_vector, rhs_ib
   Real(Int64), Dimension(:),     Allocatable :: regT_buffer_scalar, regT_buffer_vector
   Real(Int64), Dimension(:,:,:), Allocatable :: Fibu, Fibv, Fibw
+   ! for output stats
+  REAL(Int64), Dimension(1000,2) :: tau_w_log
+  Integer(Int32) :: store_index
   
 End Module global
