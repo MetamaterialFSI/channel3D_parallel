@@ -17,7 +17,7 @@ Contains
   !      Compute the DDF weights and flow grid indices used in the IB regularization and interpolation       !
   !----------------------------------------------------------------------------------------------------------!
   Subroutine setup_IB_operators
-    Integer(Int32) :: i, j, k, l, ii, jj, kk, count
+    Integer(Int32) :: i, j, k, l, ii, ii_periodic, jj, kk, kk_periodic, count, x_periodic_shifts, z_periodic_shifts
     character(len=50) :: filename
     integer :: k_local,k_supp         ! local index
     integer :: proc_id      ! MPI rank that owns this index
@@ -25,18 +25,18 @@ Contains
     !-----------------Find the indices of the flow grid points closest to the body points---------------------!
     Do l = nb_start, nb_end
       ! index of largest x value that is smaller than xb(l)
-      x_pivot_index(l) = Int(xb(l) / dx) + 1
-      ! index of largest xm value that is smaller than xb(l), accounting for periodicity, but not for ghost cells
-      xm_pivot_index(l) = Modulo(Int((xb(l) + 0.5 * dx) / dx) - 1, nxm_global - 1) + 1
+      x_pivot_index(l) = Floor(xb(l) / dx) + 1
+      ! index of largest xm value that is smaller than xb(l), not accounting for periodicity. Can be zero
+      xm_pivot_index(l) = Floor((xb(l) + 0.5 * dx) / dx)
       ! index of largest y value that is smaller than yb(l). The use of reference points is more efficient here than searching
       ! the y array for the closest point, in case there is grid stretching.
-      y_pivot_index(l) = Int((yb(l) - y(y_ref_index(l))) / dymin) + y_ref_index(l)
+      y_pivot_index(l) = Floor((yb(l) - y(y_ref_index(l))) / dymin) + y_ref_index(l)
       ! index of largest ym value that is smaller than yb(l), not accounting for ghost cells
-      ym_pivot_index(l) = Int((yb(l) - (y(y_ref_index(l)) + 0.5 * dymin)) / dymin) + y_ref_index(l)
+      ym_pivot_index(l) = Floor((yb(l) - (y(y_ref_index(l)) + 0.5 * dymin)) / dymin) + y_ref_index(l)
       ! index of largest z value that is smaller than zb(l)
-      z_pivot_index(l) = Int(zb(l) / dz) + 1
-      ! index of largest zm value that is smaller than zb(l), accounting for periodicity, but not for ghost cells
-      zm_pivot_index(l) = Modulo(Int((zb(l) + 0.5 * dz) / dz) - 1, nzm_global - 1) + 1 
+      z_pivot_index(l) = Floor(zb(l) / dz) + 1
+      ! index of largest zm value that is smaller than zb(l), not accounting for periodicity. Can be zero
+      zm_pivot_index(l) = Floor((zb(l) + 0.5 * dz) / dz)
     End Do
 
     !----Find the flow grid indices and corresponding DDF weights within the support of the DDF at each body point----!
@@ -46,26 +46,36 @@ Contains
       Do k = -suppz, suppz
         Do j = -suppy, suppy
           Do i = -suppx, suppx
-            ii = Modulo(x_pivot_index(l) + i - 2, nx_global - 2 ) + 2
+            ii = x_pivot_index(l) + i
             jj = ym_pivot_index(l) + j
-            kk = Modulo(zm_pivot_index(l) + k - 1, nzm_global - 1) + 1
+            kk = zm_pivot_index(l) + k 
+
+            x_periodic_shifts = Floor(Real(ii - 1, Int64) / (nx_global - 2))
+            ii_periodic = ii - x_periodic_shifts * (nx_global - 2)
+            z_periodic_shifts = Floor(Real(kk - 1, Int64) / (nzm_global - 1))
+            kk_periodic = kk - z_periodic_shifts * (nzm_global - 1)
 
             count = count + 1
-            u_x_indices(count, l) = ii
+            If (ii_periodic .eq. 1) Then
+              u_x_indices(count, l) = nx_global - 1 ! because of how the periodic boundary conditions are set
+            Else
+              u_x_indices(count, l) = ii_periodic
+            End If
             u_y_indices(count, l) = jj + 1 ! plus one for ghost cell
-            u_z_indices(count, l) = kk + 1 ! plus one for ghost cell
+            u_z_indices(count, l) = kk_periodic + 1 ! plus one for ghost cell
+
             ! calculate the support cell index
             If ( moving_z_flag .Or. istep <= 1 ) Then
-              call global_to_local_center(kk + 1, k_supp, k_local, proc_id)
+              call global_to_local_center(kk_periodic + 1, k_supp, k_local, proc_id)
               u_z_local_indices(count, l) = k_local
               u_z_supp_idx(count, l) = k_supp
               u_proc(count, l) = proc_id 
             End If 
 
             u_weights(count, l) =  dx * dymin * dz &
-              * deltafnc( x_global(ii), xb(l), dx,    Lxp) &
-              * deltafnc(ym_global(jj), yb(l), dymin, 0.d0) &
-              * deltafnc(zm_global(kk), zb(l), dz,    Lzp)
+              * deltafnc( x_global(ii_periodic) + x_periodic_shifts * Lxp, xb(l),    dx) &
+              * deltafnc(                                   ym_global(jj), yb(l), dymin) &
+              * deltafnc(zm_global(kk_periodic) + z_periodic_shifts * Lzp, zb(l),    dz)
           End Do
         End Do
       End Do
@@ -77,26 +87,32 @@ Contains
       Do k = -suppz, suppz
         Do j = -suppy, suppy
           Do i = -suppx, suppx
-            ii = Modulo(xm_pivot_index(l) + i - 1, nxm_global - 1) + 1
+            ii = xm_pivot_index(l) + i
             jj = y_pivot_index(l) + j
-            kk = Modulo(zm_pivot_index(l) + k - 1, nzm_global - 1) + 1
+            kk = zm_pivot_index(l) + k
+
+            x_periodic_shifts = Floor(Real(ii - 1, Int64) / (nxm_global - 1))
+            ii_periodic = ii - x_periodic_shifts * (nxm_global - 1)
+            z_periodic_shifts = Floor(Real(kk - 1, Int64) / (nzm_global - 1))
+            kk_periodic = kk - z_periodic_shifts * (nzm_global - 1)
 
             count = count + 1
-            v_x_indices(count, l) = ii + 1 ! plus one for ghost cell
+            v_x_indices(count, l) = ii_periodic + 1 ! plus one for ghost cell
             v_y_indices(count, l) = jj
-            v_z_indices(count, l) = kk + 1 ! plus one for ghost cell
+            v_z_indices(count, l) = kk_periodic + 1 ! plus one for ghost cell
+
             ! calculate the support cell index
             If ( moving_z_flag .Or. istep <= 1 ) Then
-              call global_to_local_center(kk + 1, k_supp, k_local, proc_id)
+              call global_to_local_center(kk_periodic + 1, k_supp, k_local, proc_id)
               v_z_local_indices(count, l) = k_local
               v_z_supp_idx(count, l) = k_supp
               v_proc(count, l) = proc_id 
             End If 
 
             v_weights(count, l) = dx * dymin * dz &
-              * deltafnc(xm_global(ii), xb(l), dx,    Lxp) &
-              * deltafnc( y_global(jj), yb(l), dymin, 0.d0) &
-              * deltafnc(zm_global(kk), zb(l), dz,    Lzp)
+              * deltafnc(xm_global(ii_periodic) + x_periodic_shifts * Lxp, xb(l),    dx) &
+              * deltafnc(                                    y_global(jj), yb(l), dymin) &
+              * deltafnc(zm_global(kk_periodic) + z_periodic_shifts * Lzp, zb(l),    dz)
           End Do
         End Do
       End Do
@@ -108,26 +124,36 @@ Contains
       Do k = -suppz, suppz
         Do j = -suppy, suppy
           Do i = -suppx, suppx
-            ii = Modulo(xm_pivot_index(l) + i - 1, nxm_global - 1) + 1
+            ii = xm_pivot_index(l) + i - 1
             jj = ym_pivot_index(l) + j
-            kk = Modulo(z_pivot_index(l) + k - 2, nz_global - 2 ) + 2
+            kk = z_pivot_index(l) + k - 2
+
+            x_periodic_shifts = Floor(Real(ii - 1, Int64) / (nxm_global - 1))
+            ii_periodic = ii - x_periodic_shifts * (nxm_global - 1)
+            z_periodic_shifts = Floor(Real(kk - 1, Int64) / (nz_global - 2))
+            kk_periodic = kk - z_periodic_shifts * (nz_global - 2)
 
             count = count + 1 
-            w_x_indices(count, l) = ii + 1 ! plus one for ghost cell
+            w_x_indices(count, l) = ii_periodic + 1 ! plus one for ghost cell
             w_y_indices(count, l) = jj + 1 ! plus one for ghost cell
-            w_z_indices(count, l) = kk
+            If (kk_periodic .eq. 1) Then
+              w_z_indices(count, l) = nz_global - 1
+            Else
+              w_z_indices(count, l) = kk_periodic
+            End If
+
             ! calculate the support cell index
             If ( moving_z_flag .Or. istep <= 1 ) Then
-              call global_to_local_face(kk, k_supp, k_local, proc_id)
+              call global_to_local_face(w_z_indices(count, l), k_supp, k_local, proc_id)
               w_z_local_indices(count, l) = k_local
               w_z_supp_idx(count, l) = k_supp
               w_proc(count, l) = proc_id 
             End If 
 
             w_weights(count, l) = dx * dymin * dz &
-              * deltafnc(xm_global(ii), xb(l), dx,    Lxp) &
-              * deltafnc(ym_global(jj), yb(l), dymin, 0.d0) &
-              * deltafnc( z_global(kk), zb(l), dz,    Lzp)
+              * deltafnc(xm_global(ii_periodic) + x_periodic_shifts * Lxp, xb(l),    dx) &
+              * deltafnc(                                   ym_global(jj), yb(l), dymin) &
+              * deltafnc( z_global(kk_periodic) + z_periodic_shifts * Lzp, zb(l),    dz)
           End Do
         End Do
       End Do
@@ -148,21 +174,20 @@ Contains
   !-----------------------------------------------!
   !     Value of the Yang3 1D Discrete Delta      !
   !     function at a distance (x1-x2) from       !
-  !     the center, accounting for periodicity    !
+  !     the center                                !
   !                                               !
   ! Input:                                        !
   !  - x1: point 1                                !
   !  - x2: point 2                                !
   !  - dr: grid spacing                           !
-  !  - L: periodic length of the domain           !
   ! Output: deltafnc                              !
   !                                               !
   !-----------------------------------------------!
-  Function deltafnc(x1, x2, dr, L)
+  Function deltafnc(x1, x2, dr)
 
-    Real(Int64) :: x1, x2, r, dr, deltafnc, L, r1, r2
+    Real(Int64) :: x1, x2, r, dr, deltafnc, r1, r2
 
-    r = periodic_distance(x1, x2, L)
+    r = abs(x1 - x2)
 
     r1 = r / dr
     r2 = r1 * r1
@@ -183,13 +208,6 @@ Contains
     deltafnc = deltafnc / dr
 
   End Function deltafnc
-
-  ! This function is not ideal, since it might be the root of the problem why small grid sizes don't give weights that sum to one
-  Function periodic_distance(x1, x2, L)
-    Real   (Int64), INTENT(IN) :: x1, x2, L
-    Real   (Int64) periodic_distance
-    periodic_distance = min( abs( x1 - x2 ), abs( x1 - x2 - L ), abs ( x1 - x2 + L) )
-  End Function periodic_distance
 
   Function regT(U_, V_, W_)
     Implicit None

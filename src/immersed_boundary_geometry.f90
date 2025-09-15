@@ -46,6 +46,11 @@ Contains
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
 
+      Case DEFAULT
+        If (myid == 0) Then
+            Write(*,*) 'Error: No corresponding body type found for: ', trim(body_type)
+        End If
+        Error Stop 'Invalid body type'
     End Select
 
 

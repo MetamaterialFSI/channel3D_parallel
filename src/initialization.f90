@@ -448,8 +448,17 @@ Contains
   End Subroutine initialize
 
   Subroutine initialize_ib_arrays
+    Integer(Int32) :: nze, nzme
+
     !--------------------Initialize main arrays-------------------!    
     If ( myid==0 ) Write(*,*) 'allocating main IB arrays...'
+
+    ! size for last proccesor nz and nzm -> nze and nzme
+    nze  = nz
+    nzme = nzm
+    Call Mpi_bcast (  nze,1,MPI_integer,nprocs-1,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( nzme,1,MPI_integer,nprocs-1,MPI_COMM_WORLD,ierr )
+
     ! Number of body points
     Call compute_nb
 
@@ -478,6 +487,28 @@ Contains
     tangents_1= 0d0
     tangents_2= 0d0
 
+    ! Heaviside arrays
+    Allocate (Hu_interior (    nx, nym+2, nzm+2 ) )
+    Allocate (Hv_interior ( nxm+2,    ny, nzm+2 ) )
+    Allocate (Hw_interior ( nxm+2, nym+2,    nz ) )
+    Allocate (Hu_exterior (    nx, nym+2, nzm+2 ) )
+    Allocate (Hv_exterior ( nxm+2,    ny, nzm+2 ) )
+    Allocate (Hw_exterior ( nxm+2, nym+2,    nz ) )
+    Allocate (Hc_interior ( nxm+2, nym+2, nzm+2 ) )
+    Allocate (Hc_exterior ( nxm+2, nym+2, nzm+2 ) )
+
+    Allocate (Hu_exterior_o  (    nx,  nym+2, nzm+2) )
+    Allocate (Hv_exterior_o  ( nxm+2,     ny, nzm+2) )
+    Allocate (Hw_exterior_o  ( nxm+2,  nym+2,    nz) )
+    Allocate (Hc_exterior_o  ( nxm+2,  nym+2, nzm+2) )
+
+    If (myid == 0) Then
+       Allocate (Hu_exterior_oo (    nx,  nym+2, nzme+2) ) ! z-planes modified for I/O
+       Allocate (Hv_exterior_oo ( nxm+2,     ny, nzme+2) )
+       Allocate (Hw_exterior_oo ( nxm+2,  nym+2,    nze) )
+       Allocate (Hc_exterior_oo ( nxm+2,  nym+2, nzme+2) )
+    End If
+
     ! Auxiliary surface arrays
     Allocate ( rhs_ib (3 * nb) )
     Allocate ( aux_surface_vector (3 * nb) )
@@ -489,9 +520,9 @@ Contains
     aux_surface_scalar = 0d0
     regT_buffer_vector = 0d0
     regT_buffer_scalar = 0d0
-    Allocate ( Fibu (nx,nyg,nzg) )
-    Allocate ( Fibv (nxg,ny,nzg) )
-    Allocate ( Fibw (nxg,nyg,nz) )
+    Allocate ( Fibu (    nx, nym+2, nzm+2  )
+    Allocate ( Fibv ( nxm+2,    ny, nzm+2  )
+    Allocate ( Fibw ( nxm+2, nym+2,    nz  )
 
     !--------------------Initialize IB operator variables-------------------!    
 

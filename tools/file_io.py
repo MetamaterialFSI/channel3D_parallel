@@ -59,7 +59,7 @@ def read_field(file_path):
         - Coordinates: 'x', 'y', 'z'
         - Face centers: 'xm', 'ym', 'zm'
         - Grid boundaries: 'xg', 'yg', 'zg'
-        - Fields: 'U', 'V', 'W', 'P', 'U_global', 'V_global', 'W_global'
+        - Fields: 'U', 'V', 'W', 'P', 'Hu_exterior', 'Hv_exterior', 'Hw_exterior'
         - Simulation parameters: 'dt', 'dpdx', 'nu'
         - Immersed boundary data: 'xb', 'yb', 'zb', 'nxb', 'nzb', 'fb', 'ub', 'sb', 'normals', 'tangents_1', 'tangents_2'
     """
@@ -79,7 +79,7 @@ def read_field(file_path):
         data["yg"] = np.concatenate(([data["ym"][0] - 2 * (data["ym"][0] - data["y"][0])], data["ym"], [data["ym"][-1] + 2 * (data["y"][-1] - data["ym"][-1])]))
         data["zg"] = np.concatenate(([data["zm"][0] - 2 * (data["zm"][0] - data["z"][0])], data["zm"], [data["zm"][-1] + 2 * (data["z"][-1] - data["zm"][-1])]))
 
-        for var in ["U", "V", "W", "P"]:
+        for var in ["U", "V", "W", "P", "Hu_exterior", "Hv_exterior", "Hw_exterior"]:
             dims = np.fromfile(f, dtype=np.dtype('>i4'), count=3)
             data[var] = np.reshape(np.fromfile(f, dtype=np.dtype('>f8'), count=np.prod(dims)), dims, order='F')
 
@@ -191,7 +191,7 @@ def save_field(file_path, data):
             f.write(np.array([len(data[axis])], dtype='>i4').tobytes())
             f.write(np.array(data[axis], dtype='>f8').tobytes())
 
-        for var in ["U", "V", "W", "P"]:
+        for var in ["U", "V", "W", "P", "Hu_exterior", "Hv_exterior", "Hw_exterior"]:
             arr = np.array(data[var], dtype='>f8')
             dims = np.array(arr.shape, dtype='>i4')
             f.write(dims.tobytes())

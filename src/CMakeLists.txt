@@ -19,6 +19,7 @@ set(SOURCES
   monitor.f90
   immersed_boundary_geometry.f90
   immersed_boundary_operators.f90
+  heaviside.f90
 )
 
 # Create a library from the modules
