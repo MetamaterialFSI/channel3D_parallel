@@ -520,9 +520,9 @@ Contains
     aux_surface_scalar = 0d0
     regT_buffer_vector = 0d0
     regT_buffer_scalar = 0d0
-    Allocate ( Fibu (    nx, nym+2, nzm+2  )
-    Allocate ( Fibv ( nxm+2,    ny, nzm+2  )
-    Allocate ( Fibw ( nxm+2, nym+2,    nz  )
+    Allocate ( Fibu (    nx, nym+2, nzm+2  ) ) 
+    Allocate ( Fibv ( nxm+2,    ny, nzm+2  ) )
+    Allocate ( Fibw ( nxm+2, nym+2,    nz  ) )
 
     !--------------------Initialize IB operator variables-------------------!    
 
