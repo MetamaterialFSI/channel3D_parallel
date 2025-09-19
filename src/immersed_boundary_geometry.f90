@@ -91,8 +91,11 @@ Contains
             If (zb(k) < z(nz-1) .and. nb_end < k) then
               nb_end = k
             End If
+          
           End Do
         End Do
+        WRITE(*,*) 'myid',myid,'nb_start',nb_start,'nb_end',nb_end,'local_nb',nb_end-nb_start+1,'zb_start',zb(nb_start),'zb_end',zb(nb_end),'z(1)',z(1),'z(nz)',z(nz)
+        
         sb = dxb * dzb
 
         ! Vector arrays

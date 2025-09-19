@@ -36,7 +36,7 @@ Contains
       ! index of largest z value that is smaller than zb(l)
       z_pivot_index(l) = Floor(zb(l) / dz) + 1
       ! index of largest zm value that is smaller than zb(l), not accounting for periodicity. Can be zero
-      zm_pivot_index(l) = Floor((zb(l) + 0.5 * dz) / dz)
+      zm_pivot_index(l) = Floor((zb(l) + 0.5 * dz) / dz)+1
     End Do
 
     !----Find the flow grid indices and corresponding DDF weights within the support of the DDF at each body point----!
@@ -52,8 +52,9 @@ Contains
 
             x_periodic_shifts = Floor(Real(ii - 1, Int64) / (nx_global - 2))
             ii_periodic = ii - x_periodic_shifts * (nx_global - 2)
-            z_periodic_shifts = Floor(Real(kk - 1, Int64) / (nzm_global - 1))
-            kk_periodic = kk - z_periodic_shifts * (nzm_global - 1)
+            z_periodic_shifts = Floor(Real(kk - 2, Int64) / (nzm_global))
+            kk_periodic = kk - z_periodic_shifts * (nzm_global-1)
+            
 
             count = count + 1
             If (ii_periodic .eq. 1) Then
@@ -62,20 +63,40 @@ Contains
               u_x_indices(count, l) = ii_periodic
             End If
             u_y_indices(count, l) = jj + 1 ! plus one for ghost cell
-            u_z_indices(count, l) = kk_periodic + 1 ! plus one for ghost cell
-
+            if ( kk_periodic .eq. 1 ) then
+              u_z_indices(count, l) = nzg_global - 2 ! due to periodicity
+              kk_periodic= nzm_global-1
+            elseif (kk_periodic .eq. 2) then
+              if (myid .eq. nprocs-1) then
+                u_z_indices(count, l) = nzg_global - 1 ! due to periodicity
+                !WRITE(*,*)  'myid',myid,'u_z_indices',u_z_indices(count, l)
+              else
+                u_z_indices(count, l) = kk_periodic
+              end if
+            else
+              u_z_indices(count, l) = kk_periodic ! plus one for ghost cell
+            end if
+            
             ! calculate the support cell index
             If ( moving_z_flag .Or. istep <= 1 ) Then
-              call global_to_local_center(kk_periodic + 1, k_supp, k_local, proc_id)
+              call global_to_local_center(u_z_indices(count, l), k_supp, k_local, proc_id)
               u_z_local_indices(count, l) = k_local
               u_z_supp_idx(count, l) = k_supp
               u_proc(count, l) = proc_id 
             End If 
+            if (j==0 .and. i==0) then
+              !if (zm_pivot_index(l) .gt. nzg_global-5) then
+              if (zm_pivot_index(l) .lt. 3) then
+                WRITE(*,*) 'myid', myid, 'idx_z_p',u_z_indices(count, l),'idx_z',kk,'z pivot',zm_pivot_index(l),'kk_p',kk_periodic
+                WRITE(*,*) 'myid', myid, 'k_local',k_local,'k_supp',k_supp,'proc_id',proc_id
+                WRITE(*,*) 'myid',myid,'zm_local',zm_global(kk_periodic-1) + z_periodic_shifts * (Lzp)
+              end if
+            end if
 
             u_weights(count, l) =  dx * dymin * dz &
               * deltafnc( x_global(ii_periodic) + x_periodic_shifts * Lxp, xb(l),    dx) &
               * deltafnc(                                   ym_global(jj), yb(l), dymin) &
-              * deltafnc(zm_global(kk_periodic) + z_periodic_shifts * Lzp, zb(l),    dz)
+              * deltafnc(zm_global(kk_periodic-1) + z_periodic_shifts * Lzp, zb(l),    dz)
           End Do
         End Do
       End Do
@@ -93,17 +114,30 @@ Contains
 
             x_periodic_shifts = Floor(Real(ii - 1, Int64) / (nxm_global - 1))
             ii_periodic = ii - x_periodic_shifts * (nxm_global - 1)
-            z_periodic_shifts = Floor(Real(kk - 1, Int64) / (nzm_global - 1))
-            kk_periodic = kk - z_periodic_shifts * (nzm_global - 1)
+            z_periodic_shifts = Floor(Real(kk - 2, Int64) / (nzm_global))
+            kk_periodic = kk - z_periodic_shifts * (nzm_global-1)
 
             count = count + 1
             v_x_indices(count, l) = ii_periodic + 1 ! plus one for ghost cell
             v_y_indices(count, l) = jj
-            v_z_indices(count, l) = kk_periodic + 1 ! plus one for ghost cell
+            if ( kk_periodic .eq. 1 ) then
+              v_z_indices(count, l) = nzg_global - 2 ! due to periodicity
+              kk_periodic= nzm_global-1
+            elseif (kk_periodic .eq. 2) then
+              if (myid .eq. nprocs-1) then
+                v_z_indices(count, l) = nzg_global - 1 ! due to periodicity
+                !WRITE(*,*)  'myid',myid,'u_z_indices',u_z_indices(count, l)
+              else
+                v_z_indices(count, l) = kk_periodic
+              end if
+            else
+              v_z_indices(count, l) = kk_periodic ! plus one for ghost cell
+
+            end if
 
             ! calculate the support cell index
             If ( moving_z_flag .Or. istep <= 1 ) Then
-              call global_to_local_center(kk_periodic + 1, k_supp, k_local, proc_id)
+              call global_to_local_center(v_z_indices(count, l), k_supp, k_local, proc_id)
               v_z_local_indices(count, l) = k_local
               v_z_supp_idx(count, l) = k_supp
               v_proc(count, l) = proc_id 
@@ -112,7 +146,7 @@ Contains
             v_weights(count, l) = dx * dymin * dz &
               * deltafnc(xm_global(ii_periodic) + x_periodic_shifts * Lxp, xb(l),    dx) &
               * deltafnc(                                    y_global(jj), yb(l), dymin) &
-              * deltafnc(zm_global(kk_periodic) + z_periodic_shifts * Lzp, zb(l),    dz)
+              * deltafnc(zm_global(kk_periodic-1) + z_periodic_shifts * (Lzp), zb(l),    dz)
           End Do
         End Do
       End Do
@@ -126,21 +160,24 @@ Contains
           Do i = -suppx, suppx
             ii = xm_pivot_index(l) + i - 1
             jj = ym_pivot_index(l) + j
-            kk = z_pivot_index(l) + k - 2
+            kk = z_pivot_index(l) + k
 
             x_periodic_shifts = Floor(Real(ii - 1, Int64) / (nxm_global - 1))
             ii_periodic = ii - x_periodic_shifts * (nxm_global - 1)
-            z_periodic_shifts = Floor(Real(kk - 1, Int64) / (nz_global - 2))
-            kk_periodic = kk - z_periodic_shifts * (nz_global - 2)
+            z_periodic_shifts = Floor(Real(kk - 1, Int64) / (nz_global - 1))
+            kk_periodic = kk - z_periodic_shifts * (nz_global - 1)
+            !WRITE(*,*) 'myid', myid, 'idx_z_p',kk_periodic,'idx_z',kk,'z pivot',z_pivot_index(l)
+          
 
             count = count + 1 
             w_x_indices(count, l) = ii_periodic + 1 ! plus one for ghost cell
             w_y_indices(count, l) = jj + 1 ! plus one for ghost cell
-            If (kk_periodic .eq. 1) Then
-              w_z_indices(count, l) = nz_global - 1
-            Else
-              w_z_indices(count, l) = kk_periodic
-            End If
+            w_z_indices(count, l) = kk_periodic
+            ! If (kk_periodic .eq. 1) Then
+            !   w_z_indices(count, l) = nz_global - 1
+            ! Else
+            !   w_z_indices(count, l) = kk_periodic
+            ! End If
 
             ! calculate the support cell index
             If ( moving_z_flag .Or. istep <= 1 ) Then
@@ -149,6 +186,12 @@ Contains
               w_z_supp_idx(count, l) = k_supp
               w_proc(count, l) = proc_id 
             End If 
+            ! if (j==0 .and. i==0) then
+            !   if (z_pivot_index(l) .gt. nzg_global-5) then
+            !     WRITE(*,*) 'myid', myid, 'idx_z_p',kk_periodic,'idx_z',kk,'z pivot',z_pivot_index(l)
+            !     WRITE(*,*) 'myid', myid, 'k_local',k_local,'k_supp',k_supp,'proc_id',proc_id
+            !   end if
+            ! end if
 
             w_weights(count, l) = dx * dymin * dz &
               * deltafnc(xm_global(ii_periodic) + x_periodic_shifts * Lxp, xb(l),    dx) &
@@ -446,6 +489,8 @@ Contains
       rank = prev
     elseif (k_global >= k1_global(next)+1 .and. k_global <= k2_global(next)-1) then
       rank = next
+    elseif (k_global .eq. 1) Then
+        rank=0
     else
       print *, 'Error: Face index ', k_global, ' not in {', prev, ',', myid, ',', next, '}.'
       stop
@@ -469,6 +514,10 @@ Contains
           k_sup = (k_global - k1_global(next)) + (suppz+1)
         end if
       end if
+      if (k_sup < 1 .or. k_sup > 2*suppz+1) Then
+        WRITE(*,*) 'myid',myid,'proc_idx',rank,'k_sup',k_sup,'k_glb',k_global
+        stop 'Error: zi_supp out of [1..suppz*2+1] for face'
+      END IF
     end if
   end subroutine global_to_local_face
 
@@ -519,6 +568,7 @@ Contains
             k_global <= (kg2_global(next)-1)) then
       rank = next
     else
+      !print *, 'myid',myid,'nzg_global',nzg_global
       print *, 'Error: Center index ', k_global, ' not in {', prev, ',', myid, ',', next, '}.'
       stop
     end if
@@ -538,17 +588,27 @@ Contains
           end if
         else
           k_sup = (k_global - (kg1_global(next) + 1)) + (suppz + 2)
+          if (rank .eq. 0) then
+            k_sup=k_sup-1
+          end if
         end if
       else 
         if ( rank .eq. prev ) then
           k_sup = k_global - (kg2_global(prev) - suppz)+2
           if ( rank .eq. nprocs-1 ) then
-            k_sup=k_sup+1
+            k_sup=k_sup+1-1
           end if
         elseif (rank .eq. next) then
           k_sup = (k_global - (kg1_global(next) + 1)) + (suppz + 2)
         end if
+        if (rank .eq. 0) then
+          k_sup=k_sup-1
+        end if
       end if
+      if (k_sup < 1 .or. k_sup > 2*suppz+1) Then
+        WRITE(*,*) 'myid',myid,'proc_idx',rank,'k_sup',k_sup,'k_glb',k_global
+        stop 'Error: zi_supp out of [1..suppz*2+1] for center'
+      END IF
     end if
   end subroutine global_to_local_center
 

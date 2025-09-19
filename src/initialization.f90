@@ -69,6 +69,11 @@ Contains
     ! remaining planes in last processor
     k2_global (nprocs-1) = nz_global 
     kg2_global(nprocs-1) = nz_global + 1
+    ! debug line
+    WRITE(*,*) 'myid',myid,'k1_global',k1_global
+    WRITE(*,*) 'myid',myid,'k2_global',k2_global
+    WRITE(*,*) 'myid',myid,'kg1_global',kg1_global
+    WRITE(*,*) 'myid',myid,'kg2_global',kg2_global
 
     ! face points
     nx = nx_global
@@ -92,6 +97,8 @@ Contains
     nxg = nxm + 2
     nyg = nym + 2
     nzg = kg2_global(myid) - kg1_global(myid) + 1 
+    WRITE(*,*) 'myid',myid,'nzg',nzg
+    WRITE(*,*) 'myid',myid,'nxg',nxg
 
     ! size for last proccesor nz and nzm -> nze and nzme
     nze  = nz
