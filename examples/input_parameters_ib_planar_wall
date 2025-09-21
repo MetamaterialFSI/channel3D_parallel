@@ -17,10 +17,10 @@
 	x_mass_cte = 0 ! (0->use dPdx, 1->constant mass flow)
 	y_mass_cte = 0
 	! nsteps, nsave, nstats, nmonitor
-	nsteps = 10000
-	nsave = 1000
-	nstats = 1000
-	nmonitor = 100
+	nsteps = 100
+	nsave = 10
+	nstats = 10
+	nmonitor = 10
 	filein = ''
 	fileout = 'channel_output_ib_planar_wall/test'
 	! first number for output flow field

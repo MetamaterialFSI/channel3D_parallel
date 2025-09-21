@@ -21,26 +21,32 @@ Contains
     Real(Int64), Dimension(3 * nb) :: f_
     Integer(Int32) :: k
 
-    ! Hc_exterior = 0d0
-    ! Hc_interior = 0d0
-
-    ! Call regu(Fibu, normals)
-    ! Call regv(Fibv, normals)
-    ! Call regw(Fibw, normals)
-    ! Call apply_boundary_conditions(Fibu, Fibv, Fibw)
-
-    f_ = 0d0
-    Do k=1,nb
-      f_(nb + k) = sin(2*pi*zb(k)/lzp)
-    End Do
-
     Hc_exterior = 0d0
     Hc_interior = 0d0
 
-    Call regu(Fibu, f_)
-    Call regv(Fibv, f_)
-    Call regw(Fibw, f_)
+    ! test for v
+    ! Call regu(Fibu, normals)
+    ! Call regv(Fibv, normals)
+    ! Call regw(Fibw, normals)
+    ! test for w
+    
+    Call regu(Fibu, tangents_2)
+    Call regv(Fibv, tangents_2)
+    Call regw(Fibw, tangents_2)
     Call apply_boundary_conditions(Fibu, Fibv, Fibw)
+
+    ! f_ = 0d0
+    ! Do k=1,nb
+    !   f_(nb + k) = sin(2*pi*zb(k)/lzp)
+    ! End Do
+
+    ! Hc_exterior = 0d0
+    ! Hc_interior = 0d0
+
+    ! Call regu(Fibu, f_)
+    ! Call regv(Fibv, f_)
+    ! Call regw(Fibw, f_)
+    ! Call apply_boundary_conditions(Fibu, Fibv, Fibw)
 
     ! temporarily for debugging:
     Hu_exterior = Fibu
