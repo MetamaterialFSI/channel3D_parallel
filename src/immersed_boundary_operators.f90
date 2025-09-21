@@ -84,14 +84,14 @@ Contains
               u_z_supp_idx(count, l) = k_supp
               u_proc(count, l) = proc_id 
             End If 
-            if (j==0 .and. i==0) then
-              !if (zm_pivot_index(l) .gt. nzg_global-5) then
-              if (zm_pivot_index(l) .lt. 3) then
-                WRITE(*,*) 'myid', myid, 'idx_z_p',u_z_indices(count, l),'idx_z',kk,'z pivot',zm_pivot_index(l),'kk_p',kk_periodic
-                WRITE(*,*) 'myid', myid, 'k_local',k_local,'k_supp',k_supp,'proc_id',proc_id
-                WRITE(*,*) 'myid',myid,'zm_local',zm_global(kk_periodic-1) + z_periodic_shifts * (Lzp)
-              end if
-            end if
+            ! if (j==0 .and. i==0) then
+            !   !if (zm_pivot_index(l) .gt. nzg_global-5) then
+            !   if (zm_pivot_index(l) .lt. 3) then
+            !     WRITE(*,*) 'myid', myid, 'idx_z_p',u_z_indices(count, l),'idx_z',kk,'z pivot',zm_pivot_index(l),'kk_p',kk_periodic
+            !     WRITE(*,*) 'myid', myid, 'k_local',k_local,'k_supp',k_supp,'proc_id',proc_id
+            !     WRITE(*,*) 'myid',myid,'zm_local',zm_global(kk_periodic-1) + z_periodic_shifts * (Lzp)
+            !   end if
+            ! end if
 
             u_weights(count, l) =  dx * dymin * dz &
               * deltafnc( x_global(ii_periodic) + x_periodic_shifts * Lxp, xb(l),    dx) &
@@ -164,8 +164,8 @@ Contains
 
             x_periodic_shifts = Floor(Real(ii - 1, Int64) / (nxm_global - 1))
             ii_periodic = ii - x_periodic_shifts * (nxm_global - 1)
-            z_periodic_shifts = Floor(Real(kk - 1, Int64) / (nz_global - 1))
-            kk_periodic = kk - z_periodic_shifts * (nz_global - 1)
+            z_periodic_shifts = Floor(Real(kk - 2, Int64) / (nz_global - 2))
+            kk_periodic = kk - z_periodic_shifts * (nz_global - 2)
             !WRITE(*,*) 'myid', myid, 'idx_z_p',kk_periodic,'idx_z',kk,'z pivot',z_pivot_index(l)
           
 
@@ -173,8 +173,8 @@ Contains
             w_x_indices(count, l) = ii_periodic + 1 ! plus one for ghost cell
             w_y_indices(count, l) = jj + 1 ! plus one for ghost cell
             w_z_indices(count, l) = kk_periodic
-            ! If (kk_periodic .eq. 1) Then
-            !   w_z_indices(count, l) = nz_global - 1
+            ! If (kk_periodic .eq. 2) Then
+            !   w_z_indices(count, l) = nz_global
             ! Else
             !   w_z_indices(count, l) = kk_periodic
             ! End If
@@ -186,12 +186,12 @@ Contains
               w_z_supp_idx(count, l) = k_supp
               w_proc(count, l) = proc_id 
             End If 
-            ! if (j==0 .and. i==0) then
-            !   if (z_pivot_index(l) .gt. nzg_global-5) then
-            !     WRITE(*,*) 'myid', myid, 'idx_z_p',kk_periodic,'idx_z',kk,'z pivot',z_pivot_index(l)
-            !     WRITE(*,*) 'myid', myid, 'k_local',k_local,'k_supp',k_supp,'proc_id',proc_id
-            !   end if
-            ! end if
+            if (j==0 .and. i==0) then
+              if (z_pivot_index(l) .gt. nzg_global-5) then
+                WRITE(*,*) 'myid', myid, 'idx_z_p',kk_periodic,'idx_z',kk,'z pivot',z_pivot_index(l)
+                WRITE(*,*) 'myid', myid, 'k_local',k_local,'k_supp',k_supp,'proc_id',proc_id
+              end if
+            end if
 
             w_weights(count, l) = dx * dymin * dz &
               * deltafnc(xm_global(ii_periodic) + x_periodic_shifts * Lxp, xb(l),    dx) &
@@ -506,12 +506,18 @@ Contains
           k_sup = k_global - (k2_global(prev) - suppz)+2
         else
           k_sup = (k_global - k1_global(next)) + (suppz+1)
+          ! if (rank ==0) then
+          !   k_sup=k_sup+1
+          ! end if
         end if
       else 
         if ( rank .eq. prev ) then
           k_sup = k_global - (k2_global(prev) - suppz)+2
         elseif (rank .eq. next) then
           k_sup = (k_global - k1_global(next)) + (suppz+1)
+          ! if (rank ==0) then
+          !   k_sup=k_sup+1
+          ! end if
         end if
       end if
       if (k_sup < 1 .or. k_sup > 2*suppz+1) Then

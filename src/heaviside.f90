@@ -33,6 +33,7 @@ Contains
     Call regu(Fibu, tangents_2)
     Call regv(Fibv, tangents_2)
     Call regw(Fibw, tangents_2)
+    
     Call apply_boundary_conditions(Fibu, Fibv, Fibw)
 
     ! f_ = 0d0
