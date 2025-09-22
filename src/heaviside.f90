@@ -25,14 +25,14 @@ Contains
     Hc_interior = 0d0
 
     ! test for v
-    ! Call regu(Fibu, normals)
-    ! Call regv(Fibv, normals)
-    ! Call regw(Fibw, normals)
+    Call regu(Fibu, normals)
+    Call regv(Fibv, normals)
+    Call regw(Fibw, normals)
     ! test for w
     
-    Call regu(Fibu, tangents_2)
-    Call regv(Fibv, tangents_2)
-    Call regw(Fibw, tangents_2)
+    ! Call regu(Fibu, tangents_2)
+    ! Call regv(Fibv, tangents_2)
+    ! Call regw(Fibw, tangents_2)
     
     Call apply_boundary_conditions(Fibu, Fibv, Fibw)
 
