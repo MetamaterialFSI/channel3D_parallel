@@ -662,7 +662,7 @@ Contains
          sendto = 0
          tagto  = 0
          buffer_usupp_s(:,:,2:suppz+1) = F_supp(:,:,suppz+2:2*suppz+1) ! send buffer
-         buffer_usupp_s(:,:,1) = F(:,:,nxg-2);
+         buffer_usupp_s(:,:,1) = F(:,:,nzg-1);
          Call Mpi_sendrecv(buffer_usupp_s, nx*nyg*(suppz+1), Mpi_real8, sendto, tagto,        &
             buffer_usupp_r(:,:,1:suppz), nx*nyg*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
            istat, ierr) 

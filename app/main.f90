@@ -80,25 +80,25 @@ Program channel_FD
   ! write snapshot if needed
   Call output_data
 
-  ! ! temporal loop
-  ! Do istep = 1, nsteps
-  !   
-  !   ! compute dt based on CFL
-  !   Call compute_dt
-  !
-  !   ! time step
-  !   Call compute_time_step_RK3
-  !
-  !   ! compute a few statistics
-  !   Call compute_statistics 
-  !
-  !   ! output some key values
-  !   Call output_monitor
-  !
-  !   ! write snapshot if needed
-  !   Call output_data
-  !
-  ! End Do
+  ! temporal loop
+  Do istep = 1, nsteps
+    
+    ! compute dt based on CFL
+    Call compute_dt
+
+    ! time step
+    Call compute_time_step_RK3
+
+    ! compute a few statistics
+    Call compute_statistics 
+
+    ! output some key values
+    Call output_monitor
+
+    ! write snapshot if needed
+    Call output_data
+
+  End Do
 
   ! finalize stuff
   Call finalize
