@@ -501,8 +501,8 @@ Contains
     Allocate (Hu_exterior (    nx, nym+2, nzm+2 ) )
     Allocate (Hv_exterior ( nxm+2,    ny, nzm+2 ) )
     Allocate (Hw_exterior ( nxm+2, nym+2,    nz ) )
-    Allocate (Hc_interior ( nxm+2, nym+2, nzm+2 ) )
-    Allocate (Hc_exterior ( nxm+2, nym+2, nzm+2 ) )
+    Allocate (Hc_interior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
+    Allocate (Hc_exterior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
 
     Allocate (Hu_exterior_o  (    nx,  nym+2, nzm+2) )
     Allocate (Hv_exterior_o  ( nxm+2,     ny, nzm+2) )
