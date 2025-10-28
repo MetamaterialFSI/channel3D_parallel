@@ -439,13 +439,6 @@ Contains
     Allocate ( Fw2 ( 2:nxg-1,  2:nyg-1, 2:nz-1 ) )
     Allocate ( Fw3 ( 2:nxg-1,  2:nyg-1, 2:nz-1 ) )
 
-    !-------------------compute initial mass flow-----------------!    
-    Call compute_mean_mass_flow_U(U,Qflow_x_0)
-    Call compute_mean_mass_flow_V(V,Qflow_y_0)
-    Qflow_y_0 = 0d0
-    dPdy      = 0d0
-
-
     !-------------------------Done--------------------------------!
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)
 
@@ -504,16 +497,16 @@ Contains
     Allocate (Hc_interior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
     Allocate (Hc_exterior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
 
-    Allocate (Hu_exterior_o  (    nx,  nym+2, nzm+2) )
-    Allocate (Hv_exterior_o  ( nxm+2,     ny, nzm+2) )
-    Allocate (Hw_exterior_o  ( nxm+2,  nym+2,    nz) )
-    Allocate (Hc_exterior_o  ( nxm+2,  nym+2, nzm+2) )
+    Allocate (Hu_interior_o  (    nx,  nym+2, nzm+2) )
+    Allocate (Hv_interior_o  ( nxm+2,     ny, nzm+2) )
+    Allocate (Hw_interior_o  ( nxm+2,  nym+2,    nz) )
+    Allocate (Hc_interior_o  ( nxm+2,  nym+2, nzm+2) )
 
     If (myid == 0) Then
-       Allocate (Hu_exterior_oo (    nx,  nym+2, nzme+2) ) ! z-planes modified for I/O
-       Allocate (Hv_exterior_oo ( nxm+2,     ny, nzme+2) )
-       Allocate (Hw_exterior_oo ( nxm+2,  nym+2,    nze) )
-       Allocate (Hc_exterior_oo ( nxm+2,  nym+2, nzme+2) )
+       Allocate (Hu_interior_oo (    nx,  nym+2, nzme+2) ) ! z-planes modified for I/O
+       Allocate (Hv_interior_oo ( nxm+2,     ny, nzme+2) )
+       Allocate (Hw_interior_oo ( nxm+2,  nym+2,    nze) )
+       Allocate (Hc_interior_oo ( nxm+2,  nym+2, nzme+2) )
     End If
 
     ! Auxiliary surface arrays

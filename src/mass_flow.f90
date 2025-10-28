@@ -6,7 +6,7 @@ Module mass_flow
   ! Modules
   Use iso_fortran_env, Only : error_unit, Int32, Int64
   Use global,          Only : nx, nxg, nyg, ny, nzg, yg, y, & 
-                              Qflow_x_0, Qflow_y_0, ierr
+                              Qflow_x_0, Qflow_y_0, ierr, Hu_interior, Hv_interior
   Use mpi 
 
   ! prevent implicit typing
@@ -36,8 +36,10 @@ Contains
     Do k=2,nzg-1
        Do j=3,nyg-1
           Do i=2,nx-1
-             Qflow_local = Qflow_local + ( U(i,j,k) + U(i,j-1,k) )*0.5d0*( yg(j)-yg(j-1) )
-             norm_local  = norm_local  + ( 1d0 + 1d0 )*0.5d0*( yg(j)-yg(j-1) )
+             Qflow_local = Qflow_local + ( Hu_interior(i,j,k) * U(i,j,k) + Hu_interior(i,j-1,k) * U(i,j-1,k) ) &
+               * 0.5d0 * ( yg(j) - yg(j-1) )
+             norm_local  = norm_local  + ( Hu_interior(i,j,k) + Hu_interior(i,j-1,k) ) &
+               * 0.5d0 * ( yg(j) - yg(j-1) )
           End Do
        End Do
     End Do
@@ -72,8 +74,10 @@ Contains
     Do k=2,nzg-1
        Do j=2,ny
           Do i=2,nxg-1
-             Qflow_local = Qflow_local + ( V(i,j,k) + V(i,j-1,k) )*0.5d0*( y(j)-y(j-1) )
-             norm_local  = norm_local  + ( 1d0 + 1d0 )*0.5d0*( y(j)-y(j-1) )
+             Qflow_local = Qflow_local + ( Hv_interior(i,j,k) * V(i,j,k) + Hv_interior(i,j-1,k) * V(i,j-1,k) ) &
+               * 0.5d0 * ( y(j) - y(j-1) )
+             norm_local  = norm_local  + ( Hv_interior(i,j,k) + Hv_interior(i,j-1,k) ) & 
+               * 0.5d0 * ( y(j) - y(j-1) )
           End Do
        End Do
     End Do
@@ -115,8 +119,10 @@ Contains
     Do k=2,nzg-1
        Do j=3,nyg-1
           Do i=2,nx-1
-             Int_U_local = Int_U_local + ( U (i,j,k) + U (i,j-1,k) )*0.5d0*( yg(j)-yg(j-1) )
-             norm_local  = norm_local  + ( 1d0 + 1d0 )*0.5d0*( yg(j)-yg(j-1) )
+             Int_U_local = Int_U_local + ( Hu_interior(i,j,k) * U(i,j,k) + Hu_interior(i,j-1,k) * U(i,j-1,k) ) &
+               * 0.5d0 * ( yg(j) - yg(j-1) )
+             norm_local  = norm_local  + ( Hu_interior(i,j,k) + Hu_interior(i,j-1,k) ) &
+               * 0.5d0 * ( yg(j) - yg(j-1) )
           End Do
        End Do
     End Do
@@ -149,28 +155,30 @@ Contains
     Real(Int64), Intent(Out) :: dPdy
 
     ! local variables
-    Real   (Int64) :: norm_local, Int_U_local
-    Real   (Int64) :: norm,       Int_U
+    Real   (Int64) :: norm_local, Int_V_local
+    Real   (Int64) :: norm,       Int_V
     Integer(Int32) :: i, k, j
 
     ! compute integrals with trapezoidal rule
-    Int_U_local = 0d0
+    Int_V_local = 0d0
     norm_local  = 0d0
     Do k=2,nzg-1
        Do j=2,ny
           Do i=2,nxg-1
-             Int_U_local = Int_U_local + ( V (i,j,k) + V (i,j-1,k) )*0.5d0*( y(j)-y(j-1) )
-             norm_local  = norm_local  + ( 1d0 + 1d0 )*0.5d0*( y(j)-y(j-1) )
+             Int_V_local = Int_V_local + ( Hv_interior(i,j,k) * V(i,j,k) + Hv_interior(i,j-1,k) * V(i,j-1,k) ) &
+               * 0.5d0 * ( y(j) - y(j-1) )
+             norm_local  = norm_local  + ( Hv_interior(i,j,k) + Hv_interior(i,j-1,k) ) & 
+               * 0.5d0 * ( y(j) - y(j-1) )
           End Do
        End Do
     End Do
 
     ! compute total mass flow
-    Call MPI_AllReduce(Int_U_local,Int_U,1,MPI_real8,MPI_sum,MPI_COMM_WORLD,ierr)
+    Call MPI_AllReduce(Int_V_local,Int_V,1,MPI_real8,MPI_sum,MPI_COMM_WORLD,ierr)
     Call MPI_AllReduce(norm_local,  norm,1,MPI_real8,MPI_sum,MPI_COMM_WORLD,ierr)
 
     ! compute pressure gradient
-    dPdy = Qflow_y_0 - Int_U/norm
+    dPdy = Qflow_y_0 - Int_V/norm
 
   End Subroutine compute_dPy_for_constant_mass_flow
 
