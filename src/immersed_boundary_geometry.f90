@@ -187,6 +187,9 @@ Contains
             y_ref_index(k) = 1
             y_ref_index(k + nxb) = ny_global
 
+            If (yb(k) < y(1 + suppy) .or. yb(k + nxb) > y(ny_global - suppy - 1)) then
+              Stop "Error: body points support exceeds grid"
+            End If
             If (zb(k) >= z(1) .and. nb_start > k) then
               nb_start = k
             End If
