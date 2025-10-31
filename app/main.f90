@@ -42,6 +42,7 @@ Program channel_FD
   Use finalization
   Use immersed_boundary_geometry
   Use immersed_boundary_operators
+  Use heaviside
   Use mpi
   
   ! prevent implicit typing
@@ -72,6 +73,24 @@ Program channel_FD
 
   ! initialize IB operators
   Call setup_IB_operators
+
+  ! compute Heaviside fields
+  If ( trim(body_type) /= 'none' ) Then
+    Call compute_heaviside
+  Else
+    Hu_interior = 1.d0
+    Hv_interior = 1.d0
+    Hw_interior = 1.d0
+    Hu_exterior = 0.d0
+    Hv_exterior = 0.d0
+    Hw_exterior = 0.d0
+  End If
+
+  ! recompute initial mass flow with heaviside masking
+  Call compute_mean_mass_flow_U(U,Qflow_x_0)
+  Call compute_mean_mass_flow_V(V,Qflow_y_0)
+  Qflow_y_0 = 0d0
+  dPdy      = 0d0
 
   ! write snapshot if needed
   Call output_data

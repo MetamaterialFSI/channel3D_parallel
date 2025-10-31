@@ -632,7 +632,7 @@ Contains
   !    - Assumes periodic domain in z-direction.
   !    - Performs additive update, **not overwrite**.
   !-------------------------------------------------------------------------------
-  Subroutine support_update_interior_planes(F,F_supp,id)
+ Subroutine support_update_interior_planes(F,F_supp,id)
 
     Real   (Int64), Intent(InOut) :: F(:,:,:)    
     Real   (Int64), Intent(InOut) :: F_supp(:,:,:)    
@@ -641,6 +641,7 @@ Contains
     Integer(Int32) :: sendto, recvfrom
     Integer(Int32) :: tagto,  tagfrom
     
+    !WRITE(*,*) 'supp2interior myid:',myid,'id:',id
     If (id == 1) Then
       !----------------------update U-----------------------!
       ! send to top processor, receive from bottom one
@@ -649,22 +650,30 @@ Contains
       recvfrom = myid - 1
       tagfrom  = myid 
       If ( myid==0 ) Then 
-        recvfrom = nprocs-1
-        tagfrom  = 0
-      End If
-      If ( myid==nprocs-1 ) Then
-        sendto = 0
-        tagto  = 0
-      End If
-      buffer_usupp_s(:,:,1:suppz) = F_supp(:,:,suppz+2:2*suppz+1) ! send buffer
-      Call Mpi_sendrecv(buffer_usupp_s(:,:,1:suppz), nx*nyg*suppz, Mpi_real8, sendto, tagto,        &
-      buffer_usupp_r(:,:,1:suppz), nx*nyg*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
-           istat, ierr)  
-      IF (myid ==0) Then
-        F(:,:,3:2+suppz) = F(:,:,3:2+suppz)+ buffer_usupp_r(:,:,1:suppz) ! received buffer
+         recvfrom = nprocs-1
+         tagfrom  = 0
+         buffer_usupp_s(:,:,1:suppz) = F_supp(:,:,suppz+2:2*suppz+1) ! send buffer
+         Call Mpi_sendrecv(buffer_usupp_s(:,:,1:suppz), nx*nyg*suppz, Mpi_real8, sendto, tagto,        &
+            buffer_usupp_r, nx*nyg*(suppz+1), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+           istat, ierr) 
+          F(:,:,2:2+suppz) = F(:,:,2:2+suppz)+ buffer_usupp_r ! received buffer
+      ELSEIf ( myid==nprocs-1 ) Then
+        !Also transfering the periodic slices to the first partition
+         sendto = 0
+         tagto  = 0
+         buffer_usupp_s(:,:,2:suppz+1) = F_supp(:,:,suppz+2:2*suppz+1) ! send buffer
+         buffer_usupp_s(:,:,1) = F(:,:,nzg-1);
+         Call Mpi_sendrecv(buffer_usupp_s, nx*nyg*(suppz+1), Mpi_real8, sendto, tagto,        &
+            buffer_usupp_r(:,:,1:suppz), nx*nyg*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+           istat, ierr) 
+         F(:,:,2:1+suppz) = F(:,:,2:1+suppz)+ buffer_usupp_r(:,:,1:suppz) ! received buffer
       ELSE
+        buffer_usupp_s(:,:,1:suppz) = F_supp(:,:,suppz+2:2*suppz+1) ! send buffer
+        Call Mpi_sendrecv(buffer_usupp_s(:,:,1:suppz), nx*nyg*suppz, Mpi_real8, sendto, tagto,        &
+        buffer_usupp_r(:,:,1:suppz), nx*nyg*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+           istat, ierr) 
         F(:,:,2:1+suppz) = F(:,:,2:1+suppz)+ buffer_usupp_r(:,:,1:suppz) ! received buffer
-      END IF 
+      End If
       
       
       ! send to bottom processor, receive from top one
@@ -673,12 +682,12 @@ Contains
       recvfrom = myid + 1
       tagfrom  = myid 
       If ( myid==0 ) Then
-        sendto = nprocs-1
-        tagto  = nprocs-1
+         sendto = nprocs-1
+         tagto  = nprocs-1
       End If
       If ( myid==nprocs-1 ) Then
-        recvfrom = 0
-        tagfrom  = nprocs-1
+         recvfrom = 0
+         tagfrom  = nprocs-1
       End If
       buffer_usupp_s = F_supp(:,:,1:suppz+1)  ! send buffer
       Call Mpi_sendrecv(buffer_usupp_s, nx*nyg*(suppz+1), Mpi_real8, sendto, tagto,        &
@@ -694,7 +703,6 @@ Contains
 
     Elseif (id == 2) Then
       !----------------------update V-----------------------!
-      ! send to top processor, receive from bottom one
       sendto   = myid + 1
       tagto    = myid + 1
       recvfrom = myid - 1
@@ -702,20 +710,29 @@ Contains
       If ( myid==0 ) Then 
         recvfrom = nprocs-1
         tagfrom  = 0
-      End If
-      If ( myid==nprocs-1 ) Then
+        buffer_vsupp_s(:,:,1:suppz) = F_supp(:,:,suppz+2:2*suppz+1) ! send buffer
+        Call Mpi_sendrecv(buffer_vsupp_s(:,:,1:suppz), nxg*ny*suppz, Mpi_real8, sendto, tagto,        &
+        buffer_vsupp_r, nxg*ny*(suppz+1), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+          istat, ierr) 
+         F(:,:,2:2+suppz) = F(:,:,2:2+suppz)+ buffer_vsupp_r ! received buffer
+     ELSEIf ( myid==nprocs-1 ) Then
+       !Also transfering the periodic slices to the first partition
         sendto = 0
         tagto  = 0
-      End If
-      buffer_vsupp_s(:,:,1:suppz) = F_supp(:,:,suppz+2:2*suppz+1)  ! send buffer
-      Call Mpi_sendrecv(buffer_vsupp_s(:,:,1:suppz), nxg*ny*suppz, Mpi_real8, sendto, tagto,        &
-      buffer_vsupp_r(:,:,1:suppz), nxg*ny*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
-           istat, ierr)   
-      IF (myid ==0) Then
-        F(:,:,3:2+suppz) = F(:,:,3:2+suppz)+ buffer_vsupp_r(:,:,1:suppz) ! received buffer
-      ELSE
+        buffer_vsupp_s(:,:,2:suppz+1) = F_supp(:,:,suppz+2:2*suppz+1) ! send buffer
+        buffer_vsupp_s(:,:,1) = F(:,:,nzg-1);
+        !buffer_vsupp_s(:,:,1) = 0;
+        Call Mpi_sendrecv(buffer_vsupp_s, nxg*ny*(suppz+1), Mpi_real8, sendto, tagto,        &
+        buffer_vsupp_r(:,:,1:suppz), nxg*ny*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+          istat, ierr) 
         F(:,:,2:1+suppz) = F(:,:,2:1+suppz)+ buffer_vsupp_r(:,:,1:suppz) ! received buffer
-      END IF 
+     ELSE
+      buffer_vsupp_s(:,:,1:suppz) = F_supp(:,:,suppz+2:2*suppz+1) ! send buffer
+       Call Mpi_sendrecv(buffer_vsupp_s(:,:,1:suppz), nxg*ny*suppz, Mpi_real8, sendto, tagto,        &
+       buffer_vsupp_r(:,:,1:suppz), nxg*ny*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+          istat, ierr) 
+       F(:,:,2:1+suppz) = F(:,:,2:1+suppz)+ buffer_vsupp_r(:,:,1:suppz) ! received buffer
+     End If
       
       ! send to bottom processor, receive from top one
       sendto   = myid - 1
@@ -725,11 +742,11 @@ Contains
       If ( myid==0 ) Then
         sendto = nprocs-1
         tagto  = nprocs-1
-      End If
-      If ( myid==nprocs-1 ) Then
+     End If
+     If ( myid==nprocs-1 ) Then
         recvfrom = 0
         tagfrom  = nprocs-1
-      End If
+     End If
       buffer_vsupp_s = F_supp(:,:,1:1+suppz)  ! send buffer
       Call Mpi_sendrecv(buffer_vsupp_s, nxg*ny*(suppz+1), Mpi_real8, sendto, tagto,        &
       buffer_vsupp_r, nxg*ny*(suppz+1), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
@@ -751,11 +768,11 @@ Contains
       If ( myid==0 ) Then 
         recvfrom = nprocs-1
         tagfrom  = 0
-      End If
-      If ( myid==nprocs-1 ) Then
+     End If
+     If ( myid==nprocs-1 ) Then
         sendto = 0
         tagto  = 0
-      End If
+     End If
       buffer_wsupp_s(:,:,1:suppz) = F_supp(:,:,suppz+2:2*suppz+1)  ! send buffer
       Call Mpi_sendrecv(buffer_wsupp_s(:,:,1:suppz), nxg*nyg*suppz, Mpi_real8, sendto, tagto,        &
       buffer_wsupp_r(:,:,1:suppz), nxg*nyg*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
@@ -770,11 +787,11 @@ Contains
       If ( myid==0 ) Then
         sendto = nprocs-1
         tagto  = nprocs-1
-      End If
-      If ( myid==nprocs-1 ) Then
+     End If
+     If ( myid==nprocs-1 ) Then
         recvfrom = 0
         tagfrom  = nprocs-1
-      End If
+     End If
       buffer_wsupp_s = F_supp(:,:,1:suppz+1)  ! send buffer
       Call Mpi_sendrecv(buffer_wsupp_s, nxg*nyg*(suppz+1), Mpi_real8, sendto, tagto,        &
       buffer_wsupp_r, nxg*nyg*(suppz+1), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
@@ -782,6 +799,7 @@ Contains
       F(:,:,nz-suppz-1:nz-1) = F(:,:,nz-suppz-1:nz-1)+ buffer_wsupp_r ! received buffer     
     End if 
     Call Mpi_barrier(MPI_COMM_WORLD, ierr) 
+    !WRITE(*,*) 'Done:supp2interior myid:',myid,'id:',id
     
   End Subroutine support_update_interior_planes
 

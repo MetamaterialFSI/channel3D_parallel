@@ -593,6 +593,72 @@ Contains
         End Do
       Endif
 
+      ! Hu_interior
+      If ( myid/=0 ) Then
+        ! data from processor n>0    
+        Call Mpi_send(Hu_interior,nx*nyg*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
+      Else
+        ! write Hu_interior size
+        Write(1) nx_global,nyg_global,nzg_global
+        ! processor 0 writes its data
+        Write(1) Hu_interior(:,:,1:nzg-1) 
+        ! processor 0 receives and writes rest data
+        Do iproc = 1, nprocs-1
+          nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
+          If ( iproc<nprocs-1 ) Then
+            Call Mpi_recv(Hu_interior_o,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Hu_interior_o(:,:,2:nzge-1)
+          Else
+            Call Mpi_recv(Hu_interior_oo,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Hu_interior_oo(:,:,2:nzge)
+          End If
+        End Do
+      Endif
+
+      ! Hv_interior
+      If ( myid/=0 ) Then
+        ! data from processor n>0    
+        Call Mpi_send(Hv_interior,nxg*ny*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
+      Else
+        ! write Hv_interior size
+        Write(1) nxg_global,ny_global,nzg_global
+        ! processor 0 writes its data
+        Write(1) Hv_interior(:,:,1:nzg-1)
+        ! processor 0 receives and write rest data
+        Do iproc = 1, nprocs-1
+          nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
+          If ( iproc<nprocs-1 ) Then
+            Call Mpi_recv(Hv_interior_o,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Hv_interior_o(:,:,2:nzge-1)
+          Else
+            Call Mpi_recv(Hv_interior_oo,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Hv_interior_oo(:,:,2:nzge)
+          End If
+        End Do
+      Endif
+
+      ! Hw_interior
+      If ( myid/=0 ) Then
+        ! data from processor n>0    
+        Call Mpi_send(Hw_interior,nxg*nyg*nz,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
+      Else
+        ! write W size
+        Write(1) nxg_global,nyg_global,nz_global
+        ! processor 0 writes its data
+        Write(1) Hw_interior(:,:,1:nz-1)
+        ! processor 0 receives and writes rest data
+        Do iproc = 1, nprocs-1
+          nze = k2_global(iproc) - k1_global(iproc) + 1 ! local size in z for processor iproc
+          If ( iproc<nprocs-1 ) Then
+            Call Mpi_recv(Hw_interior_o,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Hw_interior_o(:,:,2:nze-1)
+          Else
+            Call Mpi_recv(Hw_interior_oo,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) Hw_interior_oo(:,:,2:nze)
+          End If
+        End Do
+      Endif
+
       If ( myid==0 ) Then
         ! Time
         Write(1) t

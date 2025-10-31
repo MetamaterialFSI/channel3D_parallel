@@ -46,6 +46,11 @@ Contains
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
 
+      Case DEFAULT
+        If (myid == 0) Then
+            Write(*,*) 'Error: No corresponding body type found for: ', trim(body_type)
+        End If
+        Error Stop 'Invalid body type'
     End Select
 
 
@@ -86,8 +91,11 @@ Contains
             If (zb(k) < z(nz-1) .and. nb_end < k) then
               nb_end = k
             End If
+          
           End Do
         End Do
+        WRITE(*,*) 'myid',myid,'nb_start',nb_start,'nb_end',nb_end,'local_nb',nb_end-nb_start+1,'zb_start',zb(nb_start),'zb_end',zb(nb_end),'z(1)',z(1),'z(nz)',z(nz)
+        
         sb = dxb * dzb
 
         ! Vector arrays
@@ -179,6 +187,9 @@ Contains
             y_ref_index(k) = 1
             y_ref_index(k + nxb) = ny_global
 
+            If (yb(k) < y(1 + suppy) .or. yb(k + nxb) > y(ny_global - suppy - 1)) then
+              Stop "Error: body points support exceeds grid"
+            End If
             If (zb(k) >= z(1) .and. nb_start > k) then
               nb_start = k
             End If

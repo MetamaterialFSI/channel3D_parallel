@@ -224,7 +224,14 @@ Module global
 
   ! immersed body forcing
   Real(Int64), Dimension(:), Allocatable :: fb!, input_fb
-  ! Integer(Int32) :: input_fb_len
+
+  ! Heaviside arrays
+  Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior, Hu_exterior
+  Real   (Int64), Dimension(:,:,:), Allocatable :: Hv_interior, Hv_exterior
+  Real   (Int64), Dimension(:,:,:), Allocatable :: Hw_interior, Hw_exterior
+  Real   (Int64), Dimension(:,:,:), Allocatable :: Hc_interior, Hc_exterior
+  Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior_o, Hv_interior_o, Hw_interior_o, Hc_interior_o
+  Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior_oo, Hv_interior_oo, Hw_interior_oo, Hc_interior_oo
 
   ! Biconjugate gradient max iterations and tolerance
   Integer(Int32) :: cg_max_iter

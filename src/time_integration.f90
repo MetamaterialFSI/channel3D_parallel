@@ -12,6 +12,7 @@ Module time_integration
   Use mass_flow
   Use immersed_boundary_geometry
   Use immersed_boundary_operators
+  Use heaviside
 
   ! prevent implicit typing
   Implicit None
@@ -110,6 +111,7 @@ Contains
     If ( moving_body ) Then
       call setup_IB_geometry
       call setup_IB_operators
+      call compute_heaviside
     End If
 
     Call apply_boundary_conditions(U, V, W)
@@ -138,6 +140,7 @@ Contains
     If ( moving_body ) Then
       call setup_IB_geometry
       call setup_IB_operators
+      call compute_heaviside
     End If
 
     Call apply_boundary_conditions(U, V, W)
@@ -169,6 +172,7 @@ Contains
     If ( moving_body ) Then
       call setup_IB_geometry
       call setup_IB_operators
+      call compute_heaviside
     End If
 
     Call apply_boundary_conditions(U, V, W)
