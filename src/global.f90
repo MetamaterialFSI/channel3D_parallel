@@ -171,8 +171,8 @@ Module global
   Real(Int64) :: dPdx, dPdy, dPdz, dPdx_ref
 
   ! constant mass flow
-  Real   (Int64) :: Qflow_x_0, Qflow_y_0
-  Integer(Int32) :: x_mass_cte, y_mass_cte
+  Real   (Int64) :: Qflow_x_0, Qflow_y_0, Qflow_z_0
+  Integer(Int32) :: x_mass_cte, y_mass_cte, z_mass_cte
     
   ! CFL parameters
   Real(Int64) :: CFL, dxmin, dymin, dzmin
@@ -184,8 +184,8 @@ Module global
   Logical(Int32) :: pressure_computed
 
   ! statistics
-  Integer(Int32) :: nstats, Retau_int
-  Real   (Int64) :: Retau, utau, Qflow_x, Qflow_y
+  Integer(Int32) :: nstats
+  Real   (Int64) :: Retau_u, utau, Retau_w, wtau, Qflow_x, Qflow_y, Qflow_z
   Real   (Int64), Dimension(:), Allocatable ::  Umean,  Vmean,  Wmean
   Real   (Int64), Dimension(:), Allocatable :: U2mean, V2mean, W2mean, UVmean
 

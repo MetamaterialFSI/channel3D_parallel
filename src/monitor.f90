@@ -63,7 +63,8 @@ Contains
         Write(*,*) 'time step   :', dt
         
         Write(*,*) ' '
-        Write(*,*) 'Retau:      :', Retau
+        Write(*,*) 'Retau_u:      :', Retau_u
+        Write(*,*) 'Retau_w:      :', Retau_w
 
         Write(*,*) ' '          
         Write(*,*) 'Maximum U   :', maxU
@@ -75,10 +76,12 @@ Contains
         Write(*,*) 'Mean W      :', meanW/Real( nxm_global*nym_global*nzm_global, 8 )
 
         Write(*,*) ' '
-        Write(*,*) 'Mean mass flow in x         :', Qflow_x
-        Write(*,*) 'Mean mass flow in y         :', Qflow_y
+        Write(*,*) 'Mean masked mass flow in x  :', Qflow_x
+        Write(*,*) 'Mean masked mass flow in y  :', Qflow_y
+        Write(*,*) 'Mean masked mass flow in z  :', Qflow_z
         Write(*,*) 'Mean pressure gradient in x :', dPdx
         Write(*,*) 'Mean pressure gradient in y :', dPdy
+        Write(*,*) 'Mean pressure gradient in z :', dPdz
         
         Write(*,*) ' '
         write(*,*) 'Maximum divergence          :', max_divergence
@@ -134,7 +137,11 @@ Contains
       If ( y_mass_cte==1 ) Then
          Write(*,*) 'Constant mass flow in y'
       End If
-      Write(*,*) 'dPdz    :', dPdz
+      If ( z_mass_cte==1 ) Then
+         Write(*,*) 'Constant mass flow in z'
+      Else
+        Write(*,*) 'dPdz    :', dPdz
+      End If
       
       Write(*,*) ' '
       Write(*,*) 'nsteps   :', nsteps

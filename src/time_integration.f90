@@ -199,6 +199,14 @@ Contains
        Call apply_boundary_conditions(U, V, W)
     End If
 
+    ! compute mean pressure gradient for constant mass flow in z
+    If ( z_mass_cte == 1 ) Then
+       Call compute_dPz_for_constant_mass_flow(W,dPdz)
+       W(2:nxg-1,2:nyg-1,2:nz-1) = W(2:nxg-1,2:nyg-1,2:nz-1) + dPdz
+       dPdz = dPdz/dt ! to be used later by rhs_*
+       Call apply_boundary_conditions(U, V, W)
+    End If
+
   End Subroutine compute_time_step_RK3
 
   !-----------------------------------------------!

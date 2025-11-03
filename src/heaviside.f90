@@ -41,6 +41,8 @@ Contains
     Hv_interior = 1 - Hv_exterior
     Hw_interior = 1 - Hw_exterior
 
+    Call apply_boundary_conditions(Hu_interior, Hv_interior, Hw_interior)
+
   End Subroutine compute_heaviside
 
 End module heaviside
