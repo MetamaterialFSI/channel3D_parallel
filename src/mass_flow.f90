@@ -5,8 +5,8 @@ Module mass_flow
 
   ! Modules
   Use iso_fortran_env, Only : error_unit, Int32, Int64
-  Use global,          Only : nx, nxg, nyg, ny, nzg, yg, y, & 
-                              Qflow_x_0, Qflow_y_0, ierr, Hu_interior, Hv_interior
+  Use global,          Only : nx, nxg, nyg, ny, nz, nzg, yg, y, & 
+                              Qflow_x_0, Qflow_y_0, Qflow_z_0, ierr, Hu_interior, Hv_interior, Hw_interior
   Use mpi 
 
   ! prevent implicit typing
@@ -89,6 +89,44 @@ Contains
     Qflow = Qflow/norm
 
   End Subroutine compute_mean_mass_flow_V
+
+  !-----------------------------------------------!
+  !             Compute mean mass flow            !
+  !            for W between yg(2:nyg-1)          !
+  !              with trapezoidal rule            !
+  ! Input:   W                                    !
+  ! Output:  Qflow                                !
+  !-----------------------------------------------!
+  Subroutine compute_mean_mass_flow_W(W,Qflow)
+
+    Real(Int64), Dimension(nxg,nyg,nz), Intent(In) :: W
+    Real(Int64), Intent(Out) :: Qflow
+
+    Real   (Int64) :: Qflow_local, norm_local
+    Real   (Int64) :: norm
+    Integer(Int32) :: i, j, k
+
+    ! compute local mass flow
+    Qflow_local = 0d0
+    norm_local  = 0d0
+    Do k=2,nz-1
+       Do j=3,nyg-1
+          Do i=2,nxg-1
+             Qflow_local = Qflow_local + ( Hw_interior(i,j,k) * W(i,j,k) + Hw_interior(i,j-1,k) * W(i,j-1,k) ) &
+               * 0.5d0 * ( yg(j) - yg(j-1) )
+             norm_local  = norm_local  + ( Hw_interior(i,j,k) + Hw_interior(i,j-1,k) ) &
+               * 0.5d0 * ( yg(j) - yg(j-1) )
+          End Do
+       End Do
+    End Do
+
+    ! compute total mass flow
+    Call MPI_AllReduce(Qflow_local,Qflow,1,MPI_real8,MPI_sum,MPI_COMM_WORLD,ierr)
+    Call MPI_AllReduce(norm_local,  norm,1,MPI_real8,MPI_sum,MPI_COMM_WORLD,ierr)
+    
+    Qflow = Qflow/norm
+
+  End Subroutine compute_mean_mass_flow_W
   
   !------------------------------------------------------------!
   !           Compute dPx for constant mass flow in x          !
@@ -181,5 +219,51 @@ Contains
     dPdy = Qflow_y_0 - Int_V/norm
 
   End Subroutine compute_dPy_for_constant_mass_flow
+
+  !------------------------------------------------------------!
+  !           Compute dPz for constant mass flow in z          !
+  !        The mass flow is conserved in W at ym points        !
+  !                                                            !
+  !     dPdz      = Qflow_0 - trapz( W(tn+1) )/Volume          !
+  !     Qflow_z_0 = initial mass flow                          !
+  !     trapz     = trapezoidal rule                           !
+  !     ym        = yg(2:nyg-1)                                !
+  !     y-weights for trapz = 0.5d0*(yg(2:nyg-2)-yg(3:nyg-1))  !
+  !                                                            !
+  ! Input:  W, Qflow_z_0                                       !
+  ! Output: dPdz                                               !
+  !------------------------------------------------------------!
+  Subroutine compute_dPz_for_constant_mass_flow(W,dPdz)
+
+    Real(Int64), Dimension(nx,nyg,nzg), Intent(In) :: W
+    Real(Int64), Intent(Out) :: dPdz
+
+    ! local variables
+    Real   (Int64) :: norm_local, Int_W_local
+    Real   (Int64) :: norm,       Int_W
+    Integer(Int32) :: i, k, j
+
+    ! compute integrals with trapezoidal rule
+    Int_W_local = 0d0
+    norm_local  = 0d0
+    Do k=2,nz-1
+       Do j=3,nyg-1
+          Do i=2,nxg-1
+             Int_W_local = Int_W_local + ( Hw_interior(i,j,k) * W(i,j,k) + Hw_interior(i,j-1,k) * W(i,j-1,k) ) &
+               * 0.5d0 * ( yg(j) - yg(j-1) )
+             norm_local  = norm_local  + ( Hw_interior(i,j,k) + Hw_interior(i,j-1,k) ) &
+               * 0.5d0 * ( yg(j) - yg(j-1) )
+          End Do
+       End Do
+    End Do
+
+    ! compute total mass flow
+    Call MPI_AllReduce(Int_W_local,Int_W,1,MPI_real8,MPI_sum,MPI_COMM_WORLD,ierr)
+    Call MPI_AllReduce(norm_local,  norm,1,MPI_real8,MPI_sum,MPI_COMM_WORLD,ierr)
+
+    ! compute pressure gradient
+    dPdz = Qflow_z_0 - Int_W/norm
+
+  End Subroutine compute_dPz_for_constant_mass_flow
 
 End Module mass_flow

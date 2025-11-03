@@ -23,7 +23,9 @@ Contains
 
     Integer(Int32) :: jj
     Real   (Int64) :: dUdy_wall_b, dUdy_wall_t
+    Real   (Int64) :: dWdy_wall_b, dWdy_wall_t
     Real   (Int64) ::   UV_wall_b,   UV_wall_t
+    Real   (Int64) ::   VW_wall_b,   VW_wall_t
 
     ! if pressure not computed 
     pressure_computed = .False.
@@ -111,20 +113,27 @@ Contains
        ! Mean derivative at the walls (CHECK THIS PLEASE)
        dUdy_wall_b = ( Umean(2) -  Umean(1) )/( yg(  2) - yg(    1)) 
        dUdy_wall_t = ( Umean(nyg) - Umean(nyg-1) )/( yg(nyg) - yg(nyg-1))
+       dWdy_wall_b = ( Wmean(2) -  Wmean(1) )/( yg(  2) - yg(    1)) 
+       dWdy_wall_t = ( Wmean(nyg) - Wmean(nyg-1) )/( yg(nyg) - yg(nyg-1))
 
        ! Mean Reynolds stress at the walls
        UV_wall_b = 0d0 
        UV_wall_t = 0d0 
+       VW_wall_b = 0d0 
+       VW_wall_t = 0d0 
 
        ! friction velocity
        utau = ( ( UV_wall_t - UV_wall_b - nu*dUdy_wall_t + nu*dUdy_wall_b )/Ly )**0.5d0
+       wtau = ( ( VW_wall_t - VW_wall_b - nu*dWdy_wall_t + nu*dWdy_wall_b )/Ly )**0.5d0
 
        ! friction Reynolds number
-       Retau = utau*(y(ny)-y(1))/2d0/nu
+       Retau_u = utau*(y(ny)-y(1))/2d0/nu
+       Retau_w = wtau*(y(ny)-y(1))/2d0/nu
 
        ! mean mass flow in x
-       Call compute_mean_mass_flow_U(U,Qflow_x)
-       Call compute_mean_mass_flow_V(V,Qflow_y)
+       Call compute_mean_mass_flow_U(U, Qflow_x)
+       Call compute_mean_mass_flow_V(V, Qflow_y)
+       Call compute_mean_mass_flow_V(W, Qflow_z)
 
        ! write statistics
        Call output_statistics
