@@ -52,6 +52,10 @@ Contains
         Call check_slip(max_slip)
       End If
 
+      ! compute average number of bicgstab iterations
+      cg_mean_iter = cg_accum_iter / Real(3 * nmonitor)
+      cg_accum_iter = 0
+
       ! end measure time per step
       time2 = MPI_WTIME()
 
@@ -84,11 +88,12 @@ Contains
         Write(*,*) 'Mean pressure gradient in z :', dPdz
         
         Write(*,*) ' '
-        write(*,*) 'Maximum divergence          :', max_divergence
+        write(*,*) 'Maximum divergence               :', max_divergence
         If ( trim(body_type) /= 'none' ) Then
-          write(*,*) 'Maximum IB slip             :', max_slip
+          write(*,*) 'Maximum IB slip                  :', max_slip
+          write(*,*) 'Average BiCGSTAB iteration count :', cg_mean_iter
         End If
-        write(*,*) 'Elapsed time (s)            :', time2-time1
+        write(*,*) 'Elapsed time (s)                 :', time2-time1
         
         Write(*,*) '------------------------------------------------------'
 
