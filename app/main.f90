@@ -95,6 +95,8 @@ Program channel_FD
 
   ! write snapshot if needed
   Call output_data
+  Call compute_statistics 
+  Call output_monitor
 
   ! temporal loop
   Do istep = 1, nsteps

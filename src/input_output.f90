@@ -36,7 +36,7 @@ Contains
       filein, fileout, &
       nstep_init, t_init, &
       init_type, grid_type, body_type, &
-      body_param_3, body_param_1, body_param_2, &
+      body_param_3, body_param_1, body_param_2, body_ramp_up_time, &
       min_buffer_width, cg_tol, cg_max_iter
 
     ! default values
@@ -54,6 +54,7 @@ Contains
     dPdx = 0
     dPdy = 0
     dPdz = 0
+    body_ramp_up_time = 0
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
@@ -95,6 +96,7 @@ Contains
     Call Mpi_bcast (     dPdx,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (     dPdz,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( dPdx_ref,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   t_init,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
     Call Mpi_bcast (  nstep_init,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (      nsteps,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
@@ -115,6 +117,7 @@ Contains
     Call Mpi_bcast (   body_param_1,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_param_2,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_param_3,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   body_ramp_up_time,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
   End Subroutine read_input_parameters
 

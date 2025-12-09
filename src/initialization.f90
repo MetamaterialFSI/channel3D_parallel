@@ -240,6 +240,7 @@ Contains
     Allocate ( buffer_usupp_s(nx ,nyg,suppz+1), buffer_usupp_r(nx ,nyg,suppz+1) )
     Allocate ( buffer_vsupp_s(nxg, ny,suppz+1), buffer_vsupp_r(nxg, ny,suppz+1) )
     Allocate ( buffer_wsupp_s(nxg,nyg,suppz+1), buffer_wsupp_r(nxg,nyg,suppz+1) )
+    Allocate ( buffer_psupp_s(nxg,nyg,suppz+1), buffer_psupp_r(nxg,nyg,suppz+1) )
 
     !---------------------------Fourier transform---------------------------!
     If ( myid==0 ) Write(*,*) 'initializing FFT...'
@@ -502,6 +503,9 @@ Contains
        Allocate (Hc_interior_oo ( nxm+2,  nym+2, nzme+2) )
     End If
 
+    Allocate (E1nHc_exterior (nb) )
+    Allocate (E1nH_exterior  (3 * nb) )
+
     ! Auxiliary surface arrays
     Allocate ( rhs_ib (3 * nb) )
     Allocate ( aux_surface_vector (3 * nb) )
@@ -532,7 +536,6 @@ Contains
     Allocate ( u_z_indices( nweights, nb) )
     Allocate ( u_z_local_indices( nweights, nb) )
     Allocate ( u_proc( nweights, nb) )
-    Allocate ( U_subset( nweights, nb) )
     Allocate ( u_z_supp_idx( nweights, nb) )
     
     Allocate ( v_weights  ( nweights, nb) )
@@ -541,7 +544,6 @@ Contains
     Allocate ( v_z_indices( nweights, nb) )
     Allocate ( v_z_local_indices( nweights, nb) )
     Allocate ( v_proc( nweights, nb) )
-    Allocate ( V_subset( nweights, nb) )
     Allocate ( v_z_supp_idx( nweights, nb) )
     
     Allocate ( w_weights  ( nweights, nb) )
@@ -550,8 +552,15 @@ Contains
     Allocate ( w_z_indices( nweights, nb) )
     Allocate ( w_z_local_indices( nweights, nb) )
     Allocate ( w_proc( nweights, nb) )
-    Allocate ( W_subset( nweights, nb) )
     Allocate ( w_z_supp_idx( nweights, nb) )
+    
+    Allocate ( c_weights  ( nweights, nb) )
+    Allocate ( c_x_indices( nweights, nb) )
+    Allocate ( c_y_indices( nweights, nb) )
+    Allocate ( c_z_indices( nweights, nb) )
+    Allocate ( c_z_local_indices( nweights, nb) )
+    Allocate ( c_proc( nweights, nb) )
+    Allocate ( c_z_supp_idx( nweights, nb) )
 
     Allocate ( send_counts_nb(nprocs), displs_nb(nprocs) )
 
@@ -563,6 +572,7 @@ Contains
     Allocate ( bcg_h( 3 * nb) )
     Allocate ( bcg_sv( 3 * nb) )
     Allocate ( bcg_tv( 3 * nb) )
+    cg_accum_iter = 0
 
     !-------------------------Done--------------------------------!
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)

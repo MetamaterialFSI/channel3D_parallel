@@ -41,7 +41,12 @@ Contains
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
 
-      Case ('traveling_wave') ! Top and bottom wall undergoing traveling wave motion
+      Case ('traveling_wave_x') ! Top and bottom wall undergoing traveling wave motion in the x-direction
+        nb = 2 * nxb * nzb
+        dxb = real(Lxp / nxb, 8)
+        dzb = real(Lzp / nzb, 8)
+
+      Case ('traveling_wave_z') ! Top and bottom wall undergoing traveling wave motion in the z-direction
         nb = 2 * nxb * nzb
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
@@ -58,7 +63,7 @@ Contains
 
   Subroutine setup_IB_geometry
     Integer(Int32) :: i, j, k, l, nxb1, nxb2
-    Real   (Int64) :: a1, a2, r1, r2, xc, yc, theta, dsb1, dsb2, phi
+    Real   (Int64) :: a1, a2, r1, r2, xc, yc, theta, dsb1, dsb2, phi, amp
 
     Select Case (trim(body_type))
       Case ('none') ! No IB
@@ -82,9 +87,9 @@ Contains
         Do j = 1, nzb
           Do i = 1, nxb
             k = i + (j-1) * nxb
-            xb(k) = (real(i,8) - 0.75d0) * dxb
+            xb(k) = (real(i,8) - 0.5d0) * dxb
             yb(k) = 1.0d0
-            zb(k) = (real(j,8) - 0.75d0) * dzb
+            zb(k) = (real(j,8) - 0.5d0) * dzb
             If (zb(k) >= z(1) .and. nb_start > k) then
               nb_start = k
             End If
@@ -94,7 +99,6 @@ Contains
           
           End Do
         End Do
-        WRITE(*,*) 'myid',myid,'nb_start',nb_start,'nb_end',nb_end,'local_nb',nb_end-nb_start+1,'zb_start',zb(nb_start),'zb_end',zb(nb_end),'z(1)',z(1),'z(nz)',z(nz)
         
         sb = dxb * dzb
 
@@ -165,7 +169,6 @@ Contains
         End Do
 
       Case ('standing_wave') ! Top and bottom wall undergoing standing wave motion in x-direction
-        If ( grid_type /= 2 ) Stop 'Error: body type is incompatible with grid type'
         If ( body_param_1 > min_buffer_width ) Stop 'Error: IB amplitude is bigger than the minimum buffer width'
         moving_body = .True.
         moving_z_flag = .False.
@@ -177,19 +180,33 @@ Contains
         Do j = 1, nzb
           Do i = 1, nxb
             k = i + 2 * nxb * (j - 1)
-            xb(k)       = (real(i,8) - 0.75d0) * dxb
-            xb(k + nxb) = (real(i,8) - 0.75d0) * dxb
+            xb(k)       = (real(i,8) - 0.5d0) * dxb
+            xb(k + nxb) = (real(i,8) - 0.5d0) * dxb
             yb(k)       =       body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
             yb(k + nxb) = 2d0 + body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
-            zb(k)       = (real(j,8) - 0.75d0) * dzb
-            zb(k + nxb) = (real(j,8) - 0.75d0) * dzb
+            zb(k)       = (real(j,8) - 0.5d0) * dzb
+            zb(k + nxb) = (real(j,8) - 0.5d0) * dzb
 
             y_ref_index(k) = 1
             y_ref_index(k + nxb) = ny_global
 
-            If (yb(k) < y(1 + suppy) .or. yb(k + nxb) > y(ny_global - suppy - 1)) then
-              Stop "Error: body points support exceeds grid"
+            If (yb(k) < y(1 + suppy)) Then
+              If ( myid==0 ) Then
+                write(*,'(A,I3,A,F13.6,A,F13.6)') "yb(", k, ") = ", yb(k), &
+                  " is smaller than y(1 + suppy) = ", y(1 + suppy)
+                write(*,*) "Error: body points support exceeds grid dimensions"
+              End If
+              Stop
             End If
+            If (yb(k + nxb) > y(ny_global - suppy)) Then
+              If ( myid==0 ) Then
+                write(*,'(A,I3,A,F13.6,A,F13.6)') "yb(", k + nxb, ") = ", yb(k + nxb), &
+                  " is greater than y(ny_global - suppy) = ", y(ny_global - suppy)
+                write(*,*) "Error: body points support exceeds grid dimensions"
+              End If
+              Stop
+            End If
+
             If (zb(k) >= z(1) .and. nb_start > k) then
               nb_start = k
             End If
@@ -220,10 +237,10 @@ Contains
             tangents_2(2 * nb + k      ) = 1d0
             tangents_2(2 * nb + k + nxb) = 1d0
 
-            normals(k)            = -tangents_1(nb + k)
-            normals(k + nxb)      = tangents_1(nb + k + nxb)
-            normals(nb + k)       = tangents_1(k)
-            normals(nb + k + nxb) = -tangents_1(k + nxb)
+            normals(k)            = tangents_1(nb + k)
+            normals(k + nxb)      = -tangents_1(nb + k + nxb)
+            normals(nb + k)       = -tangents_1(k)
+            normals(nb + k + nxb) = tangents_1(k + nxb)
           End Do
         End Do
         ! For now, make a naive sb calculation that assumes no variation in z
@@ -235,7 +252,7 @@ Contains
               a2 = sqrt((xb(k) - (xb(k + 1))                        ) ** 2 + (yb(k) - yb(k + 1)                  ) ** 2)
             Else If (i .eq. nxb) Then
               a1 = sqrt((xb(k) - (xb(k - 1))                      ) ** 2   + (yb(k) - yb(k - 1)                  ) ** 2)
-              a1 = sqrt((xb(k) - (xb(1 + 2 * nxb * (j - 1)) + Lxp)) ** 2   + (yb(k) - yb(1 + 2 * nxb * (j - 1))) ** 2)
+              a2 = sqrt((xb(k) - (xb(1 + 2 * nxb * (j - 1)) + Lxp)) ** 2   + (yb(k) - yb(1 + 2 * nxb * (j - 1))) ** 2)
             Else
               a1 = sqrt((xb(k) - (xb(k - 1))) ** 2                     + (yb(k) - yb(k - 1)) ** 2)
               a2 = sqrt((xb(k) - (xb(k + 1))) ** 2                     + (yb(k) - yb(k + 1)) ** 2)
@@ -245,10 +262,14 @@ Contains
           End Do
         End Do
 
-      Case ('traveling_wave') ! Top and bottom wall undergoing traveling wave motion
-        If ( grid_type /= 2 ) Stop 'Error: body type is incompatible with grid type'
-        If ( body_param_1 > min_buffer_width ) Stop 'Error: IB amplitude is bigger than the minimum buffer width'
+      Case ('traveling_wave_x') ! Top and bottom wall undergoing traveling wave motion
         moving_body = .True.
+
+        If (t < body_ramp_up_time .and. body_ramp_up_time > 0) Then
+          amp = body_param_1 * t / body_ramp_up_time
+        Else
+          amp = body_param_1
+        End If
 
         ! Phase difference between top and bottom wave motion
         phi = pi
@@ -260,23 +281,42 @@ Contains
         Do j = 1, nzb
           Do i = 1, nxb
             k = i + 2 * nxb * (j - 1)
-            xb(k)       = (real(i,8) - 0.75d0) * dxb
-            xb(k + nxb) = (real(i,8) - 0.75d0) * dxb
-            yb(k)       =       body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t)
-            yb(k + nxb) = 2d0 + body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t + phi)
-            zb(k)       = (real(j,8) - 0.75d0) * dzb
-            zb(k + nxb) = (real(j,8) - 0.75d0) * dzb
+            xb(k)       = (real(i,8) - 0.5d0) * dxb
+            xb(k + nxb) = (real(i,8) - 0.5d0) * dxb
+            yb(k)       =       amp / (body_param_2 * body_param_3) * sin(body_param_3 * (xb(k) - body_param_2 * t))
+            yb(k + nxb) = 2d0 + amp / (body_param_2 * body_param_3) * sin(body_param_3 * (xb(k) - body_param_2 * t) + phi)
+            zb(k)       = (real(j,8) - 0.5d0) * dzb
+            zb(k + nxb) = (real(j,8) - 0.5d0) * dzb
 
             y_ref_index(k) = 1
             y_ref_index(k + nxb) = ny_global
 
-            If (zb(k) >= z(1) .and. nb_start > k) then
-              nb_start = k
+            If (yb(k) < y(1 + suppy)) Then
+              If ( myid==0 ) Then
+                write(*,'(A,I3,A,F13.6,A,F13.6)') "yb(", k, ") = ", yb(k), &
+                  " is smaller than y(1 + suppy) = ", y(1 + suppy)
+                write(*,*) "Error: body points support exceeds grid dimensions"
+              End If
+              Stop
             End If
-            If (zb(k + nxb) < z(nz-1) .and. nb_end < k + nxb) then
-              nb_end = k + nxb
+            If (yb(k + nxb) > y(ny_global - suppy)) Then
+              If ( myid==0 ) Then
+                write(*,'(A,I3,A,F13.6,A,F13.6)') "yb(", k + nxb, ") = ", yb(k + nxb), &
+                  " is greater than y(ny_global - suppy) = ", y(ny_global - suppy)
+                write(*,*) "Error: body points support exceeds grid dimensions"
+              End If
+              Stop
             End If
+
           End Do
+          
+          If (zb((j-1) * 2 * nxb + 1) >= z(1) .and. nb_start > (j-1) * 2 * nxb + 1) then
+            nb_start = (j-1) * 2 * nxb + 1
+          End If
+          If (zb(j * 2 * nxb) < z(nz-1) .and. nb_end < j * 2 * nxb) then
+            nb_end = j * 2 * nxb
+          End If
+
         End Do
         ! Vector arrays
         ub(1:nb) = 0d0
@@ -284,13 +324,13 @@ Contains
         Do j = 1, nzb
           Do i = 1, nxb
             k = i + 2 * nxb * (j - 1)
-            ub(nb + k)       = body_param_1 * body_param_2 * cos(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t)
-            ub(nb + k + nxb) = body_param_1 * body_param_2 * cos(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t + phi)
+            ub(nb + k)       = amp * cos(body_param_3 * (xb(k) - body_param_2 * t))
+            ub(nb + k + nxb) = amp * cos(body_param_3 * (xb(k) - body_param_2 * t) + phi)
 
-            tangents_1(nb + k)       = body_param_1 * 2d0 * pi * body_param_3 / Lxp &
-              * cos(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t)
-            tangents_1(nb + k + nxb) = body_param_1 * 2d0 * pi * body_param_3 / Lxp &
-              * cos(2d0 * pi * body_param_3 * xb(k) / Lxp - body_param_2 * t + phi)
+            tangents_1(nb + k)       = amp * body_param_3 &
+              * cos(body_param_3 * (xb(k) - body_param_2 * t))
+            tangents_1(nb + k + nxb) = amp * body_param_3 &
+              * cos(body_param_3 * (xb(k) - body_param_2 * t) + phi)
             ! scale to unit vectors
             tangents_1(k)            = 1 / sqrt( 1 + tangents_1(nb + k) ** 2 )
             tangents_1(k + nxb)      = 1 / sqrt( 1 + tangents_1(nb + k + nxb) ** 2 )
@@ -300,10 +340,10 @@ Contains
             tangents_2(2 * nb + k      ) = 1d0
             tangents_2(2 * nb + k + nxb) = -1d0
 
-            normals(k)            = -tangents_1(nb + k)
-            normals(k + nxb)      = tangents_1(nb + k + nxb)
-            normals(nb + k)       = tangents_1(k)
-            normals(nb + k + nxb) = -tangents_1(k + nxb)
+            normals(k)            = tangents_1(nb + k)
+            normals(k + nxb)      = -tangents_1(nb + k + nxb)
+            normals(nb + k)       = -tangents_1(k)
+            normals(nb + k + nxb) = tangents_1(k + nxb)
           End Do
         End Do
         ! For now, make a naive sb calculation that assumes no variation in z
@@ -325,11 +365,11 @@ Contains
             ! Top wall
             k = i + nxb + 2 * nxb * (j - 1)
             If (i .eq. 1) Then
-              a1 = sqrt((xb(k) - (xb(nxb + 2 * nxb * (j - 1)) - Lxp)) ** 2 + (yb(k) - yb(nxb + 2 * nxb * (j - 1))) ** 2)
-              a2 = sqrt((xb(k) - (xb(k + 1))                        ) ** 2 + (yb(k) - yb(k + 1)                  ) ** 2)
+              a1 = sqrt((xb(k) - (xb(2 * nxb * (j)) - Lxp)) ** 2               + (yb(k) - yb(2 * nxb * (j))) ** 2)
+              a2 = sqrt((xb(k) - (xb(k + 1))                        ) ** 2     + (yb(k) - yb(k + 1)                  ) ** 2)
             Else If (i .eq. nxb) Then
-              a1 = sqrt((xb(k) - (xb(k - 1))                      ) ** 2   + (yb(k) - yb(k - 1)                  ) ** 2)
-              a1 = sqrt((xb(k) - (xb(1 + 2 * nxb * (j - 1)) + Lxp)) ** 2   + (yb(k) - yb(1 + 2 * nxb * (j - 1))) ** 2)
+              a1 = sqrt((xb(k) - (xb(k - 1))                      ) ** 2       + (yb(k) - yb(k - 1)                  ) ** 2)
+              a2 = sqrt((xb(k) - (xb(nxb + 1 + 2 * nxb * (j - 1)) + Lxp)) ** 2 + (yb(k) - yb(nxb + 1 + 2 * nxb * (j - 1))) ** 2)
             Else
               a1 = sqrt((xb(k) - (xb(k - 1))) ** 2                     + (yb(k) - yb(k - 1)) ** 2)
               a2 = sqrt((xb(k) - (xb(k + 1))) ** 2                     + (yb(k) - yb(k + 1)) ** 2)
@@ -337,6 +377,10 @@ Contains
             sb(k) = dzb * (0.5d0 * a1 + 0.5d0 * a2)
           End Do
         End Do
+
+      Case ('traveling_wave_z') ! Top and bottom wall undergoing traveling wave motion
+        Write(*,*) 'traveling wave in z-direction not yet implemented'
+        Stop 
 
     End Select
 
