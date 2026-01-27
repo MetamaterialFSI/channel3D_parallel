@@ -240,7 +240,6 @@ Contains
     Allocate ( buffer_usupp_s(nx ,nyg,suppz+1), buffer_usupp_r(nx ,nyg,suppz+1) )
     Allocate ( buffer_vsupp_s(nxg, ny,suppz+1), buffer_vsupp_r(nxg, ny,suppz+1) )
     Allocate ( buffer_wsupp_s(nxg,nyg,suppz+1), buffer_wsupp_r(nxg,nyg,suppz+1) )
-    Allocate ( buffer_psupp_s(nxg,nyg,suppz+1), buffer_psupp_r(nxg,nyg,suppz+1) )
 
     !---------------------------Fourier transform---------------------------!
     If ( myid==0 ) Write(*,*) 'initializing FFT...'

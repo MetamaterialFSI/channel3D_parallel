@@ -136,7 +136,6 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_usupp_s, buffer_usupp_r
   Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_vsupp_s, buffer_vsupp_r
   Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_wsupp_s, buffer_wsupp_r
-  Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_psupp_s, buffer_psupp_r
   
   ! local auxiliary planes for FFTW
   Type(C_PTR) :: cplane_fft
