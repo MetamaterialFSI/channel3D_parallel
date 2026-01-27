@@ -87,10 +87,6 @@ Contains
               * deltafnc(y_grid, yb(l), dymin) &
               * deltafnc(z_grid, zb(l), dz)
 
-            ! dxnu(count, l) = &
-            !   normals(l)          * (x_grid - xb(l)) + &
-            !   normals(nb + l)     * (y_grid - yb(l)) + &
-            !   normals(2 * nb + l) * (z_grid - zb(l))
           End Do
         End Do
       End Do
@@ -137,10 +133,6 @@ Contains
               * deltafnc(y_grid, yb(l), dymin) &
               * deltafnc(z_grid, zb(l),    dz)
 
-            ! dxnv(count, l) = &
-            !   normals(l)          * (x_grid - xb(l)) + &
-            !   normals(nb + l)     * (y_grid - yb(l)) + &
-            !   normals(2 * nb + l) * (z_grid - zb(l))
           End Do
         End Do
       End Do
@@ -183,10 +175,6 @@ Contains
               * deltafnc(y_grid, yb(l), dymin) &
               * deltafnc(z_grid, zb(l),    dz)
 
-            ! dxnw(count, l) = &
-            !   normals(l)          * (x_grid - xb(l)) + &
-            !   normals(nb + l)     * (y_grid - yb(l)) + &
-            !   normals(2 * nb + l) * (z_grid - zb(l))
           End Do
         End Do
       End Do
@@ -265,30 +253,6 @@ Contains
                  regT(2 * nb + 1 : 3 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
 
   End Function regT
-
-  Function regT_1n(U_, V_, W_)
-    Implicit None
-    Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: U_(:, :, :)
-    Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: V_(:, :, :)
-    Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: W_(:, :, :)
-    Real(Int64), Dimension(3 * nb):: regT_1n
-
-    ! update support cells from interior points
-    Call interior_planes_update_support(U_, U_supp, 1)
-    Call interior_planes_update_support(V_, V_supp, 2)
-    Call interior_planes_update_support(W_, W_supp, 3)
-
-    ! compute local_regT
-    regT_buffer_vector = local_regT_1n(U_, V_, W_, U_supp, V_supp, W_supp)
-    ! Gather regT values from all partitions
-    Call MPI_Allgatherv(regT_buffer_vector(nb_start : nb_end), local_size_nb, MPI_REAL8, &
-                 regT_1n(1 : nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
-    Call MPI_Allgatherv(regT_buffer_vector(nb + nb_start : nb + nb_end), local_size_nb, MPI_REAL8, &
-                 regT_1n(nb + 1 : 2 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
-    Call MPI_Allgatherv(regT_buffer_vector(2 * nb + nb_start : 2 * nb + nb_end), local_size_nb, MPI_REAL8, &
-                 regT_1n(2 * nb + 1 : 3 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
-
-  End Function regT_1n
 
   Subroutine regu(U_, f_)
     Implicit None
@@ -386,53 +350,6 @@ Contains
       End Do
     End Do
   End Function local_regT
-
-  Function local_regT_1n(U_, V_, W_, U_supp_, V_supp_, W_supp_)
-    Implicit None
-    Real(Int64), Dimension(nx, nyg, nzg), Intent(In) :: U_
-    Real(Int64), Dimension(nxg, ny, nzg), Intent(In) :: V_
-    Real(Int64), Dimension(nxg, nyg, nz), Intent(In) :: W_
-    Real(Int64), Dimension(nx, nyg, suppz*2+1), Intent(In) :: U_supp_
-    Real(Int64), Dimension(nxg, ny, suppz*2+1), Intent(In) :: V_supp_
-    Real(Int64), Dimension(nxg, nyg, suppz*2+1), Intent(In) :: W_supp_
-    Real(Int64), Dimension(3 * nb):: local_regT_1n
-    integer :: proc_idx
-
-    Integer(Int32) :: i, j
-    local_regT_1n = 0.D0
-     
-    Do j = nb_start, nb_end
-      Do i = 1, nweights
-        ! get data of U
-        proc_idx = u_proc(i, j)
-        if ( proc_idx .eq. myid ) then
-          local_regT_1n(j) = local_regT_1n(j)+ &
-          u_weights(i, j) * U_(u_x_indices(i, j),u_y_indices(i, j),u_z_local_indices(i, j)) * dxnu(i, j)
-        else
-          local_regT_1n(j) = local_regT_1n(j)+ &
-          u_weights(i, j) * U_supp_(u_x_indices(i, j),u_y_indices(i, j),u_z_supp_idx(i, j)) * dxnu(i, j)
-        end if
-        ! get data of V
-        proc_idx = v_proc(i, j)
-        if ( proc_idx .eq. myid ) then
-          local_regT_1n(j + nb) = local_regT_1n(j + nb)+ &
-          v_weights(i, j) * V_(v_x_indices(i, j),v_y_indices(i, j),v_z_local_indices(i, j)) * dxnv(i, j)
-        else
-          local_regT_1n(j + nb) = local_regT_1n(j + nb)+ &
-          v_weights(i, j) * V_supp_(v_x_indices(i, j),v_y_indices(i, j),v_z_supp_idx(i, j)) * dxnv(i, j)
-        end if
-        ! get data of W
-        proc_idx = w_proc(i, j)
-        if ( proc_idx .eq. myid ) then
-          local_regT_1n(j + 2 * nb) = local_regT_1n(j + 2 * nb)+ &
-          w_weights(i, j) * W_(w_x_indices(i, j),w_y_indices(i, j),w_z_local_indices(i, j)) * dxnw(i, j)
-        else
-          local_regT_1n(j + 2 * nb) = local_regT_1n(j + 2 * nb)+ &
-          w_weights(i, j) * W_supp_(w_x_indices(i, j),w_y_indices(i, j),w_z_supp_idx(i, j)) * dxnw(i, j)
-        end if
-      End Do
-    End Do
-  End Function local_regT_1n
 
   !-----------------------------------------------------------------------
   !  Generalized “subset_regu” for U, V, or W:
