@@ -233,7 +233,6 @@ Module global
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hc_interior, Hc_exterior
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior_o, Hv_interior_o, Hw_interior_o, Hc_interior_o
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior_oo, Hv_interior_oo, Hw_interior_oo, Hc_interior_oo
-  Real   (Int64), Dimension(:), Allocatable :: E1nHc_exterior, E1nH_exterior
 
   ! Biconjugate gradient max iterations and tolerance
   Integer(Int32) :: cg_max_iter, cg_accum_iter
