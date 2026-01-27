@@ -502,9 +502,6 @@ Contains
        Allocate (Hc_interior_oo ( nxm+2,  nym+2, nzme+2) )
     End If
 
-    Allocate (E1nHc_exterior (nb) )
-    Allocate (E1nH_exterior  (3 * nb) )
-
     ! Auxiliary surface arrays
     Allocate ( rhs_ib (3 * nb) )
     Allocate ( aux_surface_vector (3 * nb) )
@@ -553,14 +550,6 @@ Contains
     Allocate ( w_proc( nweights, nb) )
     Allocate ( w_z_supp_idx( nweights, nb) )
     
-    Allocate ( c_weights  ( nweights, nb) )
-    Allocate ( c_x_indices( nweights, nb) )
-    Allocate ( c_y_indices( nweights, nb) )
-    Allocate ( c_z_indices( nweights, nb) )
-    Allocate ( c_z_local_indices( nweights, nb) )
-    Allocate ( c_proc( nweights, nb) )
-    Allocate ( c_z_supp_idx( nweights, nb) )
-
     Allocate ( send_counts_nb(nprocs), displs_nb(nprocs) )
 
     !--------------------Initialize BiCGSTAB arrays---------------!    

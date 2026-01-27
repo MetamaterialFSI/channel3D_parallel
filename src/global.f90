@@ -247,13 +247,11 @@ Module global
   Integer(Int32), parameter :: suppy = 2
   Integer(Int32), parameter :: suppz = 2
   Integer(Int32), parameter :: nweights = (2 * suppx + 1) * (2 * suppy + 1) * (2 * suppz + 1)
-  Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights, c_weights
-  Real(Int64),    Dimension(:,:),   Allocatable :: dxnu, dxnv, dxnw, dxnc
+  Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights
 
   Integer(Int32), Dimension(:,:),   Allocatable :: u_x_indices, u_y_indices, u_z_indices, u_z_local_indices, u_proc, u_z_supp_idx
   Integer(Int32), Dimension(:,:),   Allocatable :: v_x_indices, v_y_indices, v_z_indices, v_z_local_indices, v_proc, v_z_supp_idx
   Integer(Int32), Dimension(:,:),   Allocatable :: w_x_indices, w_y_indices, w_z_indices, w_z_local_indices, w_proc, w_z_supp_idx
-  Integer(Int32), Dimension(:,:),   Allocatable :: c_x_indices, c_y_indices, c_z_indices, c_z_local_indices, c_proc, c_z_supp_idx
   Integer(Int32), Dimension(:),     Allocatable :: x_pivot_index, xm_pivot_index
   Integer(Int32), Dimension(:),     Allocatable :: y_pivot_index, ym_pivot_index
   Integer(Int32), Dimension(:),     Allocatable :: z_pivot_index, zm_pivot_index
