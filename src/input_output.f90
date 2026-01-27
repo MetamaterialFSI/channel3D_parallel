@@ -30,12 +30,13 @@ Contains
       nxb, nzb, &
       CFL, &
       nu, &
-      dPdx, dPdz, x_mass_cte, y_mass_cte, &
+      dPdx, dPdz, &
+      x_mass_cte, y_mass_cte, z_mass_cte, &
       nsteps, nsave, nstats, nmonitor, &
       filein, fileout, &
       nstep_init, t_init, &
       init_type, grid_type, body_type, &
-      body_param_3, body_param_1, body_param_2, &
+      body_param_3, body_param_1, body_param_2, body_ramp_up_time, &
       min_buffer_width, cg_tol, cg_max_iter
 
     ! default values
@@ -47,6 +48,13 @@ Contains
     cg_max_iter = 50
     t_init = 0d0
     body_type = 'none'
+    x_mass_cte = 0
+    y_mass_cte = 0
+    z_mass_cte = 0
+    dPdx = 0
+    dPdy = 0
+    dPdz = 0
+    body_ramp_up_time = 0
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
@@ -88,6 +96,7 @@ Contains
     Call Mpi_bcast (     dPdx,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (     dPdz,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( dPdx_ref,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   t_init,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
     Call Mpi_bcast (  nstep_init,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (      nsteps,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
@@ -99,6 +108,7 @@ Contains
     Call Mpi_bcast (   body_type,len(body_type),MPI_character,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  x_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  y_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (  z_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
 
     Call Mpi_bcast ( min_buffer_width,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( cg_max_iter,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
@@ -107,6 +117,7 @@ Contains
     Call Mpi_bcast (   body_param_1,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_param_2,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_param_3,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   body_ramp_up_time,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
   End Subroutine read_input_parameters
 
@@ -720,7 +731,7 @@ Contains
        fname = Trim(Adjustl(fileout))//'.'//Trim(Adjustl(ext))//'.stats.txt'
        Write(*,*) 'writing ',Trim(Adjustl(fname))
        Open(3,file=fname,form='formatted',action='write') 
-       Write(3,'(A,4F15.8,4I)') '%',t, Retau, utau, nu, nx_global, ny_global, nz_global, istep
+       Write(3,'(A,4F15.8,4I)') '%',t, Retau_u, utau, nu, nx_global, ny_global, nz_global, istep
        Do jj=1,nyg
           Write(3,'(8F15.8)') yg(jj), Umean(jj), Vmean(jj), Wmean(jj), U2mean(jj), V2mean(jj), W2mean(jj), UVmean(jj)
        End Do

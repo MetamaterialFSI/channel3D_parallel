@@ -21,6 +21,7 @@ Contains
     character(len=50) :: filename
     integer :: k_local,k_supp         ! local index
     integer :: proc_id      ! MPI rank that owns this index
+    Real(Int64) :: x_grid, y_grid, z_grid
 
     !-----------------Find the indices of the flow grid points closest to the body points---------------------!
     Do l = nb_start, nb_end
@@ -62,15 +63,11 @@ Contains
               u_x_indices(count, l) = ii_periodic
             End If
             u_y_indices(count, l) = jj + 1 ! plus one for ghost cell
-            if ( kk_periodic .eq. 2 ) then
+            if ( (kk_periodic .eq. 2) .and. (myid .eq. nprocs-1) ) then
               ! kk_periodic =2 at the last processor is stored in the local data, not support cell
-              if (myid .eq. nprocs-1) then
-                u_z_indices(count, l) = nzg_global - 1 ! due to periodicity
-              else
-                u_z_indices(count, l) = kk_periodic
-              end if
+              u_z_indices(count, l) = nzg_global - 1 ! due to periodicity
             else
-              u_z_indices(count, l) = kk_periodic ! plus one for ghost cell
+              u_z_indices(count, l) = kk_periodic
             end if
             
             ! calculate the support cell index
@@ -81,10 +78,15 @@ Contains
               u_proc(count, l) = proc_id 
             End If 
 
+            x_grid = x_global(ii_periodic) + x_periodic_shifts * Lxp
+            y_grid = ym_global(jj)
+            z_grid = zm_global(kk_periodic - 1) + z_periodic_shifts * Lzp
+
             u_weights(count, l) =  dx * dymin * dz &
-              * deltafnc( x_global(ii_periodic) + x_periodic_shifts * Lxp, xb(l),    dx) &
-              * deltafnc(                                   ym_global(jj), yb(l), dymin) &
-              * deltafnc(zm_global(kk_periodic-1) + z_periodic_shifts * Lzp, zb(l),    dz)
+              * deltafnc(x_grid, xb(l), dx) &
+              * deltafnc(y_grid, yb(l), dymin) &
+              * deltafnc(z_grid, zb(l), dz)
+
           End Do
         End Do
       End Do
@@ -108,15 +110,10 @@ Contains
             count = count + 1
             v_x_indices(count, l) = ii_periodic + 1 ! plus one for ghost cell
             v_y_indices(count, l) = jj
-            if ( kk_periodic .eq. 2 ) then
-              if (myid .eq. nprocs-1) then
-                v_z_indices(count, l) = nzg_global - 1 ! due to periodicity
-              else
-                v_z_indices(count, l) = kk_periodic
-              end if
+            if ( (kk_periodic .eq. 2) .and. (myid .eq. nprocs-1) ) then
+              v_z_indices(count, l) = nzg_global - 1 ! due to periodicity
             else
-              v_z_indices(count, l) = kk_periodic ! plus one for ghost cell
-
+              v_z_indices(count, l) = kk_periodic
             end if
 
             ! calculate the support cell index
@@ -127,15 +124,20 @@ Contains
               v_proc(count, l) = proc_id 
             End If 
 
+            x_grid = xm_global(ii_periodic) + x_periodic_shifts * Lxp
+            y_grid = y_global(jj)
+            z_grid = zm_global(kk_periodic - 1) + z_periodic_shifts * Lzp
+
             v_weights(count, l) = dx * dymin * dz &
-              * deltafnc(xm_global(ii_periodic) + x_periodic_shifts * Lxp, xb(l),    dx) &
-              * deltafnc(                                    y_global(jj), yb(l), dymin) &
-              * deltafnc(zm_global(kk_periodic-1) + z_periodic_shifts * (Lzp), zb(l),    dz)
+              * deltafnc(x_grid, xb(l),    dx) &
+              * deltafnc(y_grid, yb(l), dymin) &
+              * deltafnc(z_grid, zb(l),    dz)
+
           End Do
         End Do
       End Do
     End Do
-  
+
     ! w velocity locations
     Do l = nb_start, nb_end
       count = 0
@@ -164,10 +166,15 @@ Contains
               w_proc(count, l) = proc_id 
             End If 
 
+            x_grid = xm_global(ii_periodic) + x_periodic_shifts * Lxp
+            y_grid = ym_global(jj)
+            z_grid = z_global(kk_periodic) + z_periodic_shifts * Lzp
+
             w_weights(count, l) = dx * dymin * dz &
-              * deltafnc(xm_global(ii_periodic) + x_periodic_shifts * Lxp, xb(l),    dx) &
-              * deltafnc(                                   ym_global(jj), yb(l), dymin) &
-              * deltafnc( z_global(kk_periodic) + z_periodic_shifts * Lzp, zb(l),    dz)
+              * deltafnc(x_grid, xb(l),    dx) &
+              * deltafnc(y_grid, yb(l), dymin) &
+              * deltafnc(z_grid, zb(l),    dz)
+
           End Do
         End Do
       End Do
@@ -252,6 +259,8 @@ Contains
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
     Real(Int64), Dimension(nx, nyg, nzg), Intent(Out) :: U_
 
+    U_ = 0d0
+
     ! compute local_reg for each partition
     Call local_reg(U_, U_supp,f_, 1)
     ! update the interior points from other partitions
@@ -263,6 +272,8 @@ Contains
     Implicit None
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
     Real(Int64), Dimension(nxg, ny, nzg), Intent(Out) :: V_
+
+    V_ = 0d0
     
     ! compute local_reg for each partition
     Call local_reg(V_, V_supp, f_, 2)
@@ -276,6 +287,8 @@ Contains
     Real(Int64), Dimension(3 * nb), Intent(In) :: f_
     Real(Int64), Dimension(nxg, nyg, nz), Intent(Out) :: W_
     Integer(Int32) :: i, j
+
+    W_ = 0d0
 
     ! compute local_reg for each partition
     Call local_reg(W_,W_supp,f_,3)
@@ -291,14 +304,14 @@ Contains
   ! Output: local_regT                                  !
   !                                               !
   !-----------------------------------------------!
-  Function local_regT(U_, V_, W_, Usupp, Vsupp, Wsupp)
+  Function local_regT(U_, V_, W_, U_supp_, V_supp_, W_supp_)
     Implicit None
     Real(Int64), Dimension(nx, nyg, nzg), Intent(In) :: U_
     Real(Int64), Dimension(nxg, ny, nzg), Intent(In) :: V_
     Real(Int64), Dimension(nxg, nyg, nz), Intent(In) :: W_
-    Real(Int64), Dimension(nx, nyg, suppz*2+1), Intent(In) :: Usupp
-    Real(Int64), Dimension(nxg, ny, suppz*2+1), Intent(In) :: Vsupp
-    Real(Int64), Dimension(nxg, nyg, suppz*2+1), Intent(In) :: Wsupp
+    Real(Int64), Dimension(nx, nyg, suppz*2+1), Intent(In) :: U_supp_
+    Real(Int64), Dimension(nxg, ny, suppz*2+1), Intent(In) :: V_supp_
+    Real(Int64), Dimension(nxg, nyg, suppz*2+1), Intent(In) :: W_supp_
     Real(Int64), Dimension(3 * nb):: local_regT
     integer :: proc_idx
 
@@ -314,7 +327,7 @@ Contains
           u_weights(i, j) * U_(u_x_indices(i, j),u_y_indices(i, j),u_z_local_indices(i, j))
         else
           local_regT(j) = local_regT(j)+ &
-          u_weights(i, j) * Usupp(u_x_indices(i, j),u_y_indices(i, j),u_z_supp_idx(i, j))
+          u_weights(i, j) * U_supp_(u_x_indices(i, j),u_y_indices(i, j),u_z_supp_idx(i, j))
         end if
         ! get data of V
         proc_idx = v_proc(i, j)
@@ -323,7 +336,7 @@ Contains
           v_weights(i, j) * V_(v_x_indices(i, j),v_y_indices(i, j),v_z_local_indices(i, j))
         else
           local_regT(j + nb) = local_regT(j + nb)+ &
-          v_weights(i, j) * Vsupp(v_x_indices(i, j),v_y_indices(i, j),v_z_supp_idx(i, j))
+          v_weights(i, j) * V_supp_(v_x_indices(i, j),v_y_indices(i, j),v_z_supp_idx(i, j))
         end if
         ! get data of W
         proc_idx = w_proc(i, j)
@@ -332,7 +345,7 @@ Contains
           w_weights(i, j) * W_(w_x_indices(i, j),w_y_indices(i, j),w_z_local_indices(i, j))
         else
           local_regT(j + 2 * nb) = local_regT(j + 2 * nb)+ &
-          w_weights(i, j) * Wsupp(w_x_indices(i, j),w_y_indices(i, j),w_z_supp_idx(i, j))
+          w_weights(i, j) * W_supp_(w_x_indices(i, j),w_y_indices(i, j),w_z_supp_idx(i, j))
         end if
       End Do
     End Do

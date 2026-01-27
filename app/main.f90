@@ -89,11 +89,14 @@ Program channel_FD
   ! recompute initial mass flow with heaviside masking
   Call compute_mean_mass_flow_U(U,Qflow_x_0)
   Call compute_mean_mass_flow_V(V,Qflow_y_0)
+  Call compute_mean_mass_flow_W(V,Qflow_z_0)
   Qflow_y_0 = 0d0
   dPdy      = 0d0
 
   ! write snapshot if needed
   Call output_data
+  Call compute_statistics 
+  Call output_monitor
 
   ! temporal loop
   Do istep = 1, nsteps

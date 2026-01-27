@@ -69,11 +69,6 @@ Contains
     ! remaining planes in last processor
     k2_global (nprocs-1) = nz_global 
     kg2_global(nprocs-1) = nz_global + 1
-    ! debug line
-    WRITE(*,*) 'myid',myid,'k1_global',k1_global
-    WRITE(*,*) 'myid',myid,'k2_global',k2_global
-    WRITE(*,*) 'myid',myid,'kg1_global',kg1_global
-    WRITE(*,*) 'myid',myid,'kg2_global',kg2_global
 
     ! face points
     nx = nx_global
@@ -97,8 +92,6 @@ Contains
     nxg = nxm + 2
     nyg = nym + 2
     nzg = kg2_global(myid) - kg1_global(myid) + 1 
-    WRITE(*,*) 'myid',myid,'nzg',nzg
-    WRITE(*,*) 'myid',myid,'nxg',nxg
 
     ! size for last proccesor nz and nzm -> nze and nzme
     nze  = nz
@@ -539,7 +532,6 @@ Contains
     Allocate ( u_z_indices( nweights, nb) )
     Allocate ( u_z_local_indices( nweights, nb) )
     Allocate ( u_proc( nweights, nb) )
-    Allocate ( U_subset( nweights, nb) )
     Allocate ( u_z_supp_idx( nweights, nb) )
     
     Allocate ( v_weights  ( nweights, nb) )
@@ -548,7 +540,6 @@ Contains
     Allocate ( v_z_indices( nweights, nb) )
     Allocate ( v_z_local_indices( nweights, nb) )
     Allocate ( v_proc( nweights, nb) )
-    Allocate ( V_subset( nweights, nb) )
     Allocate ( v_z_supp_idx( nweights, nb) )
     
     Allocate ( w_weights  ( nweights, nb) )
@@ -557,9 +548,8 @@ Contains
     Allocate ( w_z_indices( nweights, nb) )
     Allocate ( w_z_local_indices( nweights, nb) )
     Allocate ( w_proc( nweights, nb) )
-    Allocate ( W_subset( nweights, nb) )
     Allocate ( w_z_supp_idx( nweights, nb) )
-
+    
     Allocate ( send_counts_nb(nprocs), displs_nb(nprocs) )
 
     !--------------------Initialize BiCGSTAB arrays---------------!    
@@ -570,6 +560,7 @@ Contains
     Allocate ( bcg_h( 3 * nb) )
     Allocate ( bcg_sv( 3 * nb) )
     Allocate ( bcg_tv( 3 * nb) )
+    cg_accum_iter = 0
 
     !-------------------------Done--------------------------------!
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)

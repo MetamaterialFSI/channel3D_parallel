@@ -52,6 +52,10 @@ Contains
         Call check_slip(max_slip)
       End If
 
+      ! compute average number of bicgstab iterations
+      cg_mean_iter = cg_accum_iter / Real(3 * nmonitor)
+      cg_accum_iter = 0
+
       ! end measure time per step
       time2 = MPI_WTIME()
 
@@ -63,7 +67,8 @@ Contains
         Write(*,*) 'time step   :', dt
         
         Write(*,*) ' '
-        Write(*,*) 'Retau:      :', Retau
+        Write(*,*) 'Retau_u:      :', Retau_u
+        Write(*,*) 'Retau_w:      :', Retau_w
 
         Write(*,*) ' '          
         Write(*,*) 'Maximum U   :', maxU
@@ -75,17 +80,20 @@ Contains
         Write(*,*) 'Mean W      :', meanW/Real( nxm_global*nym_global*nzm_global, 8 )
 
         Write(*,*) ' '
-        Write(*,*) 'Mean mass flow in x         :', Qflow_x
-        Write(*,*) 'Mean mass flow in y         :', Qflow_y
+        Write(*,*) 'Mean masked mass flow in x  :', Qflow_x
+        Write(*,*) 'Mean masked mass flow in y  :', Qflow_y
+        Write(*,*) 'Mean masked mass flow in z  :', Qflow_z
         Write(*,*) 'Mean pressure gradient in x :', dPdx
         Write(*,*) 'Mean pressure gradient in y :', dPdy
+        Write(*,*) 'Mean pressure gradient in z :', dPdz
         
         Write(*,*) ' '
-        write(*,*) 'Maximum divergence          :', max_divergence
+        write(*,*) 'Maximum divergence               :', max_divergence
         If ( trim(body_type) /= 'none' ) Then
-          write(*,*) 'Maximum IB slip             :', max_slip
+          write(*,*) 'Maximum IB slip                  :', max_slip
+          write(*,*) 'Average BiCGSTAB iteration count :', cg_mean_iter
         End If
-        write(*,*) 'Elapsed time (s)            :', time2-time1
+        write(*,*) 'Elapsed time (s)                 :', time2-time1
         
         Write(*,*) '------------------------------------------------------'
 
@@ -134,7 +142,11 @@ Contains
       If ( y_mass_cte==1 ) Then
          Write(*,*) 'Constant mass flow in y'
       End If
-      Write(*,*) 'dPdz    :', dPdz
+      If ( z_mass_cte==1 ) Then
+         Write(*,*) 'Constant mass flow in z'
+      Else
+        Write(*,*) 'dPdz    :', dPdz
+      End If
       
       Write(*,*) ' '
       Write(*,*) 'nsteps   :', nsteps
