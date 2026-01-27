@@ -44,34 +44,61 @@ Contains
 
   Subroutine compute_IB_projection
 
+
     ! - E u* + ub 
+    prev_time = MPI_WTIME()
     rhs_ib = -regT(U, V, W) + ub
+    last_time = MPI_WTIME()
+    E_1st = E_1st+last_time-prev_time
 
     ! solve for IB forcing
+    prev_time = MPI_WTIME()
     call bicgstab(fb, rhs_ib)
+    last_time = MPI_WTIME()
+    IB_force = IB_force +last_time-prev_time
 
     ! U_reg = R f
+    prev_time = MPI_WTIME()
     Call regu(U_reg, fb)
     Call regv(V_reg, fb)
     Call regw(W_reg, fb)
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
+    last_time = MPI_WTIME()
+    R_1st = R_1st +last_time-prev_time
+
 
     ! rhs_p = D R f
+    prev_time = MPI_WTIME()
     Call divergence(rhs_p, U_reg, V_reg, W_reg)
+    last_time = MPI_WTIME()
+    D_1st = D_1st +last_time-prev_time
+
+    prev_time = last_time
     Call solve_poisson_equation(rhs_p)
+    last_time = MPI_WTIME()
+    IB_possion = IB_possion +last_time-prev_time
 
     ! Pnp1 = P* - Linv D R f
+    prev_time = MPI_WTIME()
     rhs_p = P_interim - rhs_p
+    last_time = MPI_WTIME()
+    proj_1st = proj_1st +last_time-prev_time
 
     ! U, V, W = G Pnp1
+    prev_time = MPI_WTIME()
     call gradient(U, V, W, rhs_p)
+    last_time = MPI_WTIME()
+    grad_1st = grad_1st +last_time-prev_time
 
     ! Unp1 = U** - R f - G Pnp1
+    prev_time = MPI_WTIME()
     U = U_interim - U_reg - U
     V = V_interim - V_reg - V
     W = W_interim - W_reg - W
 
     Call apply_boundary_conditions(U, V, W)
+    last_time = MPI_WTIME()
+    proj_2nd = proj_2nd +last_time-prev_time
 
   End Subroutine compute_IB_projection
 
@@ -139,6 +166,15 @@ Contains
       bcg_x = bcg_h + om * bcg_sv
       bcg_r = bcg_sv - om * bcg_tv
       error = dot_product( bcg_r, bcg_r)
+      ! debug for output error
+      !write(*,*) 'For iter=',iter,'error : ', error
+      if ( rk_step==1 )then
+        RK1_error(iter+1)=error
+      elseif (rk_step ==2) then
+        RK2_error(iter+1)=error
+      elseif (rk_step==3) then
+        RK3_error(iter+1)=error
+      end if 
       iter = iter + 1
       Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
     End Do
@@ -146,5 +182,13 @@ Contains
       Write(*,*)  "......WARNING, bicgstab used maximum number of iterations (", cg_max_iter, ")"
       Write(*,*)  "......max |residual| = ", Maxval(Abs(bcg_r))
     End If
+    ! output iteration
+    if ( rk_step==1 )then
+      RK1_iter=RK1_iter+iter
+    elseif (rk_step ==2) then
+      RK2_iter=RK2_iter+iter
+    elseif (rk_step==3) then
+      RK3_iter=RK3_iter+iter
+    end if 
   End Subroutine
 End Module projection

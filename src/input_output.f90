@@ -753,4 +753,69 @@ Contains
     End Do  
   End Subroutine to_Lower
 
+  !----------------------------------------------!
+  !   Write 1d data in a single txt file         !
+  !----------------------------------------------!
+  Subroutine output_time
+
+    Character(200) :: fname
+    Character(8)   :: ext
+    Integer(Int32) :: i,j
+ 
+    If ( myid==0 ) Then
+ 
+       Write(ext,'(I8)') istep + nstep_init
+       
+       fname = Trim(Adjustl(fileout))//'_time.dat'
+       !Write(*,*) 'writting ',Trim(Adjustl(fname))
+       if (istep + nstep_init .eq. 1) then
+         Open(33,file=fname,form="formatted",status="replace") 
+       Else
+         Open(33,file=fname,form="formatted",status="unknown",position="append") 
+       end if 
+
+       
+       Do i=1,store_index
+        !Write(33,'(999F15.8)') (time_matrix(i,j), j=1,12)
+        Write(33,'(999E15.8)') (time_matrix(i,j), j=1,17)
+
+       End do
+       
+       Close(33)
+ 
+    End If
+ 
+  End Subroutine output_time
+
+  Subroutine output_error
+
+    Character(200) :: fname
+    Character(8)   :: ext
+    Integer(Int32) :: i,j
+ 
+    If ( myid==0 ) Then
+ 
+       Write(ext,'(I8)') istep + nstep_init
+       
+       fname = Trim(Adjustl(fileout))//'_error.dat'
+       !Write(*,*) 'writting ',Trim(Adjustl(fname))
+       if (istep + nstep_init .eq. 1) then
+         Open(33,file=fname,form="formatted",status="replace") 
+       Else
+         Open(33,file=fname,form="formatted",status="unknown",position="append") 
+       end if 
+
+       
+       Do i=1,store_index
+        !Write(33,'(999F15.8)') (time_matrix(i,j), j=1,12)
+        Write(33,'(999E15.8)') (error_matrix(i,j), j=1,150)
+
+       End do
+       
+       Close(33)
+ 
+    End If
+ 
+  End Subroutine output_error
+
 End Module input_output
