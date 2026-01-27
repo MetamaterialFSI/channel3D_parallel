@@ -106,7 +106,7 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: Vw 
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_reg, V_reg, W_reg
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_interim, V_interim, W_interim, P_interim
-  Real(Int64), Allocatable, Dimension(:,:,:) :: U_supp, V_supp, W_supp, P_supp! first 1:suppz is for left boundary; suppz+1:2*suppz is for right boundary
+  Real(Int64), Allocatable, Dimension(:,:,:) :: U_supp, V_supp, W_supp ! first 1:suppz is for left boundary; suppz+1:2*suppz is for right boundary
 
   ! local auxiliary 
   Real(Int64), Allocatable, Dimension(:,:,:) :: term_1, term_2
