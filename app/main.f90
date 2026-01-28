@@ -92,7 +92,9 @@ Program channel_FD
   Call compute_mean_mass_flow_W(V,Qflow_z_0)
   Qflow_y_0 = 0d0
   dPdy      = 0d0
-
+  
+  ! write snapshot if needed
+  Call output_data
   Call compute_statistics 
   Call output_monitor
 
