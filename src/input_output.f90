@@ -693,7 +693,7 @@ Contains
         ! surface stress
         Write(1) Shape(fb, Int32), fb
 
-        ! interpolated body velocity
+        ! body velocity
         Write(1) Shape(ub, Int32), ub
 
         ! body surface areas
