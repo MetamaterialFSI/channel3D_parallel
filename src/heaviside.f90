@@ -47,6 +47,11 @@ Contains
 
     Call apply_boundary_conditions(Hu_interior, Hv_interior, Hw_interior)
 
+    E1nHc_exterior = regTc_1n(Hc_exterior)
+    E1nH_exterior = regT_1n(Hu_exterior, Hv_exterior, Hw_exterior)
+
+    debug_surface_scalar = E1nHc_exterior
+
   End Subroutine compute_heaviside
 
 End module heaviside

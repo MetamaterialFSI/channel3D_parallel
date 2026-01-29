@@ -145,6 +145,7 @@ Contains
     Allocate (U_supp  (    nx,  nym+2, suppz*2+1) )
     Allocate (V_supp  ( nxm+2,     ny, suppz*2+1) )
     Allocate (W_supp  ( nxm+2,  nym+2, suppz*2+1) )
+    Allocate (P_supp  ( nxm+2,  nym+2, suppz*2+1) )
 
     Allocate (Vw ( nxm+2, 2, nzm+2) )
 
@@ -240,6 +241,7 @@ Contains
     Allocate ( buffer_usupp_s(nx ,nyg,suppz+1), buffer_usupp_r(nx ,nyg,suppz+1) )
     Allocate ( buffer_vsupp_s(nxg, ny,suppz+1), buffer_vsupp_r(nxg, ny,suppz+1) )
     Allocate ( buffer_wsupp_s(nxg,nyg,suppz+1), buffer_wsupp_r(nxg,nyg,suppz+1) )
+    Allocate ( buffer_psupp_s(nxg,nyg,suppz+1), buffer_psupp_r(nxg,nyg,suppz+1) )
 
     !---------------------------Fourier transform---------------------------!
     If ( myid==0 ) Write(*,*) 'initializing FFT...'
@@ -480,6 +482,10 @@ Contains
     tangents_1= 0d0
     tangents_2= 0d0
 
+    ! Body scalar for debugging
+    Allocate (debug_surface_scalar(nb) )
+    debug_surface_scalar = 0d0
+
     ! Heaviside arrays
     Allocate (Hu_interior (    nx, nym+2, nzm+2 ) )
     Allocate (Hv_interior ( nxm+2,    ny, nzm+2 ) )
@@ -501,6 +507,9 @@ Contains
        Allocate (Hw_interior_oo ( nxm+2,  nym+2,    nze) )
        Allocate (Hc_interior_oo ( nxm+2,  nym+2, nzme+2) )
     End If
+
+    Allocate (E1nHc_exterior (nb) )
+    Allocate (E1nH_exterior  (3 * nb) )
 
     ! Auxiliary surface arrays
     Allocate ( rhs_ib (3 * nb) )
@@ -527,6 +536,7 @@ Contains
     Allocate ( zm_pivot_index (nb) )
     
     Allocate ( u_weights  ( nweights, nb) )
+    Allocate ( dxnu       ( nweights, nb) )
     Allocate ( u_x_indices( nweights, nb) )
     Allocate ( u_y_indices( nweights, nb) )
     Allocate ( u_z_indices( nweights, nb) )
@@ -535,6 +545,7 @@ Contains
     Allocate ( u_z_supp_idx( nweights, nb) )
     
     Allocate ( v_weights  ( nweights, nb) )
+    Allocate ( dxnv       ( nweights, nb) )
     Allocate ( v_x_indices( nweights, nb) )
     Allocate ( v_y_indices( nweights, nb) )
     Allocate ( v_z_indices( nweights, nb) )
@@ -543,6 +554,7 @@ Contains
     Allocate ( v_z_supp_idx( nweights, nb) )
     
     Allocate ( w_weights  ( nweights, nb) )
+    Allocate ( dxnw       ( nweights, nb) )
     Allocate ( w_x_indices( nweights, nb) )
     Allocate ( w_y_indices( nweights, nb) )
     Allocate ( w_z_indices( nweights, nb) )
@@ -550,6 +562,15 @@ Contains
     Allocate ( w_proc( nweights, nb) )
     Allocate ( w_z_supp_idx( nweights, nb) )
     
+    Allocate ( c_weights  ( nweights, nb) )
+    Allocate ( dxnc       ( nweights, nb) )
+    Allocate ( c_x_indices( nweights, nb) )
+    Allocate ( c_y_indices( nweights, nb) )
+    Allocate ( c_z_indices( nweights, nb) )
+    Allocate ( c_z_local_indices( nweights, nb) )
+    Allocate ( c_proc( nweights, nb) )
+    Allocate ( c_z_supp_idx( nweights, nb) )
+
     Allocate ( send_counts_nb(nprocs), displs_nb(nprocs) )
 
     !--------------------Initialize BiCGSTAB arrays---------------!    

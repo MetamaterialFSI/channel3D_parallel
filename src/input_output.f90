@@ -704,6 +704,9 @@ Contains
         Write(1) Shape(tangents_1, Int32), tangents_1
         Write(1) Shape(tangents_2, Int32), tangents_2
 
+        ! array output for debugging
+        Write(1) Shape(debug_surface_scalar, Int32), debug_surface_scalar
+
       End If
          
       ! close file

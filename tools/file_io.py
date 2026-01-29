@@ -103,6 +103,8 @@ def read_field(file_path):
         data["tangents_1"] = np.fromfile(f, dtype=np.dtype('>f8'), count=np.fromfile(f, dtype=np.dtype('>i4'), count=1)[0])
         data["tangents_2"] = np.fromfile(f, dtype=np.dtype('>f8'), count=np.fromfile(f, dtype=np.dtype('>i4'), count=1)[0])
 
+        data["debug_surface_scalar"] = np.fromfile(f, dtype=np.dtype('>f8'), count=np.fromfile(f, dtype=np.dtype('>i4'), count=1)[0])
+
     return data
 
 def interpolate_velocity(source, target):
