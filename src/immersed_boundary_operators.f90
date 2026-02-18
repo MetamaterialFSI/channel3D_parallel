@@ -199,7 +199,7 @@ Contains
         Do j = -suppy, suppy
           Do i = -suppx, suppx
             ii = xm_pivot_index(l) + i
-            jj = ym_pivot_index(l) + j-1
+            jj = ym_pivot_index(l) + j
             kk = zm_pivot_index(l) + k
 
             x_periodic_shifts = Floor(Real(ii - 1, Int64) / (nxm_global - 1))
@@ -209,7 +209,7 @@ Contains
 
             count = count + 1
             c_x_indices(count, l) = ii_periodic + 1 ! plus one for ghost cell
-            c_y_indices(count, l) = jj+1
+            c_y_indices(count, l) = jj + 1 ! plus one for ghost cell
             if ( (kk_periodic .eq. 2) .and. (myid .eq. nprocs-1) ) then
               c_z_indices(count, l) = nzg_global - 1 ! due to periodicity
             else
@@ -226,7 +226,7 @@ Contains
 
             x_grid = xm_global(ii_periodic) + x_periodic_shifts * Lxp
             y_grid = ym_global(jj)
-            z_grid = zm_global(kk_periodic-1) + z_periodic_shifts * (Lzp)
+            z_grid = zm_global(kk_periodic-1) + z_periodic_shifts * Lzp
 
             c_weights(count, l) = dx * dymin * dz &
               * deltafnc(x_grid, xb(l),    dx) &
@@ -237,33 +237,10 @@ Contains
               normals(l)          * (x_grid - xb(l)) + &
               normals(nb + l)     * (y_grid - yb(l)) + &
               normals(2 * nb + l) * (z_grid - zb(l))
-            ! if ( l.eq.1 .and. count.eq.130) then
-            !   write(*,*) 'x_idx',c_x_indices(count, l)
-            !   write(*,*) 'y_idx',c_y_indices(count, l)
-            !   write(*,*) 'z_idx',c_z_indices(count, l)
-            !   write(*,*) 'dx',dx,'dymin',dymin,'dz',dz
-            !   write(*,*) 'x_grid', x_grid
-            !   write(*,*) 'y_grid', y_grid
-            !   write(*,*) 'z_grid', z_grid
-            !   write(*,*) 'yb',yb(l)
-            !   write(*,*) 'normals(nb+l)',normals(nb + l) 
-            ! end if
           End Do
         End Do
       End Do
     End Do
-    ! if ( myid .eq. 0 ) then
-    !   ! debug line
-    !   write(*,*) 'xb,yb,zb',xb(1),yb(1),zb(1)
-    !   write(*,*) 'c_x_index,c_y_index,c_z_index',c_x_indices(5,1),c_y_indices(5,1),c_z_indices(5,1)
-    !   write(*,*) 'count',count,'nweights',nweights
-    !   write(*,*)  'weight', c_weights(125,1)
-    !   write(*,*)  'dxnc',dxnc(125,1)
-    !   write(*,*) 'ym_global(ym_pivot)',ym_global(ym_pivot_index(1) -1)
-    !   write(*,*) 'ym_pivot_index',ym_pivot_index(1) 
-    !   write(*,*) 'y_grid',ym_global(ym_pivot_index(1) -2-1)
-    !   write(*,*) 'yb',ym_global(ym_pivot_index(1) -2-1)
-    ! end if
 
     local_size_nb = nb_end - nb_start + 1
 
@@ -363,14 +340,28 @@ Contains
 
   End Function regT_1n
 
+  Function regTc(P_)
+    Implicit None
+    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg), Intent(InOut) :: P_
+    Real(Int64), Dimension(nb):: regTc
+
+    ! update support cells from interior points
+    Call interior_planes_update_support_pressure(P_, P_supp)
+
+    ! compute local_regT
+    regT_buffer_scalar = local_regTc(P_, P_supp)
+    ! Gather regT values from all partitions
+    Call MPI_Allgatherv(regT_buffer_scalar(nb_start : nb_end), local_size_nb, MPI_REAL8, &
+                 regTc(1 : nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+
+  End Function regTc
+
   Function regTc_1n(P_)
     Implicit None
-    !Real(Int64), CONTIGUOUS, INTENT(INOUT)  :: P_(:, :, :)
-    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg ), Intent(INOUT) :: P_
+    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg), Intent(InOut) :: P_
     Real(Int64), Dimension(nb):: regTc_1n
 
     ! update support cells from interior points
-    !Call interior_planes_update_support(P_, P_supp, 4)
     Call interior_planes_update_support_pressure(P_, P_supp)
 
     ! compute local_regT
@@ -525,9 +516,34 @@ Contains
     End Do
   End Function local_regT_1n
 
+  Function local_regTc(P_, P_supp_)
+    Implicit None
+    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg), Intent(In) :: P_
+    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, suppz * 2 + 1), Intent(In) :: P_supp_
+    Real(Int64), Dimension(nb):: local_regTc
+    integer :: proc_idx
+
+    Integer(Int32) :: i, j
+    local_regTc = 0.D0
+
+    Do j = nb_start, nb_end
+      Do i = 1, nweights
+        ! get data of P
+        proc_idx = c_proc(i, j)
+        if ( proc_idx .eq. myid ) then
+          local_regTc(j) = local_regTc(j)+ &
+          c_weights(i, j) * P_(c_x_indices(i, j),c_y_indices(i, j),c_z_local_indices(i, j))
+        else
+          local_regTc(j) = local_regTc(j)+ &
+          c_weights(i, j) * P_supp_(c_x_indices(i, j),c_y_indices(i, j),c_z_supp_idx(i, j))
+        end if
+      End Do
+    End Do
+  End Function local_regTc
+
   Function local_regTc_1n(P_, P_supp_)
     Implicit None
-    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg ), Intent(In) :: P_
+    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg), Intent(In) :: P_
     Real(Int64), Dimension(2:nxg-1, 2:nyg-1, suppz * 2 + 1), Intent(In) :: P_supp_
     Real(Int64), Dimension(nb):: local_regTc_1n
     integer :: proc_idx
