@@ -105,11 +105,11 @@ Contains
     Real   (Int64), DIMENSION( 2:nxg-1, 2:nyg-1, 2:nzg ), INTENT(INOUT)  :: rhs
 
     ! apply periodicity in x (All processors, no MPI needed)
-    rhs ( nxg-1, :, : ) = rhs ( 2, :, : )
+    rhs ( nxg-1, 2:nyg-1, 2:nzg ) = rhs ( 2, 2:nyg-1, 2:nzg )
 
     ! apply periodicity in z (Only first and last processor, MPI needed) 
     If     ( myid==0 ) Then
-       buffer_p = rhs ( 2:nxg-1, :, 2 ) 
+       buffer_p = rhs ( 2:nxg-1, 2:nyg-1, 2 ) 
        ! send data to nprocs-1
        Call Mpi_send(buffer_p, (nxg-2)*(nyg-2), MPI_real8, nprocs-1, 0, &
              MPI_COMM_WORLD,ierr)
@@ -117,7 +117,8 @@ Contains
        ! receive data from 0
        Call Mpi_recv(buffer_p, (nxg-2)*(nyg-2), MPI_real8, 0, 0, &
             MPI_COMM_WORLD,istat,ierr)
-       rhs ( 2:nxg-1, :, nzp+1+1 ) = buffer_p
+       rhs ( 2:nxg-1, 2:nyg-1, nzp+1+1 ) = buffer_p
+       rhs ( 2:nxg-1, 2:nyg-1, nzp+1+2 ) = buffer_p
     End If
 
   End Subroutine apply_periodic_xz_centers
@@ -145,11 +146,11 @@ Contains
        recvfrom = MPI_PROC_NULL
        tagfrom  = MPI_ANY_TAG
     End If
-    buffer_ps = rhs(:,:,2)  ! send buffer
+    buffer_ps = rhs(2:nxg-1, 2:nyg-1,2)  ! send buffer
     Call Mpi_sendrecv(buffer_ps, (nxg-2)*(nyg-2), Mpi_real8, sendto, tagto,        &
          buffer_pr, (nxg-2)*(nyg-2), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
          istat, ierr)   
-    If ( myid/=nprocs-1 ) rhs(:,:,nzg) = buffer_pr ! received buffer 
+    If ( myid/=nprocs-1 ) rhs(2:nxg-1, 2:nyg-1,nzg) = buffer_pr ! received buffer 
 
   End Subroutine update_ghost_interior_planes_centers
 

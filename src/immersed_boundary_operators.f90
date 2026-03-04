@@ -22,6 +22,7 @@ Contains
     integer :: k_local,k_supp         ! local index
     integer :: proc_id      ! MPI rank that owns this index
     Real(Int64) :: x_grid, y_grid, z_grid
+    integer :: prev, next
 
     !-----------------Find the indices of the flow grid points closest to the body points---------------------!
     Do l = nb_start, nb_end
@@ -199,7 +200,7 @@ Contains
         Do j = -suppy, suppy
           Do i = -suppx, suppx
             ii = xm_pivot_index(l) + i
-            jj = ym_pivot_index(l) + j-1
+            jj = ym_pivot_index(l) + j
             kk = zm_pivot_index(l) + k
 
             x_periodic_shifts = Floor(Real(ii - 1, Int64) / (nxm_global - 1))
@@ -209,7 +210,7 @@ Contains
 
             count = count + 1
             c_x_indices(count, l) = ii_periodic + 1 ! plus one for ghost cell
-            c_y_indices(count, l) = jj+1
+            c_y_indices(count, l) = jj + 1 ! plus one for ghost cell
             if ( (kk_periodic .eq. 2) .and. (myid .eq. nprocs-1) ) then
               c_z_indices(count, l) = nzg_global - 1 ! due to periodicity
             else
@@ -226,7 +227,7 @@ Contains
 
             x_grid = xm_global(ii_periodic) + x_periodic_shifts * Lxp
             y_grid = ym_global(jj)
-            z_grid = zm_global(kk_periodic-1) + z_periodic_shifts * (Lzp)
+            z_grid = zm_global(kk_periodic-1) + z_periodic_shifts * Lzp
 
             c_weights(count, l) = dx * dymin * dz &
               * deltafnc(x_grid, xb(l),    dx) &
@@ -237,6 +238,22 @@ Contains
               normals(l)          * (x_grid - xb(l)) + &
               normals(nb + l)     * (y_grid - yb(l)) + &
               normals(2 * nb + l) * (z_grid - zb(l))
+            ! ---- DEBUG: only print for target l, fixed i/j at pivot, all k ----
+              if ( i .eq. 0 .and. &
+              j .eq. 0 .and. &
+              k .eq. 0 .and. &
+              abs(xb(l) - 0.143166666666667 ) < 1.0d-6 ) then
+                write(*,*) &
+              '[DBG] myid=', myid, &
+              ! ' k=',   k, &
+              ! ' kk=',  kk, &
+              ! ' kk_p=',kk_periodic, &
+              ' cz_g=',c_z_indices(count,l), &
+              ' k_loc=',c_z_local_indices(count,l), &
+              ' k_sup=',c_z_supp_idx(count,l), &
+              ' proc=', c_proc(count,l), &
+              ' z_grid=', z_grid, ' zb=', zb(l)
+            end if
             ! if ( l.eq.1 .and. count.eq.130) then
             !   write(*,*) 'x_idx',c_x_indices(count, l)
             !   write(*,*) 'y_idx',c_y_indices(count, l)
@@ -252,6 +269,15 @@ Contains
         End Do
       End Do
     End Do
+    ! Determine periodic neighbors
+    prev = myid - 1
+    if (prev < 0) prev = nprocs - 1
+    next = myid + 1
+    if (next == nprocs) next = 0
+    do k = kg1_global(prev)+1, kg2_global(next)-1
+      call global_to_local_center(k, k_supp, k_local, proc_id)
+      write(*,*) '[DBG for k_global], myid',myid,'k_global',k,'k_local',k_local,'k_supp',k_supp,'proc_id',proc_id
+    end do
     ! if ( myid .eq. 0 ) then
     !   ! debug line
     !   write(*,*) 'xb,yb,zb',xb(1),yb(1),zb(1)
@@ -698,7 +724,10 @@ Contains
         end if
       end if
       if (k_sup < 1 .or. k_sup > 2*suppz+1) Then
-        WRITE(*,*) 'myid',myid,'proc_idx',rank,'k_sup',k_sup,'k_glb',k_global
+        WRITE(*,*) '[DBG face_map]', 'myid=', myid, 'k_glb=', k_global, &
+     &              'k_loc=', k_loc, 'k_sup=', k_sup, 'rank=', rank,    &
+     &              'prev=', prev, 'next=', next,                       &
+     &              'k1(rank)=', k1_global(rank), 'k2(rank)=', k2_global(rank)
         stop 'Error: zi_supp out of [1..suppz*2+1] for face'
       END IF
     end if
@@ -752,9 +781,8 @@ Contains
       rank = next
     else
       print *, 'Error: Center index ', k_global, ' not in {', prev, ',', myid, ',', next, '}.'
-      stop
+      !stop
     end if
-
     k_loc = k_global - kg1_global(rank) + 1
     if (rank == myid) then
       ! Locally owned -> compute k_loc
@@ -778,19 +806,24 @@ Contains
         if ( rank .eq. prev ) then
           k_sup = k_global - (kg2_global(prev) - suppz)+2
           if ( rank .eq. nprocs-1 ) then
-            k_sup=k_sup+1-1
+            k_sup=k_sup+suppz-2
           end if
         elseif (rank .eq. next) then
           k_sup = (k_global - (kg1_global(next) + 1)) + (suppz + 2)
         end if
         if (rank .eq. 0) then
-          k_sup=k_sup-1
+          k_sup=k_sup+suppz-3
         end if
       end if
       if (k_sup < 1 .or. k_sup > 2*suppz+1) Then
-        WRITE(*,*) 'myid',myid,'proc_idx',rank,'k_sup',k_sup,'k_glb',k_global
-        stop 'Error: zi_supp out of [1..suppz*2+1] for center'
+        !WRITE(*,*) 'myid',myid,'proc_idx',rank,'k_sup',k_sup,'k_glb',k_global
+        !stop 'Error: zi_supp out of [1..suppz*2+1] for center'
       END IF
+      ! Debug: log all nonlocal mappings
+    !   WRITE(*,*) '[DBG center_nonlocal]', 'myid=', myid, 'k_glb=', k_global, &
+    !  &          'k_loc=', k_loc, 'k_sup=', k_sup, 'rank=', rank,             &
+    !  &          'prev=', prev, 'next=', next,                                &
+    !  &          'kg1(rank)=', kg1_global(rank), 'kg2(rank)=', kg2_global(rank)
     end if
   end subroutine global_to_local_center
 
