@@ -97,7 +97,6 @@ Contains
     nxg = nxm + 2
     nyg = nym + 2
     nzg = kg2_global(myid) - kg1_global(myid) + 1 
-    write(*,*) 'myid',myid,'nzg',nzg,'suppz',suppz
 
     ! size for last proccesor nz and nzm -> nze and nzme
     nze  = nz
@@ -277,8 +276,6 @@ Contains
     ! local data size in z direction (note dimension reversal)
     alloc_local = fftw_mpi_local_size_2d(nzp_global, nxp_global, MPI_COMM_WORLD, nzp, local_k_offset)
     mz  = nzp - 1
-
-    WRITE(*,*) 'myid',myid,'npz+2',nzp+2,'nzg',nzg
 
     ! sanity check and restrictions in fftw
     If ( (nzp/=nzm .And. myid/=nprocs-1) .Or. (nzp/=nzm-1 .And. myid==nprocs-1) ) Then 

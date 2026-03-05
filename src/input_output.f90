@@ -149,7 +149,6 @@ Contains
         Do i=1,ny_global
           y_global(i) = Real(i-1,8)
         End Do
-        !y_global = 2d0 * y_global / Maxval(y_global)
         y_global = 4d0 * y_global / Maxval(y_global)
 
       Case (1) ! Stretched grid wall to wall
@@ -515,7 +514,7 @@ Contains
         Write(1) Shape(ym_global), ym_global
         Write(1) Shape(zm_global), zm_global          
        
-      End If 
+      End If
 
       ! U
       If ( myid/=0 ) Then
@@ -671,116 +670,6 @@ Contains
         End Do
       Endif
 
-
-      ! for debug 
-      ! Hc_interior
-      If ( myid/=0 ) Then
-        ! data from processor n>0    
-        Call Mpi_send(debug_rhs_p,(nxg-2)*(nyg-2)*(nzg-1),Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
-      Else
-        ! write W size
-        Write(1) nxg_global-2,nyg_global-2,nzg_global-1
-        ! processor 0 writes its data
-        Write(1) debug_rhs_p(:,:,2:nzg-1)
-        ! processor 0 receives and writes rest data
-        Do iproc = 1, nprocs-1
-          nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
-          If ( iproc<nprocs-1 ) Then
-            Call Mpi_recv(debug_rhs_p_o,(nxg-2)*(nyg-2)*(nzge-1),Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-            Write(1) debug_rhs_p_o(:,:,2:nzge-1)
-          Else
-            Call Mpi_recv(debug_rhs_p_oo,(nxg-2)*(nyg-2)*(nzge-1),Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-            Write(1) debug_rhs_p_oo(:,:,2:nzge)
-          End If
-        End Do
-      Endif
-
-      ! debug_U
-      If ( myid/=0 ) Then
-        ! data from processor n>0    
-        Call Mpi_send(debug_u,nx*nyg*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
-      Else
-        ! write Hu_interior size
-        Write(1) nx_global,nyg_global,nzg_global
-        ! processor 0 writes its data
-        Write(1) debug_u(:,:,1:nzg-1) 
-        ! processor 0 receives and writes rest data
-        Do iproc = 1, nprocs-1
-          nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
-          If ( iproc<nprocs-1 ) Then
-            Call Mpi_recv(debug_u_o,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-            Write(1) debug_u_o(:,:,2:nzge-1)
-          Else
-            Call Mpi_recv(debug_u_oo,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-            Write(1) debug_u_oo(:,:,2:nzge)
-          End If
-        End Do
-      Endif
-
-      ! debug_V
-      ! If ( myid/=0 ) Then
-      !   ! data from processor n>0    
-      !   Call Mpi_send(debug_v,nxg*ny*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
-      ! Else
-      !   ! write Hv_interior size
-      !   Write(1) nxg_global,ny_global,nzg_global
-      !   ! processor 0 writes its data
-      !   Write(1) debug_v(:,:,1:nzg-1)
-      !   ! processor 0 receives and write rest data
-      !   Do iproc = 1, nprocs-1
-      !     nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
-      !     If ( iproc<nprocs-1 ) Then
-      !       Call Mpi_recv(debug_v,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-      !       Write(1) debug_v(:,:,2:nzge-1)
-      !     Else
-      !       Call Mpi_recv(debug_v,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-      !       Write(1) debug_v(:,:,2:nzge)
-      !     End If
-      !   End Do
-      ! Endif
-      If ( myid/=0 ) Then
-        ! data from processor n>0    
-        Call Mpi_send(debug_v,nxg*ny*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
-      Else
-        ! write V size
-        Write(1) nxg_global,ny_global,nzg_global
-        ! processor 0 writes its data
-        Write(1) debug_v(:,:,1:nzg-1)
-        ! processor 0 receives and write rest data
-        Do iproc = 1, nprocs-1
-          nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
-          If ( iproc<nprocs-1 ) Then
-            Call Mpi_recv(debug_v_o,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-            Write(1) debug_v_o(:,:,2:nzge-1)
-          Else
-            Call Mpi_recv(debug_v_oo,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-            Write(1) debug_v_oo(:,:,2:nzge)
-          End If
-        End Do
-      Endif
-
-      ! ! debug_W
-      If ( myid/=0 ) Then
-        ! data from processor n>0    
-        Call Mpi_send(debug_w,nxg*nyg*nz,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
-      Else
-        ! write W size
-        Write(1) nxg_global,nyg_global,nz_global
-        ! processor 0 writes its data
-        Write(1) debug_w(:,:,1:nz-1)
-        ! processor 0 receives and writes rest data
-        Do iproc = 1, nprocs-1
-          nze = k2_global(iproc) - k1_global(iproc) + 1 ! local size in z for processor iproc
-          If ( iproc<nprocs-1 ) Then
-            Call Mpi_recv(debug_w_o,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-            Write(1) debug_w_o(:,:,2:nze-1)
-          Else
-            Call Mpi_recv(debug_w_oo,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-            Write(1) debug_w_oo(:,:,2:nze)
-          End If
-        End Do
-      Endif
-
       If ( myid==0 ) Then
         ! Time
         Write(1) t
@@ -818,8 +707,8 @@ Contains
         ! array output for debugging
         Write(1) Shape(debug_surface_scalar, Int32), debug_surface_scalar
 
-      End If 
-
+      End If
+         
       ! close file
       If (myid==0) Then
         Close(1)
@@ -828,103 +717,6 @@ Contains
     End If
        
   End Subroutine output_data
-
-  Subroutine output_debug_local
-
-    Use iso_fortran_env, only: Int32
-    Implicit none
-  
-    Character(200) :: fname
-    Character(8)  :: ext_step, ext_rank
-    Integer(Int32) :: n
-    Integer(Int32) :: dims(3)
-  
-    If (Mod(istep, nsave) /= 0) Return
-  
-    !--------------------------------------------------
-    ! Filename: fileout_debug.step.rank
-    !--------------------------------------------------
-    Write(ext_step,'(I8)') istep + nstep_init
-    Write(ext_rank,'(I4)') myid
-  
-    fname = 'test_debug.'// &
-            Trim(Adjustl(ext_step))//'.rank'// &
-            Trim(Adjustl(ext_rank))
-  
-    Write(*,*) 'Rank ', myid, ' writing ', Trim(fname)
-  
-    Open(10,file=fname,access='stream',form='unformatted', &
-         action='write',convert='big_endian')
-  
-    !==================================================
-    ! Write GRID (local)
-    !==================================================
-  
-    ! x
-    n = size(x)
-    Write(10) n
-    Write(10) x
-  
-    ! y
-    n = size(y)
-    Write(10) n
-    Write(10) y
-  
-    ! z (local slab)
-    n = size(z)
-    Write(10) n
-    Write(10) z
-  
-    ! xg
-    n = size(xg)
-    Write(10) n
-    Write(10) xg
-  
-    ! yg
-    n = size(yg)
-    Write(10) n
-    Write(10) yg
-  
-    ! zg (local slab incl. ghosts if present)
-    n = size(zg)
-    Write(10) n
-    Write(10) zg
-  
-    !==================================================
-    ! Write DEBUG VARIABLES
-    !==================================================
-  
-    ! debug_rhs_p
-    dims = [ size(debug_rhs_p,1), &
-             size(debug_rhs_p,2), &
-             size(debug_rhs_p,3) ]
-    Write(10) dims
-    Write(10) debug_rhs_p
-  
-    ! debug_u
-    dims = [ size(debug_u,1), &
-             size(debug_u,2), &
-             size(debug_u,3) ]
-    Write(10) dims
-    Write(10) debug_u
-  
-    ! debug_v
-    dims = [ size(debug_v,1), &
-             size(debug_v,2), &
-             size(debug_v,3) ]
-    Write(10) dims
-    Write(10) debug_v
-  
-    ! debug_w
-    dims = [ size(debug_w,1), &
-             size(debug_w,2), &
-             size(debug_w,3) ]
-    Write(10) dims
-    Write(10) debug_w
-  
-    Close(10)
-  
-  End Subroutine output_debug_local
 
   !----------------------------------------------!
   !   Write some basic statistics in a txt file  !

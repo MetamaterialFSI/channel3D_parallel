@@ -17,7 +17,7 @@
 	x_mass_cte = 0 ! (0->use dPdx, 1->constant mass flow)
 	y_mass_cte = 0
 	! nsteps, nsave, nstats, nmonitor
-	nsteps = 100
+	nsteps = 0
 	nsave = 10
 	nstats = 10
 	nmonitor = 10

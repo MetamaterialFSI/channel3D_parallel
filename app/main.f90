@@ -95,7 +95,6 @@ Program channel_FD
   
   ! write snapshot if needed
   Call output_data
-  Call output_debug_local
   Call compute_statistics 
   Call output_monitor
 
@@ -116,9 +115,6 @@ Program channel_FD
 
     ! write snapshot if needed
     Call output_data
-
-    ! write snapshot if needed
-    Call output_debug_local
 
   End Do
 

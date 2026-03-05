@@ -119,7 +119,7 @@ Contains
   Subroutine divergence(div_, U_, V_, W_)
 
     Integer(Int32) :: i, j, k
-    Real   (Int64), DIMENSION( 2:nxg-1, 2:nyg-1, 2:nzg-1 ), INTENT(OUT) :: div_
+    Real   (Int64), DIMENSION( 2:nxg-1, 2:nyg-1, 2:nzg   ), INTENT(OUT) :: div_
     Real   (Int64), DIMENSION(      nx,   nym+2,   nzm+2 ), INTENT(IN)  :: U_
     Real   (Int64), DIMENSION(   nxm+2,      ny,   nzm+2 ), INTENT(IN)  :: V_
     Real   (Int64), DIMENSION(   nxm+2,   nym+2,      nz ), INTENT(IN)  :: W_
