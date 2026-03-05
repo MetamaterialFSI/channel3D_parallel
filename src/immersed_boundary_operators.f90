@@ -22,7 +22,6 @@ Contains
     integer :: k_local,k_supp         ! local index
     integer :: proc_id      ! MPI rank that owns this index
     Real(Int64) :: x_grid, y_grid, z_grid
-    integer :: prev, next
 
     !-----------------Find the indices of the flow grid points closest to the body points---------------------!
     Do l = nb_start, nb_end
@@ -343,12 +342,10 @@ Contains
 
   Function regTc_1n(P_)
     Implicit None
-    !Real(Int64), CONTIGUOUS, INTENT(INOUT)  :: P_(:, :, :)
-    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg ), Intent(INOUT) :: P_
+    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg), Intent(InOut) :: P_
     Real(Int64), Dimension(nb):: regTc_1n
 
     ! update support cells from interior points
-    !Call interior_planes_update_support(P_, P_supp, 4)
     Call interior_planes_update_support_pressure(P_, P_supp)
 
     ! compute local_regT
@@ -505,7 +502,7 @@ Contains
 
   Function local_regTc_1n(P_, P_supp_)
     Implicit None
-    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg ), Intent(In) :: P_
+    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg), Intent(In) :: P_
     Real(Int64), Dimension(2:nxg-1, 2:nyg-1, suppz * 2 + 1), Intent(In) :: P_supp_
     Real(Int64), Dimension(nb):: local_regTc_1n
     integer :: proc_idx
@@ -731,6 +728,7 @@ Contains
       write(*,*) 'Error: Center index ', k_global, ' not in {', prev, ',', myid, ',', next, '}.'
       stop
     end if
+
     k_loc = k_global - kg1_global(rank) + 1
     if (rank == myid) then
       ! Locally owned -> compute k_loc

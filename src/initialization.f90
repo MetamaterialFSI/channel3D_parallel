@@ -439,6 +439,31 @@ Contains
     Allocate ( Fw2 ( 2:nxg-1,  2:nyg-1, 2:nz-1 ) )
     Allocate ( Fw3 ( 2:nxg-1,  2:nyg-1, 2:nz-1 ) )
 
+    !-----------------Heaviside arrays----------------------!
+    Allocate (Hu_interior (    nx, nym+2, nzm+2 ) )
+    Allocate (Hv_interior ( nxm+2,    ny, nzm+2 ) )
+    Allocate (Hw_interior ( nxm+2, nym+2,    nz ) )
+    Allocate (Hu_exterior (    nx, nym+2, nzm+2 ) )
+    Allocate (Hv_exterior ( nxm+2,    ny, nzm+2 ) )
+    Allocate (Hw_exterior ( nxm+2, nym+2,    nz ) )
+    Allocate (Hc_interior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
+    Allocate (Hc_exterior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
+    Allocate (debug_rhs_p ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
+
+    Allocate (Hu_interior_o  (    nx,  nym+2, nzm+2) )
+    Allocate (Hv_interior_o  ( nxm+2,     ny, nzm+2) )
+    Allocate (Hw_interior_o  ( nxm+2,  nym+2,    nz) )
+    Allocate (Hc_interior_o  ( nxm+2,  nym+2, nzm+2) )
+    Allocate (debug_rhs_p_o  ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
+
+    If (myid == 0) Then
+       Allocate (Hu_interior_oo (    nx,  nym+2, nzme+2) ) ! z-planes modified for I/O
+       Allocate (Hv_interior_oo ( nxm+2,     ny, nzme+2) )
+       Allocate (Hw_interior_oo ( nxm+2,  nym+2,    nze) )
+       Allocate (Hc_interior_oo ( nxm+2,  nym+2, nzme+2) )
+       Allocate (debug_rhs_p_oo ( 2:nxg-1, 2:nyg-1, 2:nzme+2) )
+    End If
+
     !-------------------------Done--------------------------------!
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)
 
@@ -490,31 +515,6 @@ Contains
     ! Body scalar for debugging
     Allocate (debug_surface_scalar(nb) )
     debug_surface_scalar = 0d0
-
-    ! Heaviside arrays
-    Allocate (Hu_interior (    nx, nym+2, nzm+2 ) )
-    Allocate (Hv_interior ( nxm+2,    ny, nzm+2 ) )
-    Allocate (Hw_interior ( nxm+2, nym+2,    nz ) )
-    Allocate (Hu_exterior (    nx, nym+2, nzm+2 ) )
-    Allocate (Hv_exterior ( nxm+2,    ny, nzm+2 ) )
-    Allocate (Hw_exterior ( nxm+2, nym+2,    nz ) )
-    Allocate (Hc_interior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
-    Allocate (Hc_exterior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
-    Allocate (debug_rhs_p ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
-
-    Allocate (Hu_interior_o  (    nx,  nym+2, nzm+2) )
-    Allocate (Hv_interior_o  ( nxm+2,     ny, nzm+2) )
-    Allocate (Hw_interior_o  ( nxm+2,  nym+2,    nz) )
-    Allocate (Hc_interior_o  ( nxm+2,  nym+2, nzm+2) )
-    Allocate (debug_rhs_p_o  ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
-
-    If (myid == 0) Then
-       Allocate (Hu_interior_oo (    nx,  nym+2, nzme+2) ) ! z-planes modified for I/O
-       Allocate (Hv_interior_oo ( nxm+2,     ny, nzme+2) )
-       Allocate (Hw_interior_oo ( nxm+2,  nym+2,    nze) )
-       Allocate (Hc_interior_oo ( nxm+2,  nym+2, nzme+2) )
-       Allocate (debug_rhs_p_oo ( 2:nxg-1, 2:nyg-1, 2:nzme+2) )
-    End If
 
     Allocate (E1nHc_exterior (nb) )
     Allocate (E1nH_exterior  (3 * nb) )

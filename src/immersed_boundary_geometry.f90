@@ -71,7 +71,7 @@ Contains
         nb_start = 0
         nb_end = -1
 
-      Case ('center_wall') ! Static planar wall centered at y = 0
+      Case ('center_wall') ! Static planar wall centered at y = 1
         If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
         moving_body = .False.
         moving_z_flag = .False.
@@ -90,16 +90,14 @@ Contains
             xb(k) = (real(i,8) - 0.5d0) * dxb
             yb(k) = 2.0d0
             zb(k) = (real(j,8) - 0.5d0) * dzb
-            If (zb(k) >= z(1) .and. nb_start > k) then
-              nb_start = k
-            End If
-            If (zb(k) < z(nz-1) .and. nb_end < k) then
-              nb_end = k
-            End If
-          
           End Do
+          If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
+            nb_start = (j-1) * nxb + 1
+          End If
+          If (zb(j * nxb) < z(nz-1) .and. nb_end < j * nxb) then
+            nb_end = j * nxb
+          End If
         End Do
-        WRITE(*,*) 'myid',myid,'nb_start',nb_start,'nb_end',nb_end
         
         sb = dxb * dzb
 

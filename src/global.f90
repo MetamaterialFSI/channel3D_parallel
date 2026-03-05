@@ -249,9 +249,9 @@ Module global
   Integer(Int32) :: local_size_nb
 
   ! regularization and interpolation support, weights, and indices
-  Integer(Int32), parameter :: suppx = 3!2 debug
-  Integer(Int32), parameter :: suppy = 3!2 debug
-  Integer(Int32), parameter :: suppz = 3!2 debug
+  Integer(Int32), parameter :: suppx = 3
+  Integer(Int32), parameter :: suppy = 3
+  Integer(Int32), parameter :: suppz = 3
   Integer(Int32), parameter :: nweights = (2 * suppx + 1) * (2 * suppy + 1) * (2 * suppz + 1)
   Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights, c_weights
   Real(Int64),    Dimension(:,:),   Allocatable :: dxnu, dxnv, dxnw, dxnc
