@@ -1,12 +1,12 @@
 &params
 	! domain size
-	nx_global = 8
+	nx_global = 10
 	ny_global = 10
 	nz_global = 34
-	nxb = 6
+	nxb = 8
 	nzb = 32
-	Lxp = 1.718
-	Lzp = 0.859
+	Lxp = 6.28318530717959
+	Lzp = 3.14159265358979
 	! (positive->CFL, negative->timestep size)
 	CFL = -0.01
 	! viscosity

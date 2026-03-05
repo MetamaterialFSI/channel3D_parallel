@@ -238,33 +238,35 @@ Contains
               normals(l)          * (x_grid - xb(l)) + &
               normals(nb + l)     * (y_grid - yb(l)) + &
               normals(2 * nb + l) * (z_grid - zb(l))
-            ! ---- DEBUG: only print for target l, fixed i/j at pivot, all k ----
-              if ( i .eq. 0 .and. &
-              j .eq. 0 .and. &
-              k .eq. 0 .and. &
-              abs(xb(l) - 0.143166666666667 ) < 1.0d-6 ) then
-                write(*,*) &
-              '[DBG] myid=', myid, &
-              ! ' k=',   k, &
-              ! ' kk=',  kk, &
-              ! ' kk_p=',kk_periodic, &
-              ' cz_g=',c_z_indices(count,l), &
-              ' k_loc=',c_z_local_indices(count,l), &
-              ' k_sup=',c_z_supp_idx(count,l), &
-              ' proc=', c_proc(count,l), &
-              ' z_grid=', z_grid, ' zb=', zb(l)
-            end if
-            ! if ( l.eq.1 .and. count.eq.130) then
-            !   write(*,*) 'x_idx',c_x_indices(count, l)
-            !   write(*,*) 'y_idx',c_y_indices(count, l)
-            !   write(*,*) 'z_idx',c_z_indices(count, l)
-            !   write(*,*) 'dx',dx,'dymin',dymin,'dz',dz
-            !   write(*,*) 'x_grid', x_grid
-            !   write(*,*) 'y_grid', y_grid
-            !   write(*,*) 'z_grid', z_grid
-            !   write(*,*) 'yb',yb(l)
-            !   write(*,*) 'normals(nb+l)',normals(nb + l) 
+            ! ! ---- DEBUG: only print for target l, fixed i/j at pivot, all k ----
+            !   if ( i .eq. 0 .and. &
+            !   j .eq. 0 .and. &
+            !   k .eq. 0 .and. &
+            !   abs(xb(l) - 0.143166666666667 ) < 1.0d-6 ) then
+            !     write(*,*) &
+            !   '[DBG] myid=', myid, &
+            !   ! ' k=',   k, &
+            !   ! ' kk=',  kk, &
+            !   ! ' kk_p=',kk_periodic, &
+            !   ' cz_g=',c_z_indices(count,l), &
+            !   ' k_loc=',c_z_local_indices(count,l), &
+            !   ' k_sup=',c_z_supp_idx(count,l), &
+            !   ' proc=', c_proc(count,l), &
+            !   ' z_grid=', z_grid, ' zb=', zb(l)
             ! end if
+            if ( l.eq.1 .and. count.eq.130) then
+              write(*,*) 'x_idx',c_x_indices(count, l)
+              write(*,*) 'y_idx',c_y_indices(count, l)
+              write(*,*) 'z_idx',c_z_indices(count, l)
+              write(*,*) 'dx',dx,'dymin',dymin,'dz',dz
+              write(*,*) 'x_grid', x_grid
+              write(*,*) 'y_grid', y_grid
+              write(*,*) 'z_grid', z_grid
+              write(*,*) 'yb',yb(l)
+              write(*,*) 'normals(nb+l)',normals(nb + l) 
+              write(*,*) 'xm_pivot_index',xm_pivot_index(l)
+              write(*,*) 'zm_pivot_index',zm_pivot_index(l)
+            end if
           End Do
         End Do
       End Do
@@ -278,6 +280,17 @@ Contains
       call global_to_local_center(k, k_supp, k_local, proc_id)
       write(*,*) '[DBG for k_global], myid',myid,'k_global',k,'k_local',k_local,'k_supp',k_supp,'proc_id',proc_id
     end do
+    if ( myid .eq. 0 ) then
+      do k = kg1_global(myid)+1, kg2_global(next)-1
+        call global_to_local_center(k, k_supp, k_local, proc_id)
+        write(*,*) '[DBG for k_global], myid',myid,'k_global',k,'k_local',k_local,'k_supp',k_supp,'proc_id',proc_id
+      end do
+    Elseif (myid .eq. nprocs-1) then
+      do k = kg1_global(prev)+1, kg2_global(next)-1
+        call global_to_local_center(k, k_supp, k_local, proc_id)
+        write(*,*) '[DBG for k_global], myid',myid,'k_global',k,'k_local',k_local,'k_supp',k_supp,'proc_id',proc_id
+      end do
+    end if
     ! if ( myid .eq. 0 ) then
     !   ! debug line
     !   write(*,*) 'xb,yb,zb',xb(1),yb(1),zb(1)

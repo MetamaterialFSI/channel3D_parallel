@@ -70,6 +70,11 @@ Contains
     k2_global (nprocs-1) = nz_global 
     kg2_global(nprocs-1) = nz_global + 1
 
+    if ( myid .eq. 0 ) then
+      write(*,*) 'kg1_global',kg1_global
+      write(*,*) 'kg2_global',kg2_global
+    end if
+
     ! face points
     nx = nx_global
     ny = ny_global
@@ -92,6 +97,7 @@ Contains
     nxg = nxm + 2
     nyg = nym + 2
     nzg = kg2_global(myid) - kg1_global(myid) + 1 
+    write(*,*) 'myid',myid,'nzg',nzg,'suppz',suppz
 
     ! size for last proccesor nz and nzm -> nze and nzme
     nze  = nz
@@ -145,7 +151,7 @@ Contains
     Allocate (U_supp  (    nx,  nym+2, suppz*2+1) )
     Allocate (V_supp  ( nxm+2,     ny, suppz*2+1) )
     Allocate (W_supp  ( nxm+2,  nym+2, suppz*2+1) )
-    Allocate (P_supp  ( nxm+2,  nym+2, suppz*2+1) )
+    Allocate (P_supp  ( 2:nxg-1, 2:nyg-1, suppz*2+1) )
 
     Allocate (Vw ( nxm+2, 2, nzm+2) )
 
@@ -241,7 +247,7 @@ Contains
     Allocate ( buffer_usupp_s(nx ,nyg,suppz+1), buffer_usupp_r(nx ,nyg,suppz+1) )
     Allocate ( buffer_vsupp_s(nxg, ny,suppz+1), buffer_vsupp_r(nxg, ny,suppz+1) )
     Allocate ( buffer_wsupp_s(nxg,nyg,suppz+1), buffer_wsupp_r(nxg,nyg,suppz+1) )
-    Allocate ( buffer_psupp_s(nxg,nyg,suppz+1), buffer_psupp_r(nxg,nyg,suppz+1) )
+    Allocate ( buffer_psupp_s(2:nxg-1,2:nyg-1,suppz+1), buffer_psupp_r(2:nxg-1,2:nyg-1,suppz+1) )
 
     !---------------------------Fourier transform---------------------------!
     If ( myid==0 ) Write(*,*) 'initializing FFT...'
@@ -271,6 +277,8 @@ Contains
     ! local data size in z direction (note dimension reversal)
     alloc_local = fftw_mpi_local_size_2d(nzp_global, nxp_global, MPI_COMM_WORLD, nzp, local_k_offset)
     mz  = nzp - 1
+
+    WRITE(*,*) 'myid',myid,'npz+2',nzp+2,'nzg',nzg
 
     ! sanity check and restrictions in fftw
     If ( (nzp/=nzm .And. myid/=nprocs-1) .Or. (nzp/=nzm-1 .And. myid==nprocs-1) ) Then 
@@ -495,17 +503,20 @@ Contains
     Allocate (Hw_exterior ( nxm+2, nym+2,    nz ) )
     Allocate (Hc_interior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
     Allocate (Hc_exterior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
+    Allocate (debug_rhs_p ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
 
     Allocate (Hu_interior_o  (    nx,  nym+2, nzm+2) )
     Allocate (Hv_interior_o  ( nxm+2,     ny, nzm+2) )
     Allocate (Hw_interior_o  ( nxm+2,  nym+2,    nz) )
     Allocate (Hc_interior_o  ( nxm+2,  nym+2, nzm+2) )
+    Allocate (debug_rhs_p_o  ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
 
     If (myid == 0) Then
        Allocate (Hu_interior_oo (    nx,  nym+2, nzme+2) ) ! z-planes modified for I/O
        Allocate (Hv_interior_oo ( nxm+2,     ny, nzme+2) )
        Allocate (Hw_interior_oo ( nxm+2,  nym+2,    nze) )
        Allocate (Hc_interior_oo ( nxm+2,  nym+2, nzme+2) )
+       Allocate (debug_rhs_p_oo ( 2:nxg-1, 2:nyg-1, 2:nzme+2) )
     End If
 
     Allocate (E1nHc_exterior (nb) )
@@ -525,6 +536,18 @@ Contains
     Allocate ( Fibu (    nx, nym+2, nzm+2  ) ) 
     Allocate ( Fibv ( nxm+2,    ny, nzm+2  ) )
     Allocate ( Fibw ( nxm+2, nym+2,    nz  ) )
+    Allocate ( debug_u (    nx, nym+2, nzm+2  ) ) 
+    Allocate ( debug_v ( nxm+2,    ny, nzm+2  ) )
+    Allocate ( debug_w ( nxm+2, nym+2,    nz  ) )
+    Allocate (debug_u_o  (    nx,  nym+2, nzm+2) )
+    Allocate (debug_v_o  ( nxm+2,     ny, nzm+2) )
+    Allocate (debug_w_o  ( nxm+2,  nym+2,    nz) )
+
+    If (myid == 0) Then
+       Allocate (debug_u_oo (    nx,  nym+2, nzme+2) ) ! z-planes modified for I/O
+       Allocate (debug_v_oo ( nxm+2,     ny, nzme+2) )
+       Allocate (debug_w_oo ( nxm+2,  nym+2,    nze) )
+    End If
 
     !--------------------Initialize IB operator variables-------------------!    
 

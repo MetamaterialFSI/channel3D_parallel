@@ -171,7 +171,7 @@ Contains
       Write(*,*) 'yg(1),yg(end) :',yg_global(1), yg_global(nyg_global)
       Write(*,*) 'y (1),y (end) :', y_global(1), y_global ( ny_global)
       
-      Write(*,*) 'zg(1),xz(end) :',zg_global(1), zg_global(nzg_global)
+      Write(*,*) 'zg(1),zg(end) :',zg_global(1), zg_global(nzg_global)
       Write(*,*) 'z (1),z (end) :', z_global(1), z_global ( nz_global)
       
       Write(*,*) ' '

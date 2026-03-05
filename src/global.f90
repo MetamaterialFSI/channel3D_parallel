@@ -234,9 +234,10 @@ Module global
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior, Hu_exterior
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hv_interior, Hv_exterior
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hw_interior, Hw_exterior
-  Real   (Int64), Dimension(:,:,:), Allocatable :: Hc_interior, Hc_exterior
+  Real   (Int64), Dimension(:,:,:), Allocatable :: Hc_interior, Hc_exterior, debug_rhs_p
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior_o, Hv_interior_o, Hw_interior_o, Hc_interior_o
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior_oo, Hv_interior_oo, Hw_interior_oo, Hc_interior_oo
+  Real   (Int64), Dimension(:,:,:), Allocatable :: debug_rhs_p_o, debug_rhs_p_oo
   Real   (Int64), Dimension(:), Allocatable :: E1nHc_exterior, E1nH_exterior
 
   ! Biconjugate gradient max iterations and tolerance
@@ -248,9 +249,9 @@ Module global
   Integer(Int32) :: local_size_nb
 
   ! regularization and interpolation support, weights, and indices
-  Integer(Int32), parameter :: suppx = 2
-  Integer(Int32), parameter :: suppy = 2
-  Integer(Int32), parameter :: suppz = 2
+  Integer(Int32), parameter :: suppx = 3!2 debug
+  Integer(Int32), parameter :: suppy = 3!2 debug
+  Integer(Int32), parameter :: suppz = 3!2 debug
   Integer(Int32), parameter :: nweights = (2 * suppx + 1) * (2 * suppy + 1) * (2 * suppz + 1)
   Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights, c_weights
   Real(Int64),    Dimension(:,:),   Allocatable :: dxnu, dxnv, dxnw, dxnc
@@ -267,6 +268,9 @@ Module global
   Real(Int64), Dimension(:),     Allocatable :: aux_surface_scalar, aux_surface_vector, rhs_ib
   Real(Int64), Dimension(:),     Allocatable :: regT_buffer_scalar, regT_buffer_vector
   Real(Int64), Dimension(:,:,:), Allocatable :: Fibu, Fibv, Fibw
+  Real(Int64), Dimension(:,:,:), Allocatable :: debug_u, debug_v, debug_w !debug
+  Real(Int64), Dimension(:,:,:), Allocatable :: debug_u_o, debug_v_o, debug_w_o !debug
+  Real(Int64), Dimension(:,:,:), Allocatable :: debug_u_oo, debug_v_oo, debug_w_oo !debug
   Logical(Int32) :: moving_z_flag ! True for moving in z direction; False: stationary in z direction (for identifying the partition)
 
   ! BiCGSTAB arrays

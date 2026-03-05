@@ -88,7 +88,7 @@ Contains
           Do i = 1, nxb
             k = i + (j-1) * nxb
             xb(k) = (real(i,8) - 0.5d0) * dxb
-            yb(k) = 1.0d0
+            yb(k) = 2.0d0
             zb(k) = (real(j,8) - 0.5d0) * dzb
             If (zb(k) >= z(1) .and. nb_start > k) then
               nb_start = k
@@ -99,6 +99,7 @@ Contains
           
           End Do
         End Do
+        WRITE(*,*) 'myid',myid,'nb_start',nb_start,'nb_end',nb_end
         
         sb = dxb * dzb
 
