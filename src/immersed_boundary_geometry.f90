@@ -88,7 +88,7 @@ Contains
           Do i = 1, nxb
             k = i + (j-1) * nxb
             xb(k) = (real(i,8) - 0.5d0) * dxb
-            yb(k) = 2.0d0
+            yb(k) = 0.5d0 * Ly
             zb(k) = (real(j,8) - 0.5d0) * dzb
           End Do
           If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
