@@ -118,8 +118,8 @@ Contains
 
         r1 = body_param_1
         r2 = body_param_2
-        xc = 1.0d0
-        yc = 1.0d0
+        xc = 0.5d0 * Lxp
+        yc = 0.5d0 * Ly
         nxb1 = Int(2 * 3.14159 * r1 / dxb)
         nxb2 = Int(2 * 3.14159 * r2 / dxb)
         nxb = nxb1 + nxb2
@@ -397,8 +397,8 @@ Contains
       Case ('double_cylinders_z')
         r1 = 0.75d0
         r2 = 1.5d0
-        xc = 2.d0
-        yc = 2.d0
+        xc = 0.5d0 * Lxp
+        yc = 0.5d0 * Ly
         nxb1 = int(2 * 3.14159 * r1 / dxb)
         nxb2 = int(2 * 3.14159 * r2 / dxb)
         
@@ -423,8 +423,8 @@ Contains
       Case ('double_cylinders_z')
         r1 = 0.75d0
         r2 = 1.5d0
-        xc = 2.d0
-        yc = 2.d0
+        xc = 0.5d0 * Lxp
+        yc = 0.5d0 * Ly
         nxb1 = int(2 * 3.14159 * r1 / dxb)
         nxb2 = int(2 * 3.14159 * r2 / dxb)
         
