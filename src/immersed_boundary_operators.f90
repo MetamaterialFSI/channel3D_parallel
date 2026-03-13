@@ -22,6 +22,7 @@ Contains
     integer :: k_local,k_supp         ! local index
     integer :: proc_id      ! MPI rank that owns this index
     Real(Int64) :: x_grid, y_grid, z_grid
+    integer :: prev, next, k_global
 
     !-----------------Find the indices of the flow grid points closest to the body points---------------------!
     Do l = nb_start, nb_end
@@ -237,10 +238,69 @@ Contains
               normals(l)          * (x_grid - xb(l)) + &
               normals(nb + l)     * (y_grid - yb(l)) + &
               normals(2 * nb + l) * (z_grid - zb(l))
+            ! ! ---- DEBUG: only print for target l, fixed i/j at pivot, all k ----
+            !   if ( i .eq. 0 .and. &
+            !   j .eq. 0 .and. &
+            !   k .eq. 0 .and. &
+            !   abs(xb(l) - 0.143166666666667 ) < 1.0d-6 ) then
+            !     write(*,*) &
+            !   '[DBG] myid=', myid, &
+            !   ! ' k=',   k, &
+            !   ! ' kk=',  kk, &
+            !   ! ' kk_p=',kk_periodic, &
+            !   ' cz_g=',c_z_indices(count,l), &
+            !   ' k_loc=',c_z_local_indices(count,l), &
+            !   ' k_sup=',c_z_supp_idx(count,l), &
+            !   ' proc=', c_proc(count,l), &
+            !   ' z_grid=', z_grid, ' zb=', zb(l)
+            ! end if
+            if ( l.eq.1 .and. count.eq.130) then
+              write(*,*) 'x_idx',c_x_indices(count, l)
+              write(*,*) 'y_idx',c_y_indices(count, l)
+              write(*,*) 'z_idx',c_z_indices(count, l)
+              write(*,*) 'dx',dx,'dymin',dymin,'dz',dz
+              write(*,*) 'x_grid', x_grid
+              write(*,*) 'y_grid', y_grid
+              write(*,*) 'z_grid', z_grid
+              write(*,*) 'yb',yb(l)
+              write(*,*) 'normals(nb+l)',normals(nb + l) 
+              write(*,*) 'xm_pivot_index',xm_pivot_index(l)
+              write(*,*) 'zm_pivot_index',zm_pivot_index(l)
+            end if
           End Do
         End Do
       End Do
     End Do
+    ! Determine periodic neighbors
+    prev = myid - 1
+    if (prev < 0) prev = nprocs - 1
+    next = myid + 1
+    if (next == nprocs) next = 0
+    if ( myid .eq. 3 ) then
+      do k = kg1_global(myid)-suppz+1, kg2_global(myid)+suppz-1
+        z_periodic_shifts = Floor(Real(k - 2, Int64) / (nzm_global))
+        kk_periodic = k - z_periodic_shifts * (nzm_global-1)
+        if ( (kk_periodic .eq. 2) .and. (myid .eq. nprocs-1) ) then
+          k_global = nzg_global - 1 ! due to periodicity
+        else
+          k_global = kk_periodic ! plus one for ghost cell
+        end if
+        call global_to_local_center(k_global, k_supp, k_local, proc_id)
+        write(*,*) '[DBG for k_global], myid',myid,'k_global',k_global,'k_local',k_local,'k_supp',k_supp,'proc_id',proc_id
+      end do
+    end if
+    ! if ( myid .eq. 0 ) then
+    !   ! debug line
+    !   write(*,*) 'xb,yb,zb',xb(1),yb(1),zb(1)
+    !   write(*,*) 'c_x_index,c_y_index,c_z_index',c_x_indices(5,1),c_y_indices(5,1),c_z_indices(5,1)
+    !   write(*,*) 'count',count,'nweights',nweights
+    !   write(*,*)  'weight', c_weights(125,1)
+    !   write(*,*)  'dxnc',dxnc(125,1)
+    !   write(*,*) 'ym_global(ym_pivot)',ym_global(ym_pivot_index(1) -1)
+    !   write(*,*) 'ym_pivot_index',ym_pivot_index(1) 
+    !   write(*,*) 'y_grid',ym_global(ym_pivot_index(1) -2-1)
+    !   write(*,*) 'yb',ym_global(ym_pivot_index(1) -2-1)
+    ! end if
 
     local_size_nb = nb_end - nb_start + 1
 
@@ -342,10 +402,12 @@ Contains
 
   Function regTc_1n(P_)
     Implicit None
-    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg), Intent(InOut) :: P_
+    !Real(Int64), CONTIGUOUS, INTENT(INOUT)  :: P_(:, :, :)
+    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg ), Intent(INOUT) :: P_
     Real(Int64), Dimension(nb):: regTc_1n
 
     ! update support cells from interior points
+    !Call interior_planes_update_support(P_, P_supp, 4)
     Call interior_planes_update_support_pressure(P_, P_supp)
 
     ! compute local_regT
@@ -502,7 +564,7 @@ Contains
 
   Function local_regTc_1n(P_, P_supp_)
     Implicit None
-    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg), Intent(In) :: P_
+    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg ), Intent(In) :: P_
     Real(Int64), Dimension(2:nxg-1, 2:nyg-1, suppz * 2 + 1), Intent(In) :: P_supp_
     Real(Int64), Dimension(nb):: local_regTc_1n
     integer :: proc_idx
@@ -728,7 +790,6 @@ Contains
       write(*,*) 'Error: Center index ', k_global, ' not in {', prev, ',', myid, ',', next, '}.'
       stop
     end if
-
     k_loc = k_global - kg1_global(rank) + 1
     if (rank == myid) then
       ! Locally owned -> compute k_loc
@@ -750,15 +811,15 @@ Contains
         end if
       else 
         if ( rank .eq. prev ) then
-          k_sup = k_global - (kg2_global(prev) - suppz)+2
+          k_sup = k_global - kg2_global(prev) + suppz + 2
           if ( rank .eq. nprocs-1 ) then
-            k_sup=k_sup+suppz-2
+            k_sup=k_sup+1
           end if
         elseif (rank .eq. next) then
-          k_sup = (k_global - (kg1_global(next) + 1)) + (suppz + 2)
-        end if
-        if (rank .eq. 0) then
-          k_sup=k_sup+suppz-3
+          k_sup = k_global - kg1_global(next) + suppz + 1
+          if (rank .eq. 0) then
+            k_sup=k_sup-1
+          end if
         end if
       end if
       if (k_sup < 1 .or. k_sup > 2*suppz+1) Then
