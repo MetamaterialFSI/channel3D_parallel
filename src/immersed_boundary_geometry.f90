@@ -385,4 +385,57 @@ Contains
 
   End Subroutine setup_IB_geometry
 
+  Subroutine compute_average_pressure_per_body(pavg_, p_)
+    Implicit None
+    Real(Int64), DIMENSION(nbodies) :: pavg_
+    Real(Int64), DIMENSION(nb) :: p_
+    Real(Int64) :: r1, r2, xc, yc
+    Integer(Int32) :: nxb1, nxb2
+
+    Select Case (trim(body_type))
+
+      Case ('double_cylinders_z')
+        r1 = 0.75d0
+        r2 = 1.5d0
+        xc = 2.d0
+        yc = 2.d0
+        nxb1 = int(2 * 3.14159 * r1 / dxb)
+        nxb2 = int(2 * 3.14159 * r2 / dxb)
+        
+        pavg_(1) = Sum(p_(1 : nxb1 * nzb)) / (nxb1 * nzb)
+        pavg_(2) = Sum(p_(nxb1 * nzb + 1 :)) / (nxb2 * nzb)
+
+      Case Default
+        pavg_ = Sum(p_) / nb
+
+    End Select
+
+  End Subroutine
+
+  Subroutine remove_mean_per_body(f_)
+    Implicit None
+    Real(Int64), CONTIGUOUS, INTENT(INOUT)  :: f_(:)
+    Real(Int64) :: r1, r2, xc, yc
+    Integer(Int32) :: nxb1, nxb2
+
+    Select Case (trim(body_type))
+
+      Case ('double_cylinders_z')
+        r1 = 0.75d0
+        r2 = 1.5d0
+        xc = 2.d0
+        yc = 2.d0
+        nxb1 = int(2 * 3.14159 * r1 / dxb)
+        nxb2 = int(2 * 3.14159 * r2 / dxb)
+        
+        f_(1 : nxb1 * nzb) = f_(1 : nxb1 * nzb) - sum(f_(1 : nxb1 * nzb)) / size(f_(1 : nxb1 * nzb))
+        f_(nxb1 * nzb + 1 :) = f_(nxb1 * nzb + 1 :) - sum(f_(nxb1 * nzb + 1 :)) / size(f_(nxb1 * nzb + 1 :))
+
+      Case Default
+        f_ = f_ - sum(f_) / size(f_)
+
+    End Select
+
+  End Subroutine
+
 End Module immersed_boundary_geometry

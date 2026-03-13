@@ -493,24 +493,29 @@ Contains
     ! Wall normal reference coordinate and index
     Allocate ( y_ref_index (  nb) )
 
+    ! First index per body
+    Allocate(first_index_per_body (nbodies) )
+    ! Set default
+    If (nbodies > 0) then
+      first_index_per_body(1) = 1
+    End If
+
     ! Body areas
     Allocate(sb (nb) )
 
     ! Body forcing
-    Allocate (fb(3*nb) )
+    Allocate (fb(4 * nb) )
     fb = 0d0
+    Allocate (p_jump(nb) )
+    Allocate (dudn_jump(3 * nb) )
 
     ! Body velocity
     Allocate (ub (3 * nb) )
-    ub = 0d0
 
     ! Body normals and tangents
     Allocate (normals (3 * nb) )
     Allocate (tangents_1 (3 * nb) )
     Allocate (tangents_2 (3 * nb) )
-    normals= 0d0
-    tangents_1= 0d0
-    tangents_2= 0d0
 
     ! Body scalar for debugging
     Allocate (debug_surface_scalar(nb) )
@@ -520,16 +525,11 @@ Contains
     Allocate (E1nH_exterior  (3 * nb) )
 
     ! Auxiliary surface arrays
-    Allocate ( rhs_ib (3 * nb) )
+    Allocate ( rhs_ib (4 * nb) )
     Allocate ( aux_surface_vector (3 * nb) )
     Allocate ( aux_surface_scalar (nb) )
     Allocate ( regT_buffer_vector (3 * nb) )
     Allocate ( regT_buffer_scalar (nb) )
-    rhs_ib = 0d0
-    aux_surface_vector = 0d0
-    aux_surface_scalar = 0d0
-    regT_buffer_vector = 0d0
-    regT_buffer_scalar = 0d0
     Allocate ( Fibu (    nx, nym+2, nzm+2  ) ) 
     Allocate ( Fibv ( nxm+2,    ny, nzm+2  ) )
     Allocate ( Fibw ( nxm+2, nym+2,    nz  ) )
@@ -594,13 +594,13 @@ Contains
     Allocate ( send_counts_nb(nprocs), displs_nb(nprocs) )
 
     !--------------------Initialize BiCGSTAB arrays---------------!    
-    Allocate ( bcg_r( 3 * nb) )
-    Allocate ( bcg_rhat( 3 * nb) )
-    Allocate ( bcg_p( 3 * nb) )
-    Allocate ( bcg_nu( 3 * nb) )
-    Allocate ( bcg_h( 3 * nb) )
-    Allocate ( bcg_sv( 3 * nb) )
-    Allocate ( bcg_tv( 3 * nb) )
+    Allocate ( bcg_r( 4 * nb) )
+    Allocate ( bcg_rhat( 4 * nb) )
+    Allocate ( bcg_p( 4 * nb) )
+    Allocate ( bcg_nu( 4 * nb) )
+    Allocate ( bcg_h( 4 * nb) )
+    Allocate ( bcg_sv( 4 * nb) )
+    Allocate ( bcg_tv( 4 * nb) )
     cg_accum_iter = 0
 
     !-------------------------Done--------------------------------!

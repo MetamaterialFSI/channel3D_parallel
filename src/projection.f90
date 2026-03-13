@@ -3,6 +3,7 @@ Module projection
   Use iso_fortran_env, Only : error_unit, Int32, Int64
   Use global
   Use immersed_boundary_operators
+  Use immersed_boundary_geometry
   Use equations
   Use poisson
   Use boundary_conditions
@@ -29,11 +30,12 @@ Contains
     Call divergence(rhs_p, U, V, W)
 
     Call solve_poisson_equation(rhs_p)
+    rhs_p = rhs_p / dt
 
     ! save for use in the subsequent projection steps
     P_interim = rhs_p
 
-    Call gradient(U, V, W, rhs_p)
+    Call gradient(U, V, W, dt * rhs_p)
 
     ! U* = U** - Gp*
     U = U_interim - U
@@ -45,26 +47,37 @@ Contains
   Subroutine compute_IB_projection
 
     ! - E u* + ub 
-    rhs_ib = -regT(U, V, W) + ub
+    rhs_ib(1          : 3 * nb) = -regT(U, V, W) + ub
+    rhs_ib(3 * nb + 1 : 4 * nb) = -regTc_1n(P_interim)
+
+    ! Remove mean from rhs pressure
+    Call remove_mean_per_body(rhs_ib(3 * nb + 1 : 4 * nb))
 
     ! solve for IB forcing
     call bicgstab(fb, rhs_ib)
 
+    dudn_jump = fb(1          : 3 * nb)
+    p_jump    = fb(3 * nb + 1 : 4 * nb)
+
     ! U_reg = R f
-    Call regu(U_reg, fb)
-    Call regv(V_reg, fb)
-    Call regw(W_reg, fb)
+    Call regu(U_reg, dt * nu * dudn_jump(1 : nb)              - dt * p_jump * normals(1 : nb))
+    Call regv(V_reg, dt * nu * dudn_jump(nb + 1 : 2 * nb)     - dt * p_jump * normals(nb + 1 : 2 * nb))
+    Call regw(W_reg, dt * nu * dudn_jump(2 * nb + 1 : 3 * nb) - dt * p_jump * normals(2 * nb + 1 : 3 * nb))
+
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
 
     ! rhs_p = D R f
     Call divergence(rhs_p, U_reg, V_reg, W_reg)
+
+    ! rhs_p = Linv D R f
     Call solve_poisson_equation(rhs_p)
+    rhs_p = rhs_p / dt
 
     ! Pnp1 = P* - Linv D R f
     rhs_p = P_interim - rhs_p
 
     ! U, V, W = G Pnp1
-    call gradient(U, V, W, rhs_p)
+    call gradient(U, V, W, dt * rhs_p)
 
     ! Unp1 = U** - R f - G Pnp1
     U = U_interim - U_reg - U
@@ -77,41 +90,50 @@ Contains
 
   Function schur(f_)
     Implicit None
-    Real(Int64), Dimension(3*nb), Intent(In) :: f_
-    Real(Int64), Dimension(3*nb) :: schur
+    Real(Int64), Dimension(4 * nb), Intent(In) :: f_
+    Real(Int64), Dimension(4 * nb) :: schur
 
     schur = 0.d0
 
-    ! Fibu, Fibv, Fibw = R f
-    Call regu(Fibu, f_)
-    Call regv(Fibv, f_)
-    Call regw(Fibw, f_)
-    Call apply_boundary_conditions(Fibu, Fibv, Fibw)
+    dudn_jump = f_(1          : 3 * nb)
+    p_jump    = f_(3 * nb + 1 : 4 * nb)
+
+    ! U_reg = R f
+    Call regu(U_reg, dt * nu * dudn_jump(1 : nb)              - dt * p_jump * normals(1 : nb))
+    Call regv(V_reg, dt * nu * dudn_jump(nb + 1 : 2 * nb)     - dt * p_jump * normals(nb + 1 : 2 * nb))
+    Call regw(W_reg, dt * nu * dudn_jump(2 * nb + 1 : 3 * nb) - dt * p_jump * normals(2 * nb + 1 : 3 * nb))
+
+    Call apply_boundary_conditions(U_reg, V_reg, W_reg)
 
     ! rhs_p = D R f
-    Call divergence(rhs_p, Fibu, Fibv, Fibw)
+    Call divergence(rhs_p, U_reg, V_reg, W_reg)
 
     ! rhs_p = Linv D R f
     call solve_poisson_equation(rhs_p)
+    rhs_p = rhs_p / dt
+
+    schur(3 * nb + 1 : 4 * nb) = -regTc_1n(rhs_p)
+    Call remove_mean_per_body(schur(3 * nb + 1 : 4 * nb))
+    schur(3 * nb + 1 : 4 * nb) = schur(3 * nb + 1 : 4 * nb) - E1nHc_exterior * p_jump
 
     ! U, V, W = G Linv D R f
-    Call gradient(U, V, W, rhs_p)
+    Call gradient(U, V, W, dt * rhs_p)
     Call apply_boundary_conditions(U, V, W)
 
     ! U, V, W = -R f + G Linv D R f
-    U = U - Fibu 
-    V = V - Fibv 
-    W = W - Fibw 
+    U = U - U_reg 
+    V = V - V_reg 
+    W = W - W_reg 
 
     ! schur = -E (I -  G Linv D) R f
-    schur = regT(U, V, W)
+    schur(1 : 3 * nb) = regT(U, V, W) - E1nH_exterior * dudn_jump
 
   End Function schur
 
   Subroutine bicgstab( bcg_x, bcg_b)
     Integer :: j, iter
-    Real(Int64), Dimension(3*nb), Intent(In) :: bcg_b
-    Real(Int64), Dimension(3*nb), Intent(Inout) :: bcg_x
+    Real(Int64), Dimension(4 * nb), Intent(In) :: bcg_b
+    Real(Int64), Dimension(4 * nb), Intent(Inout) :: bcg_x
     Real(Int64) :: rho_o, rho_n, alpha, om, eps, error, bta
 
     !initialize
@@ -142,7 +164,7 @@ Contains
       iter = iter + 1
       Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
     End Do
-    cg_accum_iter = cg_accum_iter + (iter - 1)
+    cg_accum_iter = cg_accum_iter + iter
     If (iter .gt. cg_max_iter .and. myid == 0) Then
       Write(*,*)  "......WARNING, bicgstab used maximum number of iterations (", cg_max_iter, ")"
       Write(*,*)  "......max |residual| = ", Maxval(Abs(bcg_r))

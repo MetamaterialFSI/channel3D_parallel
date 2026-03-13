@@ -202,11 +202,17 @@ Module global
   Character(200) :: body_type
   Logical(Int32) :: moving_body
 
+  ! number of bodies
+  Integer(Int32) :: nbodies
+
   ! body points
   Integer(Int32) :: nb, nxb, nzb
   Integer(Int32) :: nb_start, nb_end
   Real   (Int64) :: dxb, dzb
   Real   (Int64), Dimension(:), Allocatable :: xb, yb, zb
+
+  ! array containing the first index for each body in the body arrays
+  Integer(Int32), Dimension(:), Allocatable :: first_index_per_body
 
   ! array containing an index for each body point of a y grid point that is part of a
   ! uniform grid patch containing the body point
@@ -226,6 +232,10 @@ Module global
 
   ! immersed body forcing
   Real(Int64), Dimension(:), Allocatable :: fb!, input_fb
+
+  ! body normal velocity gradient jump and pressure jump
+  Real(Int64), Dimension(:), Allocatable :: dudn_jump
+  Real(Int64), Dimension(:), Allocatable :: p_jump
 
   ! scalar array on the immersed boundary for debug purposes
   Real(Int64), Dimension(:), Allocatable :: debug_surface_scalar
@@ -249,9 +259,9 @@ Module global
   Integer(Int32) :: local_size_nb
 
   ! regularization and interpolation support, weights, and indices
-  Integer(Int32), parameter :: suppx = 3
-  Integer(Int32), parameter :: suppy = 3
-  Integer(Int32), parameter :: suppz = 3
+  Integer(Int32), parameter :: suppx = 2
+  Integer(Int32), parameter :: suppy = 2
+  Integer(Int32), parameter :: suppz = 2
   Integer(Int32), parameter :: nweights = (2 * suppx + 1) * (2 * suppy + 1) * (2 * suppz + 1)
   Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights, c_weights
   Real(Int64),    Dimension(:,:),   Allocatable :: dxnu, dxnv, dxnw, dxnc

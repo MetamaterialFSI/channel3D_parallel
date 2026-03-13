@@ -361,7 +361,7 @@ Contains
 
   Subroutine regu(U_, f_)
     Implicit None
-    Real(Int64), Dimension(3 * nb), Intent(In) :: f_
+    Real(Int64), Dimension(nb), Intent(In) :: f_
     Real(Int64), Dimension(nx, nyg, nzg), Intent(Out) :: U_
 
     U_ = 0d0
@@ -375,7 +375,7 @@ Contains
 
   Subroutine regv(V_, f_)
     Implicit None
-    Real(Int64), Dimension(3 * nb), Intent(In) :: f_
+    Real(Int64), Dimension(nb), Intent(In) :: f_
     Real(Int64), Dimension(nxg, ny, nzg), Intent(Out) :: V_
 
     V_ = 0d0
@@ -389,7 +389,7 @@ Contains
 
   Subroutine regw(W_, f_)
     Implicit None
-    Real(Int64), Dimension(3 * nb), Intent(In) :: f_
+    Real(Int64), Dimension(nb), Intent(In) :: f_
     Real(Int64), Dimension(nxg, nyg, nz), Intent(Out) :: W_
     Integer(Int32) :: i, j
 
@@ -547,7 +547,7 @@ Contains
   subroutine local_reg(F, F_supp, f_, id)
     implicit none
     integer, intent(in)  :: id
-    Real(Int64), Dimension(3 * nb), Intent(In) :: f_
+    Real(Int64), Dimension(nb), Intent(In) :: f_
     Real(Int64), Intent(InOut) :: F(:,:,:)    
     Real(Int64), Intent(InOut) :: F_supp(:,:,:)   
     integer :: i, j
@@ -593,13 +593,13 @@ Contains
         end select
         if (proc_idx == myid) then
           ! Write into local F
-          F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j+(id-1)*nb)
+          F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
         else
           if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
             WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
             stop 'Error: zi_supp out of [1..suppz]'
           END IF
-          F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j+(id-1)*nb)
+          F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
           !print *, 'Error: unexpected proc_idx =', proc_idx, ' for myid =', myid
           !stop
         end if

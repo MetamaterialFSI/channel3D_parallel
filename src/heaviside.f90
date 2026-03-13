@@ -28,9 +28,9 @@ Contains
     Fibv = 0d0
     Fibw = 0d0
 
-    Call regu(Fibu, normals)
-    Call regv(Fibv, normals)
-    Call regw(Fibw, normals)
+    Call regu(Fibu, normals(1 : nb))             
+    Call regv(Fibv, normals(nb + 1 : 2 * nb))    
+    Call regw(Fibw, normals(2 * nb + 1 : 3 * nb))
     Call apply_boundary_conditions(Fibu, Fibv, Fibw)
 
     Call divergence(Hc_interior, Fibu, Fibv, Fibw)
