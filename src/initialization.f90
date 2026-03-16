@@ -507,7 +507,9 @@ Contains
     Allocate (fb(4 * nb) )
     fb = 0d0
     Allocate (p_jump(nb) )
+    p_jump = 0d0
     Allocate (dudn_jump(3 * nb) )
+    dudn_jump = 0d0
 
     ! Body velocity
     Allocate (ub (3 * nb) )
