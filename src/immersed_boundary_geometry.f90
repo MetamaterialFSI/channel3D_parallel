@@ -182,7 +182,7 @@ Contains
             xb(k)       = (real(i,8) - 0.5d0) * dxb
             xb(k + nxb) = (real(i,8) - 0.5d0) * dxb
             yb(k)       =       body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
-            yb(k + nxb) = 2d0 + body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
+            yb(k + nxb) = Ly + body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
             zb(k)       = (real(j,8) - 0.5d0) * dzb
             zb(k + nxb) = (real(j,8) - 0.5d0) * dzb
 
@@ -283,7 +283,7 @@ Contains
             xb(k)       = (real(i,8) - 0.5d0) * dxb
             xb(k + nxb) = (real(i,8) - 0.5d0) * dxb
             yb(k)       =       amp / (body_param_2 * body_param_3) * sin(body_param_3 * (xb(k) - body_param_2 * t))
-            yb(k + nxb) = 2d0 + amp / (body_param_2 * body_param_3) * sin(body_param_3 * (xb(k) - body_param_2 * t) + phi)
+            yb(k + nxb) = Ly + amp / (body_param_2 * body_param_3) * sin(body_param_3 * (xb(k) - body_param_2 * t) + phi)
             zb(k)       = (real(j,8) - 0.5d0) * dzb
             zb(k + nxb) = (real(j,8) - 0.5d0) * dzb
 
