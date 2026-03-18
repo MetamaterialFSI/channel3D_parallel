@@ -44,7 +44,7 @@ Module global
   Integer(Int32) :: grid_type, n_uniform
 
   ! domain size
-  Real(Int64) :: Lx, Lz, Ly, Lxp, Lzp
+  Real(Int64) :: Lx, Lz, Ly, Lxp, Lzp, Ly_ref
 
   ! steps
   Integer(Int32) :: nsteps, nstep_init

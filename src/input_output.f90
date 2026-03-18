@@ -25,7 +25,7 @@ Contains
     Integer(Int32) :: ioerr, iounit
 
     namelist /params/ &
-      Lxp, Lzp, Ly, alpha_stretch, &
+      Lxp, Lzp, Ly_ref, alpha_stretch, &
       nx_global, ny_global, nz_global, &
       nxb, nzb, &
       CFL, &
@@ -43,7 +43,7 @@ Contains
     alpha_stretch = 2.6d0
     Lxp = 2d0 * pi
     Lzp = 1d0 * pi
-    Ly = 2d0
+    Ly_ref = 2d0
     min_buffer_width = 0d0
     cg_tol = 1e-8
     cg_max_iter = 50
@@ -87,7 +87,7 @@ Contains
 
     Call Mpi_bcast ( Lxp,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( Lzp,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
-    Call Mpi_bcast ( Ly,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( Ly_ref,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( alpha_stretch,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
     Call Mpi_bcast ( nxb,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
@@ -151,14 +151,14 @@ Contains
         Do i=1,ny_global
           y_global(i) = Real(i-1,8)
         End Do
-        y_global = Ly * y_global / Maxval(y_global)
+        y_global = Ly_ref * y_global / Maxval(y_global)
 
       Case (1) ! Stretched grid wall to wall
         If ( myid==0 ) Write(*,*) 'Generating stretched y grid'
         Do i=1,ny_global
           y_global(i) = Real(i-1,8)
         End Do
-        y_global = Ly * y_global / Maxval(y_global) - 1d0
+        y_global = Ly_ref * y_global / Maxval(y_global) - 1d0
 
         If ( alpha_stretch > 0d0 ) Then
           Do i=1,ny_global
@@ -167,7 +167,7 @@ Contains
         End If
 
         y_global = y_global - Minval(y_global)
-        y_global = y_global * Ly / Maxval(y_global)
+        y_global = y_global * Ly_ref / Maxval(y_global)
 
       Case (2) ! Stretched grid centered around 0 with uniform buffers on each end to account for IB (moving with amplitude body_param_1)
         If ( myid==0 ) Write(*,*) 'Generating stretched y grid with uniform buffers'
@@ -175,7 +175,7 @@ Contains
         ! Loop until buffer condition is met
         write(*,*) 'creating stretched grid using ny_global = ', ny_global
         Do
-          Call create_stretched_grid(y_global, Ly, ny_global, n_uniform, alpha_stretch)
+          Call create_stretched_grid(y_global, Ly_ref, ny_global, n_uniform, alpha_stretch)
 
           ! Compute dy between first two points (assume uniform region at beginning)
           dymin = y_global(2) - y_global(1)
@@ -266,7 +266,7 @@ Contains
         ! U
         Do jj=1,ny_global-1
           ym_val = 0.5d0 * (y_global(jj) + y_global(jj + 1))
-          U(:,jj+1,:) = dpdx / (Ly * nu) * ym_val * (Ly - ym_val)
+          U(:,jj+1,:) = dpdx / (Ly_ref * nu) * ym_val * (Ly_ref - ym_val)
         end Do
         Do ii=1,nx_global
           Do jj=1,nyg_global

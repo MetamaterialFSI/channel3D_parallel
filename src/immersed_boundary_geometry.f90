@@ -69,7 +69,7 @@ Contains
 
   Subroutine setup_IB_geometry
     Integer(Int32) :: i, j, k, l, nxb1, nxb2
-    Real   (Int64) :: a1, a2, r1, r2, xc, yc, theta, dsb1, dsb2, phi, amp
+    Real   (Int64) :: a1, a2, r1, r2, xc, yc, theta, dsb1, dsb2, phi, amp, slope_bottom, slope_top, phase, damp_dt, tau
 
     Select Case (trim(body_type))
       Case ('none') ! No IB
@@ -89,12 +89,12 @@ Contains
         ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
         ! (i.e., fall between an nb_start and nb_end)
         nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
-        nb_end = 0         ! Initialize to the lowest possible index
+        nb_end = 1         ! Initialize to the lowest possible index
         Do j = 1, nzb
           Do i = 1, nxb
             k = i + (j-1) * nxb
             xb(k) = (real(i,8) - 0.5d0) * dxb
-            yb(k) = 0.5d0 * Ly
+            yb(k) = 0.5d0 * Ly_ref
             zb(k) = (real(j,8) - 0.5d0) * dzb
           End Do
           If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
@@ -116,16 +116,16 @@ Contains
 
       Case ('double_cylinders_z') ! Double rotating cylinders
         If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
-        moving_body = .False. ! should be False, but set to True for speed test
+        moving_body = .False. 
         moving_z_flag = .False.
         nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
-        nb_end = 0         ! Initialize to the lowest possible index
+        nb_end = 1         ! Initialize to the lowest possible index
         y_ref_index = 1 ! The grid has to be uniform for this case, so it doesn't matter what y_ref_index is
 
         r1 = body_param_1
         r2 = body_param_2
         xc = 0.5d0 * Lxp
-        yc = 0.5d0 * Ly
+        yc = 0.5d0 * Ly_ref
         nxb1 = Int(2 * 3.14159 * r1 / dxb)
         nxb2 = Int(2 * 3.14159 * r2 / dxb)
         nxb = nxb1 + nxb2
@@ -181,14 +181,14 @@ Contains
         ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
         ! (i.e., fall between an nb_start and nb_end)
         nb_start = nb + 1 ! Initialize to an invalid value (beyond the max index)
-        nb_end = 0        ! Initialize to the lowest possible index
+        nb_end = 1        ! Initialize to the lowest possible index
         Do j = 1, nzb
           Do i = 1, nxb
             k = i + 2 * nxb * (j - 1)
             xb(k)       = (real(i,8) - 0.5d0) * dxb
             xb(k + nxb) = (real(i,8) - 0.5d0) * dxb
-            yb(k)       =       body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
-            yb(k + nxb) = Ly + body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
+            yb(k)       =          body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
+            yb(k + nxb) = Ly_ref + body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
             zb(k)       = (real(j,8) - 0.5d0) * dzb
             zb(k + nxb) = (real(j,8) - 0.5d0) * dzb
 
@@ -226,19 +226,20 @@ Contains
         Do j = 1, nzb
           Do i = 1, nxb
             k = i + 2 * nxb * (j - 1)
-            ub(nb + k)       = -body_param_1 * body_param_2 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * sin(body_param_2 * t)
-            ub(nb + k + nxb) = -body_param_1 * body_param_2 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * sin(body_param_2 * t)
+            phase = 2d0 * pi * body_param_3 * xb(k) / Lxp
+            ub(nb + k)       = -body_param_1 * body_param_2 * sin(phase) * sin(body_param_2 * t)
+            ub(nb + k + nxb) = -body_param_1 * body_param_2 * sin(phase) * sin(body_param_2 * t)
 
-            tangents_1(nb + k)       = body_param_1 * 2d0 * pi * body_param_3 / Lxp &
-              * cos(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
-            tangents_1(nb + k + nxb) = body_param_1 * 2d0 * pi * body_param_3 / Lxp &
-              * cos(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
-            ! scale to unit vectors
-            tangents_1(k)            = 1 / sqrt( 1 + tangents_1(nb + k) ** 2 )
-            tangents_1(k + nxb)      = 1 / sqrt( 1 + tangents_1(nb + k + nxb) ** 2 )
-            tangents_1(nb + k)       = tangents_1(nb + k) / sqrt( 1 + tangents_1(nb + k) ** 2 )
-            tangents_1(nb + k + nxb) = tangents_1(nb + k + nxb) / sqrt( 1 + tangents_1(nb + k + nxb) ** 2 )
+            slope_bottom = body_param_1 * 2d0 * pi * body_param_3 / Lxp * cos(phase) * cos(body_param_2 * t)
+            slope_top    = body_param_1 * 2d0 * pi * body_param_3 / Lxp * cos(phase) * cos(body_param_2 * t)
 
+            ! Tangent orthogonal to z
+            tangents_1(k)            = 1 / sqrt( 1 + slope_bottom ** 2 )
+            tangents_1(k + nxb)      = 1 / sqrt( 1 + slope_top    ** 2 )
+            tangents_1(nb + k)       = slope_bottom / sqrt( 1 + slope_bottom ** 2 )
+            tangents_1(nb + k + nxb) = slope_top    / sqrt( 1 + slope_top    ** 2 )
+
+            ! Tangent parallel to z
             tangents_2(2 * nb + k      ) = 1d0
             tangents_2(2 * nb + k + nxb) = 1d0
 
@@ -270,26 +271,29 @@ Contains
       Case ('traveling_wave_x') ! Top and bottom wall undergoing traveling wave motion
         moving_body = .True.
 
-        If (t < body_ramp_up_time .and. body_ramp_up_time > 0) Then
-          amp = body_param_1 * t / body_ramp_up_time
-        Else
+        if (t < body_ramp_up_time .and. body_ramp_up_time > 0d0) then
+          tau = t / body_ramp_up_time
+          amp = body_param_1 * 0.5d0 * (1d0 - cos(pi * tau))
+          damp_dt = body_param_1 * 0.5d0 * (pi / body_ramp_up_time) * sin(pi * tau)
+        else
           amp = body_param_1
-        End If
-
+          damp_dt = 0d0
+        end if
         ! Phase difference between top and bottom wave motion
         phi = pi
 
         ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
         ! (i.e., fall between an nb_start and nb_end)
         nb_start = nb + 1 ! Initialize to an invalid value (beyond the max index)
-        nb_end = 0        ! Initialize to the lowest possible index
+        nb_end = 1        ! Initialize to the lowest possible index
         Do j = 1, nzb
           Do i = 1, nxb
             k = i + 2 * nxb * (j - 1)
             xb(k)       = (real(i,8) - 0.5d0) * dxb
             xb(k + nxb) = (real(i,8) - 0.5d0) * dxb
-            yb(k)       =       amp / (body_param_2 * body_param_3) * sin(body_param_3 * (xb(k) - body_param_2 * t))
-            yb(k + nxb) = Ly + amp / (body_param_2 * body_param_3) * sin(body_param_3 * (xb(k) - body_param_2 * t) + phi)
+            phase = body_param_3 * (xb(k) - body_param_2 * t)
+            yb(k)       =          amp / (body_param_2 * body_param_3) * sin(phase)
+            yb(k + nxb) = Ly_ref + amp / (body_param_2 * body_param_3) * sin(phase + phi)
             zb(k)       = (real(j,8) - 0.5d0) * dzb
             zb(k + nxb) = (real(j,8) - 0.5d0) * dzb
 
@@ -329,21 +333,23 @@ Contains
         Do j = 1, nzb
           Do i = 1, nxb
             k = i + 2 * nxb * (j - 1)
-            ub(nb + k)       = amp * cos(body_param_3 * (xb(k) - body_param_2 * t))
-            ub(nb + k + nxb) = amp * cos(body_param_3 * (xb(k) - body_param_2 * t) + phi)
+            phase = body_param_3 * (xb(k) - body_param_2 * t)
 
-            tangents_1(nb + k)       = amp * body_param_3 &
-              * cos(body_param_3 * (xb(k) - body_param_2 * t))
-            tangents_1(nb + k + nxb) = amp * body_param_3 &
-              * cos(body_param_3 * (xb(k) - body_param_2 * t) + phi)
-            ! scale to unit vectors
-            tangents_1(k)            = 1 / sqrt( 1 + tangents_1(nb + k) ** 2 )
-            tangents_1(k + nxb)      = 1 / sqrt( 1 + tangents_1(nb + k + nxb) ** 2 )
-            tangents_1(nb + k)       = tangents_1(nb + k) / sqrt( 1 + tangents_1(nb + k) ** 2 )
-            tangents_1(nb + k + nxb) = tangents_1(nb + k + nxb) / sqrt( 1 + tangents_1(nb + k + nxb) ** 2 )
+            ub(nb + k) = - amp * cos(phase) + (damp_dt / (body_param_2 * body_param_3)) * sin(phase)
+            ub(nb + k + nxb) = - amp * cos(phase + phi) + (damp_dt / (body_param_2 * body_param_3)) * sin(phase + phi)
 
+            slope_bottom = amp / body_param_2 * cos(phase)
+            slope_top    = amp / body_param_2 * cos(phase + phi)
+
+            ! Tangent orthogonal to z
+            tangents_1(k)            = 1 / sqrt( 1 + slope_bottom ** 2 )
+            tangents_1(k + nxb)      = 1 / sqrt( 1 + slope_top    ** 2 )
+            tangents_1(nb + k)       = slope_bottom / sqrt( 1 + slope_bottom ** 2 )
+            tangents_1(nb + k + nxb) = slope_top    / sqrt( 1 + slope_top    ** 2 )
+
+            ! Tangent parallel to z
             tangents_2(2 * nb + k      ) = 1d0
-            tangents_2(2 * nb + k + nxb) = -1d0
+            tangents_2(2 * nb + k + nxb) = 1d0
 
             normals(k)            = tangents_1(nb + k)
             normals(k + nxb)      = -tangents_1(nb + k + nxb)
@@ -361,7 +367,7 @@ Contains
               a2 = sqrt((xb(k) - (xb(k + 1))                        ) ** 2 + (yb(k) - yb(k + 1)                  ) ** 2)
             Else If (i .eq. nxb) Then
               a1 = sqrt((xb(k) - (xb(k - 1))                      ) ** 2   + (yb(k) - yb(k - 1)                  ) ** 2)
-              a1 = sqrt((xb(k) - (xb(1 + 2 * nxb * (j - 1)) + Lxp)) ** 2   + (yb(k) - yb(1 + 2 * nxb * (j - 1))) ** 2)
+              a2 = sqrt((xb(k) - (xb(1 + 2 * nxb * (j - 1)) + Lxp)) ** 2   + (yb(k) - yb(1 + 2 * nxb * (j - 1))) ** 2)
             Else
               a1 = sqrt((xb(k) - (xb(k - 1))) ** 2                     + (yb(k) - yb(k - 1)) ** 2)
               a2 = sqrt((xb(k) - (xb(k + 1))) ** 2                     + (yb(k) - yb(k + 1)) ** 2)
@@ -410,7 +416,7 @@ Contains
         r1 = body_param_1
         r2 = body_param_2
         xc = 0.5d0 * Lxp
-        yc = 0.5d0 * Ly
+        yc = 0.5d0 * Ly_ref
         nxb1 = int(2 * 3.14159 * r1 / dxb)
         nxb2 = int(2 * 3.14159 * r2 / dxb)
         
@@ -434,6 +440,27 @@ Contains
           f_((j-1)*nxb + nxb1 + 1 : j*nxb) = &
                f_((j-1)*nxb + nxb1 + 1 : j*nxb) - favg_(2)
         End Do
+
+      Case ('standing_wave', 'traveling_wave_x')
+        Do j = 1, nzb
+          ! Bottom wall
+          favg_(1) = favg_(1) + sum(f_((j-1)*2*nxb + 1   : (j-1)*2*nxb + nxb  ))
+
+          ! Top wall
+          favg_(2) = favg_(2) + sum(f_((j-1)*2*nxb + nxb : (j-1)*2*nxb + 2*nxb))
+        End Do
+
+        favg_(1) = favg_(1) / (nxb1 * nzb)
+        favg_(2) = favg_(2) / (nxb2 * nzb) 
+
+        Do j = 1, nzb
+          ! Bottom wall
+          f_((j-1)*2*nxb + 1   : (j-1)*2*nxb + nxb  ) = f_((j-1)*2*nxb + 1   : (j-1)*2*nxb + nxb  ) - favg_(1)
+
+          ! Top wall
+          f_((j-1)*2*nxb + nxb : (j-1)*2*nxb + 2*nxb) = f_((j-1)*2*nxb + nxb : (j-1)*2*nxb + 2*nxb) - favg_(2)
+        End Do
+
 
       Case Default
         stop "subroutine remove_mean_per_body not implemented for current case" 
