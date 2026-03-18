@@ -70,11 +70,6 @@ Contains
     k2_global (nprocs-1) = nz_global 
     kg2_global(nprocs-1) = nz_global + 1
 
-    if ( myid .eq. 0 ) then
-      write(*,*) 'kg1_global',kg1_global
-      write(*,*) 'kg2_global',kg2_global
-    end if
-
     ! face points
     nx = nx_global
     ny = ny_global
