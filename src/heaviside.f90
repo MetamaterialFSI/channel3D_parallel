@@ -22,7 +22,6 @@ Contains
     Integer(Int32) :: i, j, k
     Hc_exterior = 0d0
     Hc_interior = 0d0
-    debug_rhs_p=0d0
 
     Fibu = 0d0
     Fibv = 0d0
