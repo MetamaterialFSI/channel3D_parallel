@@ -22,6 +22,7 @@ Contains
     integer :: k_local,k_supp         ! local index
     integer :: proc_id      ! MPI rank that owns this index
     Real(Int64) :: x_grid, y_grid, z_grid
+    integer :: prev, next, k_global
 
     !-----------------Find the indices of the flow grid points closest to the body points---------------------!
     Do l = nb_start, nb_end
@@ -87,6 +88,10 @@ Contains
               * deltafnc(y_grid, yb(l), dymin) &
               * deltafnc(z_grid, zb(l), dz)
 
+            dxnu(count, l) = &
+              normals(l)          * (x_grid - xb(l)) + &
+              normals(nb + l)     * (y_grid - yb(l)) + &
+              normals(2 * nb + l) * (z_grid - zb(l))
           End Do
         End Do
       End Do
@@ -133,6 +138,10 @@ Contains
               * deltafnc(y_grid, yb(l), dymin) &
               * deltafnc(z_grid, zb(l),    dz)
 
+            dxnv(count, l) = &
+              normals(l)          * (x_grid - xb(l)) + &
+              normals(nb + l)     * (y_grid - yb(l)) + &
+              normals(2 * nb + l) * (z_grid - zb(l))
           End Do
         End Do
       End Do
@@ -175,6 +184,60 @@ Contains
               * deltafnc(y_grid, yb(l), dymin) &
               * deltafnc(z_grid, zb(l),    dz)
 
+            dxnw(count, l) = &
+              normals(l)          * (x_grid - xb(l)) + &
+              normals(nb + l)     * (y_grid - yb(l)) + &
+              normals(2 * nb + l) * (z_grid - zb(l))
+          End Do
+        End Do
+      End Do
+    End Do
+
+    ! compute weightc (pressure, Gux, Gvy, Gwz locations)
+    Do l = nb_start, nb_end
+      count = 0
+      Do k = -suppz, suppz
+        Do j = -suppy, suppy
+          Do i = -suppx, suppx
+            ii = xm_pivot_index(l) + i
+            jj = ym_pivot_index(l) + j
+            kk = zm_pivot_index(l) + k
+
+            x_periodic_shifts = Floor(Real(ii - 1, Int64) / (nxm_global - 1))
+            ii_periodic = ii - x_periodic_shifts * (nxm_global - 1)
+            z_periodic_shifts = Floor(Real(kk - 2, Int64) / (nzm_global))
+            kk_periodic = kk - z_periodic_shifts * (nzm_global-1)
+
+            count = count + 1
+            c_x_indices(count, l) = ii_periodic + 1 ! plus one for ghost cell
+            c_y_indices(count, l) = jj + 1 ! plus one for ghost cell
+            if ( (kk_periodic .eq. 2) .and. (myid .eq. nprocs-1) ) then
+              c_z_indices(count, l) = nzg_global - 1 ! due to periodicity
+            else
+              c_z_indices(count, l) = kk_periodic ! plus one for ghost cell
+            end if
+
+            ! calculate the support cell index
+            If ( moving_z_flag .Or. istep <= 1 ) Then
+              call global_to_local_center(c_z_indices(count, l), k_supp, k_local, proc_id)
+              c_z_local_indices(count, l) = k_local
+              c_z_supp_idx(count, l) = k_supp
+              c_proc(count, l) = proc_id 
+            End If 
+
+            x_grid = xm_global(ii_periodic) + x_periodic_shifts * Lxp
+            y_grid = ym_global(jj)
+            z_grid = zm_global(kk_periodic-1) + z_periodic_shifts * Lzp
+
+            c_weights(count, l) = dx * dymin * dz &
+              * deltafnc(x_grid, xb(l),    dx) &
+              * deltafnc(y_grid, yb(l), dymin) &
+              * deltafnc(z_grid, zb(l),    dz)
+
+            dxnc(count, l) = &
+              normals(l)          * (x_grid - xb(l)) + &
+              normals(nb + l)     * (y_grid - yb(l)) + &
+              normals(2 * nb + l) * (z_grid - zb(l))
           End Do
         End Do
       End Do
@@ -232,9 +295,9 @@ Contains
 
   Function regT(U_, V_, W_)
     Implicit None
-    Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: U_(:, :, :)
-    Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: V_(:, :, :)
-    Real   (Int64), CONTIGUOUS, INTENT(INOUT)  :: W_(:, :, :)
+    Real(Int64), CONTIGUOUS, INTENT(INOUT)  :: U_(:, :, :)
+    Real(Int64), CONTIGUOUS, INTENT(INOUT)  :: V_(:, :, :)
+    Real(Int64), CONTIGUOUS, INTENT(INOUT)  :: W_(:, :, :)
     Real(Int64), Dimension(3 * nb):: regT
 
     ! update support cells from interior points
@@ -254,9 +317,51 @@ Contains
 
   End Function regT
 
+  Function regT_1n(U_, V_, W_)
+    Implicit None
+    Real(Int64), CONTIGUOUS, INTENT(INOUT)  :: U_(:, :, :)
+    Real(Int64), CONTIGUOUS, INTENT(INOUT)  :: V_(:, :, :)
+    Real(Int64), CONTIGUOUS, INTENT(INOUT)  :: W_(:, :, :)
+    Real(Int64), Dimension(3 * nb):: regT_1n
+
+    ! update support cells from interior points
+    Call interior_planes_update_support(U_, U_supp, 1)
+    Call interior_planes_update_support(V_, V_supp, 2)
+    Call interior_planes_update_support(W_, W_supp, 3)
+
+    ! compute local_regT
+    regT_buffer_vector = local_regT_1n(U_, V_, W_, U_supp, V_supp, W_supp)
+    ! Gather regT values from all partitions
+    Call MPI_Allgatherv(regT_buffer_vector(nb_start : nb_end), local_size_nb, MPI_REAL8, &
+                 regT_1n(1 : nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    Call MPI_Allgatherv(regT_buffer_vector(nb + nb_start : nb + nb_end), local_size_nb, MPI_REAL8, &
+                 regT_1n(nb + 1 : 2 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    Call MPI_Allgatherv(regT_buffer_vector(2 * nb + nb_start : 2 * nb + nb_end), local_size_nb, MPI_REAL8, &
+                 regT_1n(2 * nb + 1 : 3 * nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+
+  End Function regT_1n
+
+  Function regTc_1n(P_)
+    Implicit None
+    !Real(Int64), CONTIGUOUS, INTENT(INOUT)  :: P_(:, :, :)
+    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg ), Intent(INOUT) :: P_
+    Real(Int64), Dimension(nb):: regTc_1n
+
+    ! update support cells from interior points
+    !Call interior_planes_update_support(P_, P_supp, 4)
+    Call interior_planes_update_support_pressure(P_, P_supp)
+
+    ! compute local_regT
+    regT_buffer_scalar = local_regTc_1n(P_, P_supp)
+    ! Gather regT values from all partitions
+    Call MPI_Allgatherv(regT_buffer_scalar(nb_start : nb_end), local_size_nb, MPI_REAL8, &
+                 regTc_1n(1 : nb), send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+
+  End Function regTc_1n
+
   Subroutine regu(U_, f_)
     Implicit None
-    Real(Int64), Dimension(3 * nb), Intent(In) :: f_
+    Real(Int64), Dimension(nb), Intent(In) :: f_
     Real(Int64), Dimension(nx, nyg, nzg), Intent(Out) :: U_
 
     U_ = 0d0
@@ -270,7 +375,7 @@ Contains
 
   Subroutine regv(V_, f_)
     Implicit None
-    Real(Int64), Dimension(3 * nb), Intent(In) :: f_
+    Real(Int64), Dimension(nb), Intent(In) :: f_
     Real(Int64), Dimension(nxg, ny, nzg), Intent(Out) :: V_
 
     V_ = 0d0
@@ -284,7 +389,7 @@ Contains
 
   Subroutine regw(W_, f_)
     Implicit None
-    Real(Int64), Dimension(3 * nb), Intent(In) :: f_
+    Real(Int64), Dimension(nb), Intent(In) :: f_
     Real(Int64), Dimension(nxg, nyg, nz), Intent(Out) :: W_
     Integer(Int32) :: i, j
 
@@ -351,6 +456,78 @@ Contains
     End Do
   End Function local_regT
 
+  Function local_regT_1n(U_, V_, W_, U_supp_, V_supp_, W_supp_)
+    Implicit None
+    Real(Int64), Dimension(nx, nyg, nzg), Intent(In) :: U_
+    Real(Int64), Dimension(nxg, ny, nzg), Intent(In) :: V_
+    Real(Int64), Dimension(nxg, nyg, nz), Intent(In) :: W_
+    Real(Int64), Dimension(nx, nyg, suppz*2+1), Intent(In) :: U_supp_
+    Real(Int64), Dimension(nxg, ny, suppz*2+1), Intent(In) :: V_supp_
+    Real(Int64), Dimension(nxg, nyg, suppz*2+1), Intent(In) :: W_supp_
+    Real(Int64), Dimension(3 * nb):: local_regT_1n
+    integer :: proc_idx
+
+    Integer(Int32) :: i, j
+    local_regT_1n = 0.D0
+     
+    Do j = nb_start, nb_end
+      Do i = 1, nweights
+        ! get data of U
+        proc_idx = u_proc(i, j)
+        if ( proc_idx .eq. myid ) then
+          local_regT_1n(j) = local_regT_1n(j)+ &
+          u_weights(i, j) * U_(u_x_indices(i, j),u_y_indices(i, j),u_z_local_indices(i, j)) * dxnu(i, j)
+        else
+          local_regT_1n(j) = local_regT_1n(j)+ &
+          u_weights(i, j) * U_supp_(u_x_indices(i, j),u_y_indices(i, j),u_z_supp_idx(i, j)) * dxnu(i, j)
+        end if
+        ! get data of V
+        proc_idx = v_proc(i, j)
+        if ( proc_idx .eq. myid ) then
+          local_regT_1n(j + nb) = local_regT_1n(j + nb)+ &
+          v_weights(i, j) * V_(v_x_indices(i, j),v_y_indices(i, j),v_z_local_indices(i, j)) * dxnv(i, j)
+        else
+          local_regT_1n(j + nb) = local_regT_1n(j + nb)+ &
+          v_weights(i, j) * V_supp_(v_x_indices(i, j),v_y_indices(i, j),v_z_supp_idx(i, j)) * dxnv(i, j)
+        end if
+        ! get data of W
+        proc_idx = w_proc(i, j)
+        if ( proc_idx .eq. myid ) then
+          local_regT_1n(j + 2 * nb) = local_regT_1n(j + 2 * nb)+ &
+          w_weights(i, j) * W_(w_x_indices(i, j),w_y_indices(i, j),w_z_local_indices(i, j)) * dxnw(i, j)
+        else
+          local_regT_1n(j + 2 * nb) = local_regT_1n(j + 2 * nb)+ &
+          w_weights(i, j) * W_supp_(w_x_indices(i, j),w_y_indices(i, j),w_z_supp_idx(i, j)) * dxnw(i, j)
+        end if
+      End Do
+    End Do
+  End Function local_regT_1n
+
+  Function local_regTc_1n(P_, P_supp_)
+    Implicit None
+    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg ), Intent(In) :: P_
+    Real(Int64), Dimension(2:nxg-1, 2:nyg-1, suppz * 2 + 1), Intent(In) :: P_supp_
+    Real(Int64), Dimension(nb):: local_regTc_1n
+    integer :: proc_idx
+
+    Integer(Int32) :: i, j
+    local_regTc_1n = 0.D0
+
+    Do j = nb_start, nb_end
+      Do i = 1, nweights
+        ! get data of P
+        proc_idx = c_proc(i, j)
+        if ( proc_idx .eq. myid ) then
+          local_regTc_1n(j) = local_regTc_1n(j)+ &
+          c_weights(i, j) * P_(c_x_indices(i, j),c_y_indices(i, j),c_z_local_indices(i, j)) * dxnc(i, j)
+        else
+          local_regTc_1n(j) = local_regTc_1n(j)+ &
+          c_weights(i, j) * P_supp_(c_x_indices(i, j),c_y_indices(i, j),c_z_supp_idx(i, j)) * dxnc(i, j)
+        end if
+      End Do
+    End Do
+  End Function local_regTc_1n
+
   !-----------------------------------------------------------------------
   !  Generalized “subset_regu” for U, V, or W:
   !    - id = 1 -> U
@@ -370,7 +547,7 @@ Contains
   subroutine local_reg(F, F_supp, f_, id)
     implicit none
     integer, intent(in)  :: id
-    Real(Int64), Dimension(3 * nb), Intent(In) :: f_
+    Real(Int64), Dimension(nb), Intent(In) :: f_
     Real(Int64), Intent(InOut) :: F(:,:,:)    
     Real(Int64), Intent(InOut) :: F_supp(:,:,:)   
     integer :: i, j
@@ -416,13 +593,13 @@ Contains
         end select
         if (proc_idx == myid) then
           ! Write into local F
-          F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j+(id-1)*nb)
+          F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
         else
           if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
             WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
             stop 'Error: zi_supp out of [1..suppz]'
           END IF
-          F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j+(id-1)*nb)
+          F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
           !print *, 'Error: unexpected proc_idx =', proc_idx, ' for myid =', myid
           !stop
         end if
@@ -499,7 +676,6 @@ Contains
         end if
       end if
       if (k_sup < 1 .or. k_sup > 2*suppz+1) Then
-        WRITE(*,*) 'myid',myid,'proc_idx',rank,'k_sup',k_sup,'k_glb',k_global
         stop 'Error: zi_supp out of [1..suppz*2+1] for face'
       END IF
     end if
@@ -552,10 +728,9 @@ Contains
             k_global <= (kg2_global(next)-1)) then
       rank = next
     else
-      print *, 'Error: Center index ', k_global, ' not in {', prev, ',', myid, ',', next, '}.'
+      write(*,*) 'Error: Center index ', k_global, ' not in {', prev, ',', myid, ',', next, '}.'
       stop
     end if
-
     k_loc = k_global - kg1_global(rank) + 1
     if (rank == myid) then
       ! Locally owned -> compute k_loc
@@ -577,19 +752,18 @@ Contains
         end if
       else 
         if ( rank .eq. prev ) then
-          k_sup = k_global - (kg2_global(prev) - suppz)+2
+          k_sup = k_global - kg2_global(prev) + suppz + 2
           if ( rank .eq. nprocs-1 ) then
-            k_sup=k_sup+1-1
+            k_sup=k_sup+1
           end if
         elseif (rank .eq. next) then
-          k_sup = (k_global - (kg1_global(next) + 1)) + (suppz + 2)
-        end if
-        if (rank .eq. 0) then
-          k_sup=k_sup-1
+          k_sup = k_global - kg1_global(next) + suppz + 1
+          if (rank .eq. 0) then
+            k_sup=k_sup-1
+          end if
         end if
       end if
       if (k_sup < 1 .or. k_sup > 2*suppz+1) Then
-        WRITE(*,*) 'myid',myid,'proc_idx',rank,'k_sup',k_sup,'k_glb',k_global
         stop 'Error: zi_supp out of [1..suppz*2+1] for center'
       END IF
     end if

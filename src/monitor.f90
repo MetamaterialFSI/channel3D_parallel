@@ -91,7 +91,7 @@ Contains
         write(*,*) 'Maximum divergence               :', max_divergence
         If ( trim(body_type) /= 'none' ) Then
           write(*,*) 'Maximum IB slip                  :', max_slip
-          write(*,*) 'Average BiCGSTAB iteration count :', cg_mean_iter
+          write(*,'(A,F10.3)') ' Average BiCGSTAB iteration count :', cg_mean_iter
         End If
         write(*,*) 'Elapsed time (s)                 :', time2-time1
         
@@ -171,7 +171,7 @@ Contains
       Write(*,*) 'yg(1),yg(end) :',yg_global(1), yg_global(nyg_global)
       Write(*,*) 'y (1),y (end) :', y_global(1), y_global ( ny_global)
       
-      Write(*,*) 'zg(1),xz(end) :',zg_global(1), zg_global(nzg_global)
+      Write(*,*) 'zg(1),zg(end) :',zg_global(1), zg_global(nzg_global)
       Write(*,*) 'z (1),z (end) :', z_global(1), z_global ( nz_global)
       
       Write(*,*) ' '
@@ -224,8 +224,7 @@ Contains
 
     Real(Int64), Intent(Out) :: max_slip
 
-    aux_surface_vector = regt(U, V, W)
-    aux_surface_vector = aux_surface_vector - ub
+    aux_surface_vector = regT(U, V, W) - E1nH_exterior * dudn_jump - ub
     max_slip = Maxval( Abs(aux_surface_vector) )
 
   end subroutine check_slip

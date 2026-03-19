@@ -79,8 +79,9 @@ def read_field(file_path):
         data["yg"] = np.concatenate(([data["ym"][0] - 2 * (data["ym"][0] - data["y"][0])], data["ym"], [data["ym"][-1] + 2 * (data["y"][-1] - data["ym"][-1])]))
         data["zg"] = np.concatenate(([data["zm"][0] - 2 * (data["zm"][0] - data["z"][0])], data["zm"], [data["zm"][-1] + 2 * (data["z"][-1] - data["zm"][-1])]))
 
-        for var in ["U", "V", "W", "P", "Hu_interior", "Hv_interior", "Hw_interior"]:
+        for var in ["U", "V", "W", "P", "Hu_interior", "Hv_interior", "Hw_interior","debug_rhs_p","debug_u","debug_v", "debug_w"]:
             dims = np.fromfile(f, dtype=np.dtype('>i4'), count=3)
+            #print(var,dims)
             data[var] = np.reshape(np.fromfile(f, dtype=np.dtype('>f8'), count=np.prod(dims)), dims, order='F')
 
         data["t"] = np.fromfile(f, dtype=np.dtype('>f8'), count=1)[0]
@@ -104,6 +105,33 @@ def read_field(file_path):
         data["tangents_2"] = np.fromfile(f, dtype=np.dtype('>f8'), count=np.fromfile(f, dtype=np.dtype('>i4'), count=1)[0])
 
         data["debug_surface_scalar"] = np.fromfile(f, dtype=np.dtype('>f8'), count=np.fromfile(f, dtype=np.dtype('>i4'), count=1)[0])
+
+        # dims = np.fromfile(f, dtype=np.dtype('>i4'), count=3)
+        # data["debug_rhs_p"] = np.reshape(np.fromfile(f, dtype=np.dtype('>f8'), count=np.prod(dims)), dims, order='F')
+
+    return data
+
+
+def read_debug_local(file_path):
+
+    data = {}
+
+    with open(file_path, "rb") as f:
+
+        # ---------------- GRID ----------------
+        for var in ["x", "y", "z", "xg", "yg", "zg"]:
+            n = np.fromfile(f, dtype=">i4", count=1)[0]
+            data[var] = np.fromfile(f, dtype=">f8", count=n)
+
+        # ---------------- DEBUG FIELDS ----------------
+        for var in ["debug_rhs_p", "debug_u", "debug_v", "debug_w"]:
+            dims = np.fromfile(f, dtype=">i4", count=3)
+            nx, ny, nz = dims
+
+            arr = np.fromfile(f, dtype=">f8", count=nx*ny*nz)
+            arr = arr.reshape((nx, ny, nz), order="F")
+
+            data[var] = arr
 
     return data
 
@@ -193,7 +221,8 @@ def save_field(file_path, data):
             f.write(np.array([len(data[axis])], dtype='>i4').tobytes())
             f.write(np.array(data[axis], dtype='>f8').tobytes())
 
-        for var in ["U", "V", "W", "P", "Hu_interior", "Hv_interior", "Hw_interior"]:
+        # Core and Heaviside fields (plus optional debug_rhs_p to match Fortran output_data)
+        for var in ["U", "V", "W", "P", "Hu_interior", "Hv_interior", "Hw_interior", "debug_rhs_p"]:
             arr = np.array(data[var], dtype='>f8')
             dims = np.array(arr.shape, dtype='>i4')
             f.write(dims.tobytes())
@@ -214,3 +243,8 @@ def save_field(file_path, data):
         for name in ["fb", "ub", "sb", "normals", "tangents_1", "tangents_2"]:
             f.write(np.array([len(data[name])], dtype='>i4').tobytes())
             f.write(np.array(data[name], dtype='>f8').tobytes())
+
+        # Debug surface scalar array (same layout as Fortran: length then values)
+        if "debug_surface_scalar" in data:
+            f.write(np.array([len(data["debug_surface_scalar"])], dtype='>i4').tobytes())
+            f.write(np.array(data["debug_surface_scalar"], dtype='>f8').tobytes())

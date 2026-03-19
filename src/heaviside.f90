@@ -19,6 +19,7 @@ Contains
 
   Subroutine compute_heaviside
 
+    Integer(Int32) :: i, j, k
     Hc_exterior = 0d0
     Hc_interior = 0d0
 
@@ -26,9 +27,9 @@ Contains
     Fibv = 0d0
     Fibw = 0d0
 
-    Call regu(Fibu, normals)
-    Call regv(Fibv, normals)
-    Call regw(Fibw, normals)
+    Call regu(Fibu, normals(1 : nb))             
+    Call regv(Fibv, normals(nb + 1 : 2 * nb))    
+    Call regw(Fibw, normals(2 * nb + 1 : 3 * nb))
     Call apply_boundary_conditions(Fibu, Fibv, Fibw)
 
     Call divergence(Hc_interior, Fibu, Fibv, Fibw)
@@ -46,6 +47,11 @@ Contains
     Hw_interior = 1 - Hw_exterior
 
     Call apply_boundary_conditions(Hu_interior, Hv_interior, Hw_interior)
+    
+    E1nHc_exterior = regTc_1n(Hc_exterior)
+    E1nH_exterior = regT_1n(Hu_exterior, Hv_exterior, Hw_exterior)
+
+    debug_surface_scalar = E1nHc_exterior
 
   End Subroutine compute_heaviside
 

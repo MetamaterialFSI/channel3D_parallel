@@ -44,7 +44,7 @@ Module global
   Integer(Int32) :: grid_type, n_uniform
 
   ! domain size
-  Real(Int64) :: Lx, Lz, Ly, Lxp, Lzp
+  Real(Int64) :: Lx, Lz, Ly, Lxp, Lzp, Ly_channel
 
   ! steps
   Integer(Int32) :: nsteps, nstep_init
@@ -59,6 +59,9 @@ Module global
 
   ! viscosity
   Real(Int64) :: nu
+
+  ! random input perturbation scale
+  Real(Int64) :: perturb_scale
 
   ! global face points
   Integer(Int32) :: nx_global, ny_global, nz_global
@@ -106,7 +109,7 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: Vw 
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_reg, V_reg, W_reg
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_interim, V_interim, W_interim, P_interim
-  Real(Int64), Allocatable, Dimension(:,:,:) :: U_supp, V_supp, W_supp ! first 1:suppz is for left boundary; suppz+1:2*suppz is for right boundary
+  Real(Int64), Allocatable, Dimension(:,:,:) :: U_supp, V_supp, W_supp, P_supp! first 1:suppz is for left boundary; suppz+1:2*suppz is for right boundary
 
   ! local auxiliary 
   Real(Int64), Allocatable, Dimension(:,:,:) :: term_1, term_2
@@ -136,6 +139,7 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_usupp_s, buffer_usupp_r
   Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_vsupp_s, buffer_vsupp_r
   Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_wsupp_s, buffer_wsupp_r
+  Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_psupp_s, buffer_psupp_r
   
   ! local auxiliary planes for FFTW
   Type(C_PTR) :: cplane_fft
@@ -201,11 +205,17 @@ Module global
   Character(200) :: body_type
   Logical(Int32) :: moving_body
 
+  ! number of bodies
+  Integer(Int32) :: nbodies
+
   ! body points
   Integer(Int32) :: nb, nxb, nzb
   Integer(Int32) :: nb_start, nb_end
   Real   (Int64) :: dxb, dzb
   Real   (Int64), Dimension(:), Allocatable :: xb, yb, zb
+
+  ! array containing the first index for each body in the body arrays
+  Integer(Int32), Dimension(:), Allocatable :: first_index_per_body
 
   ! array containing an index for each body point of a y grid point that is part of a
   ! uniform grid patch containing the body point
@@ -226,13 +236,22 @@ Module global
   ! immersed body forcing
   Real(Int64), Dimension(:), Allocatable :: fb!, input_fb
 
+  ! body normal velocity gradient jump and pressure jump
+  Real(Int64), Dimension(:), Allocatable :: dudn_jump
+  Real(Int64), Dimension(:), Allocatable :: p_jump
+
+  ! scalar array on the immersed boundary for debug purposes
+  Real(Int64), Dimension(:), Allocatable :: debug_surface_scalar
+
   ! Heaviside arrays
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior, Hu_exterior
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hv_interior, Hv_exterior
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hw_interior, Hw_exterior
-  Real   (Int64), Dimension(:,:,:), Allocatable :: Hc_interior, Hc_exterior
+  Real   (Int64), Dimension(:,:,:), Allocatable :: Hc_interior, Hc_exterior, debug_rhs_p
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior_o, Hv_interior_o, Hw_interior_o, Hc_interior_o
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior_oo, Hv_interior_oo, Hw_interior_oo, Hc_interior_oo
+  Real   (Int64), Dimension(:,:,:), Allocatable :: debug_rhs_p_o, debug_rhs_p_oo
+  Real   (Int64), Dimension(:), Allocatable :: E1nHc_exterior, E1nH_exterior
 
   ! Biconjugate gradient max iterations and tolerance
   Integer(Int32) :: cg_max_iter, cg_accum_iter
@@ -247,11 +266,13 @@ Module global
   Integer(Int32), parameter :: suppy = 2
   Integer(Int32), parameter :: suppz = 2
   Integer(Int32), parameter :: nweights = (2 * suppx + 1) * (2 * suppy + 1) * (2 * suppz + 1)
-  Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights
+  Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights, c_weights
+  Real(Int64),    Dimension(:,:),   Allocatable :: dxnu, dxnv, dxnw, dxnc
 
   Integer(Int32), Dimension(:,:),   Allocatable :: u_x_indices, u_y_indices, u_z_indices, u_z_local_indices, u_proc, u_z_supp_idx
   Integer(Int32), Dimension(:,:),   Allocatable :: v_x_indices, v_y_indices, v_z_indices, v_z_local_indices, v_proc, v_z_supp_idx
   Integer(Int32), Dimension(:,:),   Allocatable :: w_x_indices, w_y_indices, w_z_indices, w_z_local_indices, w_proc, w_z_supp_idx
+  Integer(Int32), Dimension(:,:),   Allocatable :: c_x_indices, c_y_indices, c_z_indices, c_z_local_indices, c_proc, c_z_supp_idx
   Integer(Int32), Dimension(:),     Allocatable :: x_pivot_index, xm_pivot_index
   Integer(Int32), Dimension(:),     Allocatable :: y_pivot_index, ym_pivot_index
   Integer(Int32), Dimension(:),     Allocatable :: z_pivot_index, zm_pivot_index
@@ -260,6 +281,9 @@ Module global
   Real(Int64), Dimension(:),     Allocatable :: aux_surface_scalar, aux_surface_vector, rhs_ib
   Real(Int64), Dimension(:),     Allocatable :: regT_buffer_scalar, regT_buffer_vector
   Real(Int64), Dimension(:,:,:), Allocatable :: Fibu, Fibv, Fibw
+  Real(Int64), Dimension(:,:,:), Allocatable :: debug_u, debug_v, debug_w !debug
+  Real(Int64), Dimension(:,:,:), Allocatable :: debug_u_o, debug_v_o, debug_w_o !debug
+  Real(Int64), Dimension(:,:,:), Allocatable :: debug_u_oo, debug_v_oo, debug_w_oo !debug
   Logical(Int32) :: moving_z_flag ! True for moving in z direction; False: stationary in z direction (for identifying the partition)
 
   ! BiCGSTAB arrays

@@ -145,6 +145,7 @@ Contains
     Allocate (U_supp  (    nx,  nym+2, suppz*2+1) )
     Allocate (V_supp  ( nxm+2,     ny, suppz*2+1) )
     Allocate (W_supp  ( nxm+2,  nym+2, suppz*2+1) )
+    Allocate (P_supp  ( 2:nxg-1, 2:nyg-1, suppz*2+1) )
 
     Allocate (Vw ( nxm+2, 2, nzm+2) )
 
@@ -240,6 +241,7 @@ Contains
     Allocate ( buffer_usupp_s(nx ,nyg,suppz+1), buffer_usupp_r(nx ,nyg,suppz+1) )
     Allocate ( buffer_vsupp_s(nxg, ny,suppz+1), buffer_vsupp_r(nxg, ny,suppz+1) )
     Allocate ( buffer_wsupp_s(nxg,nyg,suppz+1), buffer_wsupp_r(nxg,nyg,suppz+1) )
+    Allocate ( buffer_psupp_s(2:nxg-1,2:nyg-1,suppz+1), buffer_psupp_r(2:nxg-1,2:nyg-1,suppz+1) )
 
     !---------------------------Fourier transform---------------------------!
     If ( myid==0 ) Write(*,*) 'initializing FFT...'
@@ -432,6 +434,31 @@ Contains
     Allocate ( Fw2 ( 2:nxg-1,  2:nyg-1, 2:nz-1 ) )
     Allocate ( Fw3 ( 2:nxg-1,  2:nyg-1, 2:nz-1 ) )
 
+    !-----------------Heaviside arrays----------------------!
+    Allocate (Hu_interior (    nx, nym+2, nzm+2 ) )
+    Allocate (Hv_interior ( nxm+2,    ny, nzm+2 ) )
+    Allocate (Hw_interior ( nxm+2, nym+2,    nz ) )
+    Allocate (Hu_exterior (    nx, nym+2, nzm+2 ) )
+    Allocate (Hv_exterior ( nxm+2,    ny, nzm+2 ) )
+    Allocate (Hw_exterior ( nxm+2, nym+2,    nz ) )
+    Allocate (Hc_interior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
+    Allocate (Hc_exterior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
+    Allocate (debug_rhs_p ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
+
+    Allocate (Hu_interior_o  (    nx,  nym+2, nzm+2) )
+    Allocate (Hv_interior_o  ( nxm+2,     ny, nzm+2) )
+    Allocate (Hw_interior_o  ( nxm+2,  nym+2,    nz) )
+    Allocate (Hc_interior_o  ( nxm+2,  nym+2, nzm+2) )
+    Allocate (debug_rhs_p_o  ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
+
+    If (myid == 0) Then
+       Allocate (Hu_interior_oo (    nx,  nym+2, nzme+2) ) ! z-planes modified for I/O
+       Allocate (Hv_interior_oo ( nxm+2,     ny, nzme+2) )
+       Allocate (Hw_interior_oo ( nxm+2,  nym+2,    nze) )
+       Allocate (Hc_interior_oo ( nxm+2,  nym+2, nzme+2) )
+       Allocate (debug_rhs_p_oo ( 2:nxg-1, 2:nyg-1, 2:nzme+2) )
+    End If
+
     !-------------------------Done--------------------------------!
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)
 
@@ -461,61 +488,63 @@ Contains
     ! Wall normal reference coordinate and index
     Allocate ( y_ref_index (  nb) )
 
+    ! First index per body
+    Allocate(first_index_per_body (nbodies) )
+    ! Set default
+    If (nbodies > 0) then
+      first_index_per_body(1) = 1
+    End If
+
     ! Body areas
     Allocate(sb (nb) )
 
     ! Body forcing
-    Allocate (fb(3*nb) )
+    Allocate (fb(4 * nb) )
     fb = 0d0
+    Allocate (p_jump(nb) )
+    p_jump = 0d0
+    Allocate (dudn_jump(3 * nb) )
+    dudn_jump = 0d0
 
     ! Body velocity
     Allocate (ub (3 * nb) )
-    ub = 0d0
 
     ! Body normals and tangents
     Allocate (normals (3 * nb) )
     Allocate (tangents_1 (3 * nb) )
     Allocate (tangents_2 (3 * nb) )
-    normals= 0d0
-    tangents_1= 0d0
-    tangents_2= 0d0
+    normals = 0d0
+    tangents_1 = 0d0
+    tangents_2 = 0d0
 
-    ! Heaviside arrays
-    Allocate (Hu_interior (    nx, nym+2, nzm+2 ) )
-    Allocate (Hv_interior ( nxm+2,    ny, nzm+2 ) )
-    Allocate (Hw_interior ( nxm+2, nym+2,    nz ) )
-    Allocate (Hu_exterior (    nx, nym+2, nzm+2 ) )
-    Allocate (Hv_exterior ( nxm+2,    ny, nzm+2 ) )
-    Allocate (Hw_exterior ( nxm+2, nym+2,    nz ) )
-    Allocate (Hc_interior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
-    Allocate (Hc_exterior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
+    ! Body scalar for debugging
+    Allocate (debug_surface_scalar(nb) )
+    debug_surface_scalar = 0d0
 
-    Allocate (Hu_interior_o  (    nx,  nym+2, nzm+2) )
-    Allocate (Hv_interior_o  ( nxm+2,     ny, nzm+2) )
-    Allocate (Hw_interior_o  ( nxm+2,  nym+2,    nz) )
-    Allocate (Hc_interior_o  ( nxm+2,  nym+2, nzm+2) )
-
-    If (myid == 0) Then
-       Allocate (Hu_interior_oo (    nx,  nym+2, nzme+2) ) ! z-planes modified for I/O
-       Allocate (Hv_interior_oo ( nxm+2,     ny, nzme+2) )
-       Allocate (Hw_interior_oo ( nxm+2,  nym+2,    nze) )
-       Allocate (Hc_interior_oo ( nxm+2,  nym+2, nzme+2) )
-    End If
+    Allocate (E1nHc_exterior (nb) )
+    Allocate (E1nH_exterior  (3 * nb) )
 
     ! Auxiliary surface arrays
-    Allocate ( rhs_ib (3 * nb) )
+    Allocate ( rhs_ib (4 * nb) )
     Allocate ( aux_surface_vector (3 * nb) )
     Allocate ( aux_surface_scalar (nb) )
     Allocate ( regT_buffer_vector (3 * nb) )
     Allocate ( regT_buffer_scalar (nb) )
-    rhs_ib = 0d0
-    aux_surface_vector = 0d0
-    aux_surface_scalar = 0d0
-    regT_buffer_vector = 0d0
-    regT_buffer_scalar = 0d0
     Allocate ( Fibu (    nx, nym+2, nzm+2  ) ) 
     Allocate ( Fibv ( nxm+2,    ny, nzm+2  ) )
     Allocate ( Fibw ( nxm+2, nym+2,    nz  ) )
+    Allocate ( debug_u (    nx, nym+2, nzm+2  ) ) 
+    Allocate ( debug_v ( nxm+2,    ny, nzm+2  ) )
+    Allocate ( debug_w ( nxm+2, nym+2,    nz  ) )
+    Allocate (debug_u_o  (    nx,  nym+2, nzm+2) )
+    Allocate (debug_v_o  ( nxm+2,     ny, nzm+2) )
+    Allocate (debug_w_o  ( nxm+2,  nym+2,    nz) )
+
+    If (myid == 0) Then
+       Allocate (debug_u_oo (    nx,  nym+2, nzme+2) ) ! z-planes modified for I/O
+       Allocate (debug_v_oo ( nxm+2,     ny, nzme+2) )
+       Allocate (debug_w_oo ( nxm+2,  nym+2,    nze) )
+    End If
 
     !--------------------Initialize IB operator variables-------------------!    
 
@@ -527,6 +556,7 @@ Contains
     Allocate ( zm_pivot_index (nb) )
     
     Allocate ( u_weights  ( nweights, nb) )
+    Allocate ( dxnu       ( nweights, nb) )
     Allocate ( u_x_indices( nweights, nb) )
     Allocate ( u_y_indices( nweights, nb) )
     Allocate ( u_z_indices( nweights, nb) )
@@ -535,6 +565,7 @@ Contains
     Allocate ( u_z_supp_idx( nweights, nb) )
     
     Allocate ( v_weights  ( nweights, nb) )
+    Allocate ( dxnv       ( nweights, nb) )
     Allocate ( v_x_indices( nweights, nb) )
     Allocate ( v_y_indices( nweights, nb) )
     Allocate ( v_z_indices( nweights, nb) )
@@ -543,6 +574,7 @@ Contains
     Allocate ( v_z_supp_idx( nweights, nb) )
     
     Allocate ( w_weights  ( nweights, nb) )
+    Allocate ( dxnw       ( nweights, nb) )
     Allocate ( w_x_indices( nweights, nb) )
     Allocate ( w_y_indices( nweights, nb) )
     Allocate ( w_z_indices( nweights, nb) )
@@ -550,16 +582,25 @@ Contains
     Allocate ( w_proc( nweights, nb) )
     Allocate ( w_z_supp_idx( nweights, nb) )
     
+    Allocate ( c_weights  ( nweights, nb) )
+    Allocate ( dxnc       ( nweights, nb) )
+    Allocate ( c_x_indices( nweights, nb) )
+    Allocate ( c_y_indices( nweights, nb) )
+    Allocate ( c_z_indices( nweights, nb) )
+    Allocate ( c_z_local_indices( nweights, nb) )
+    Allocate ( c_proc( nweights, nb) )
+    Allocate ( c_z_supp_idx( nweights, nb) )
+
     Allocate ( send_counts_nb(nprocs), displs_nb(nprocs) )
 
     !--------------------Initialize BiCGSTAB arrays---------------!    
-    Allocate ( bcg_r( 3 * nb) )
-    Allocate ( bcg_rhat( 3 * nb) )
-    Allocate ( bcg_p( 3 * nb) )
-    Allocate ( bcg_nu( 3 * nb) )
-    Allocate ( bcg_h( 3 * nb) )
-    Allocate ( bcg_sv( 3 * nb) )
-    Allocate ( bcg_tv( 3 * nb) )
+    Allocate ( bcg_r( 4 * nb) )
+    Allocate ( bcg_rhat( 4 * nb) )
+    Allocate ( bcg_p( 4 * nb) )
+    Allocate ( bcg_nu( 4 * nb) )
+    Allocate ( bcg_h( 4 * nb) )
+    Allocate ( bcg_sv( 4 * nb) )
+    Allocate ( bcg_tv( 4 * nb) )
     cg_accum_iter = 0
 
     !-------------------------Done--------------------------------!

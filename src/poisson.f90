@@ -53,6 +53,8 @@ Contains
           i_global = imode_map_fft( i, k )
           ! mapping to z-mode 
           k_global = kmode_map_fft( i, k )
+          ! i_global = i
+          ! k_global = local_k_offset + k
           ! form matrix          
           Do j = 2, nyg-1 ! diagonal
              D(j) = Dyy(j,j) + kxx(i_global) + kzz(k_global) 
