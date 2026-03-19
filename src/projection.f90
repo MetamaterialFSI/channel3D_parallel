@@ -49,25 +49,17 @@ Contains
 
     ! - E u* + ub 
     Call regT(Eu, U, V, W)
-    rhs_ib(1 : 3 * nb) = -Eu + ub
-    Call regTc_1n(E1np, P_interim)
-    rhs_ib(3 * nb + 1 : 4 * nb) = -E1np
-
-    ! Remove mean from rhs pressure
-    Call remove_mean_per_body(rhs_ib(3 * nb + 1 : 4 * nb))
+    rhs_ib = -Eu + ub
 
     ! solve for IB forcing
     Call bicgstab(fb, rhs_ib)
 
-    dudn_jump = fb(1          : 3 * nb)
-    p_jump    = fb(3 * nb + 1 : 4 * nb)
-
     ! U_reg = R f
-    aux_surface_scalar = dt * nu * dudn_jump(1 : nb)              - dt * p_jump * normals(1 : nb)
+    aux_surface_scalar = dt * fb(1 : nb)
     Call regu(U_reg, aux_surface_scalar)
-    aux_surface_scalar = dt * nu * dudn_jump(nb + 1 : 2 * nb)     - dt * p_jump * normals(nb + 1 : 2 * nb)
+    aux_surface_scalar = dt * fb(nb + 1 : 2 * nb)
     Call regv(V_reg, aux_surface_scalar)
-    aux_surface_scalar = dt * nu * dudn_jump(2 * nb + 1 : 3 * nb) - dt * p_jump * normals(2 * nb + 1 : 3 * nb)
+    aux_surface_scalar = dt * fb(2 * nb + 1 : 3 * nb)
     Call regw(W_reg, aux_surface_scalar)
 
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
@@ -102,15 +94,12 @@ Contains
 
     Sf_ = 0.d0
 
-    dudn_jump = f_(1          : 3 * nb)
-    p_jump    = f_(3 * nb + 1 : 4 * nb)
-
     ! U_reg = R f
-    aux_surface_scalar = dt * nu * dudn_jump(1 : nb)              - dt * p_jump * normals(1 : nb)
+    aux_surface_scalar = dt * f_(1 : nb)
     Call regu(U_reg, aux_surface_scalar)
-    aux_surface_scalar = dt * nu * dudn_jump(nb + 1 : 2 * nb)     - dt * p_jump * normals(nb + 1 : 2 * nb)
+    aux_surface_scalar = dt * f_(nb + 1 : 2 * nb)
     Call regv(V_reg, aux_surface_scalar)
-    aux_surface_scalar = dt * nu * dudn_jump(2 * nb + 1 : 3 * nb) - dt * p_jump * normals(2 * nb + 1 : 3 * nb)
+    aux_surface_scalar = dt * f_(2 * nb + 1 : 3 * nb)
     Call regw(W_reg, aux_surface_scalar)
 
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
@@ -122,10 +111,7 @@ Contains
     call solve_poisson_equation(rhs_p)
     rhs_p = rhs_p / dt
 
-    Call regTc_1n(E1np, rhs_p)
-    Sf_(3 * nb + 1 : 4 * nb) = -E1np
-    Call remove_mean_per_body(Sf_(3 * nb + 1 : 4 * nb))
-    Sf_(3 * nb + 1 : 4 * nb) = Sf_(3 * nb + 1 : 4 * nb) - E1nHc_exterior * p_jump
+
 
     ! U, V, W = G Linv D R f
     rhs_p = dt * rhs_p
@@ -139,7 +125,7 @@ Contains
 
     ! Sf_ = -E (I -  G Linv D) R f
     Call regT(Eu, U, V, W)
-    Sf_(1 : 3 * nb) = Eu - E1nH_exterior * dudn_jump
+    Sf_(1 : 3 * nb) = Eu
 
   End Subroutine schur
 
