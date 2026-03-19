@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --nodes=1
-#SBATCH --ntasks=4
+#SBATCH --ntasks=2
 #SBATCH --cpus-per-task=1
 #SBATCH --time=0:30:00
 
@@ -15,4 +15,4 @@ input_file="input_parameters_ib_planar_wall"
 mkdir -p channel_output_ib_planar_wall
 
 cd $SLURM_SUBMIT_DIR
-mpirun -np 4 ../build/channel3D "$input_file" 
+mpirun -np 2 ../build/channel3D "$input_file" 

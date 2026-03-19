@@ -1,12 +1,12 @@
 &params
 	! domain size
-	nx_global = 10
+	nx_global = 8
 	ny_global = 10
 	nz_global = 34
-	nxb = 8
+	nxb = 6
 	nzb = 32
-	Lxp = 6.28318530717959
-	Lzp = 3.14159265358979
+	Lxp = 1.718
+	Lzp = 0.859
 	! (positive->CFL, negative->timestep size)
 	CFL = -0.01
 	! viscosity
@@ -17,7 +17,7 @@
 	x_mass_cte = 0 ! (0->use dPdx, 1->constant mass flow)
 	y_mass_cte = 0
 	! nsteps, nsave, nstats, nmonitor
-	nsteps = 0
+	nsteps = 100
 	nsave = 10
 	nstats = 10
 	nmonitor = 10
