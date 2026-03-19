@@ -23,16 +23,16 @@ Contains
     Hc_exterior = 0d0
     Hc_interior = 0d0
 
-    Fibu = 0d0
-    Fibv = 0d0
-    Fibw = 0d0
+    U_reg = 0d0
+    V_reg = 0d0
+    W_reg = 0d0
 
-    Call regu(Fibu, normals(1 : nb))             
-    Call regv(Fibv, normals(nb + 1 : 2 * nb))    
-    Call regw(Fibw, normals(2 * nb + 1 : 3 * nb))
-    Call apply_boundary_conditions(Fibu, Fibv, Fibw)
+    Call regu(U_reg, normals(1 : nb))             
+    Call regv(V_reg, normals(nb + 1 : 2 * nb))    
+    Call regw(W_reg, normals(2 * nb + 1 : 3 * nb))
+    Call apply_boundary_conditions(U_reg, V_reg, W_reg)
 
-    Call divergence(Hc_interior, Fibu, Fibv, Fibw)
+    Call divergence(Hc_interior, U_reg, V_reg, W_reg)
     Hc_interior = -Hc_interior
     Call solve_poisson_equation(Hc_interior)
     Hc_exterior = 1 - Hc_interior

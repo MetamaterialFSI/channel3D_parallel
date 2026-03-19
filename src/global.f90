@@ -247,10 +247,9 @@ Module global
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior, Hu_exterior
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hv_interior, Hv_exterior
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hw_interior, Hw_exterior
-  Real   (Int64), Dimension(:,:,:), Allocatable :: Hc_interior, Hc_exterior, debug_rhs_p
+  Real   (Int64), Dimension(:,:,:), Allocatable :: Hc_interior, Hc_exterior
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior_o, Hv_interior_o, Hw_interior_o, Hc_interior_o
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior_oo, Hv_interior_oo, Hw_interior_oo, Hc_interior_oo
-  Real   (Int64), Dimension(:,:,:), Allocatable :: debug_rhs_p_o, debug_rhs_p_oo
   Real   (Int64), Dimension(:), Allocatable :: E1nHc_exterior, E1nH_exterior
 
   ! Biconjugate gradient max iterations and tolerance
@@ -280,10 +279,6 @@ Module global
   ! immersed body auxilliary variables
   Real(Int64), Dimension(:),     Allocatable :: aux_surface_scalar, aux_surface_vector, rhs_ib
   Real(Int64), Dimension(:),     Allocatable :: regT_buffer_scalar, regT_buffer_vector
-  Real(Int64), Dimension(:,:,:), Allocatable :: Fibu, Fibv, Fibw
-  Real(Int64), Dimension(:,:,:), Allocatable :: debug_u, debug_v, debug_w !debug
-  Real(Int64), Dimension(:,:,:), Allocatable :: debug_u_o, debug_v_o, debug_w_o !debug
-  Real(Int64), Dimension(:,:,:), Allocatable :: debug_u_oo, debug_v_oo, debug_w_oo !debug
   Logical(Int32) :: moving_z_flag ! True for moving in z direction; False: stationary in z direction (for identifying the partition)
 
   ! BiCGSTAB arrays
