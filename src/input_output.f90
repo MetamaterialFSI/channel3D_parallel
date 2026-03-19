@@ -25,7 +25,7 @@ Contains
     Integer(Int32) :: ioerr, iounit
 
     namelist /params/ &
-      Lxp, Lzp, Ly_ref, alpha_stretch, &
+      Lxp, Lzp, Ly_channel, alpha_stretch, &
       nx_global, ny_global, nz_global, &
       nxb, nzb, &
       CFL, &
@@ -37,13 +37,13 @@ Contains
       nstep_init, t_init, &
       init_type, grid_type, body_type, &
       body_param_3, body_param_1, body_param_2, body_ramp_up_time, &
-      min_buffer_width, cg_tol, cg_max_iter
+      min_buffer_width, cg_tol, cg_max_iter, perturb_scale
 
     ! default values
     alpha_stretch = 2.6d0
     Lxp = 2d0 * pi
     Lzp = 1d0 * pi
-    Ly_ref = 2d0
+    Ly_channel = 2d0
     min_buffer_width = 0d0
     cg_tol = 1e-8
     cg_max_iter = 50
@@ -56,6 +56,7 @@ Contains
     dPdy = 0
     dPdz = 0
     body_ramp_up_time = 0
+    perturb_scale = 0.5d0
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
@@ -87,7 +88,7 @@ Contains
 
     Call Mpi_bcast ( Lxp,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( Lzp,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
-    Call Mpi_bcast ( Ly_ref,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( Ly_channel,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( alpha_stretch,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
     Call Mpi_bcast ( nxb,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
@@ -115,6 +116,7 @@ Contains
     Call Mpi_bcast ( min_buffer_width,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( cg_max_iter,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( cg_tol,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( perturb_scale,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
     Call Mpi_bcast (   body_param_1,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_param_2,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
@@ -151,14 +153,14 @@ Contains
         Do i=1,ny_global
           y_global(i) = Real(i-1,8)
         End Do
-        y_global = Ly_ref * y_global / Maxval(y_global)
+        y_global = Ly_channel * y_global / Maxval(y_global)
 
       Case (1) ! Stretched grid wall to wall
         If ( myid==0 ) Write(*,*) 'Generating stretched y grid'
         Do i=1,ny_global
           y_global(i) = Real(i-1,8)
         End Do
-        y_global = Ly_ref * y_global / Maxval(y_global) - 1d0
+        y_global = Ly_channel * y_global / Maxval(y_global) - 1d0
 
         If ( alpha_stretch > 0d0 ) Then
           Do i=1,ny_global
@@ -167,7 +169,7 @@ Contains
         End If
 
         y_global = y_global - Minval(y_global)
-        y_global = y_global * Ly_ref / Maxval(y_global)
+        y_global = y_global * Ly_channel / Maxval(y_global)
 
       Case (2) ! Stretched grid centered around 0 with uniform buffers on each end to account for IB (moving with amplitude body_param_1)
         If ( myid==0 ) Write(*,*) 'Generating stretched y grid with uniform buffers'
@@ -175,7 +177,7 @@ Contains
         ! Loop until buffer condition is met
         write(*,*) 'creating stretched grid using ny_global = ', ny_global
         Do
-          Call create_stretched_grid(y_global, Ly_ref, ny_global, n_uniform, alpha_stretch)
+          Call create_stretched_grid(y_global, Ly_channel, ny_global, n_uniform, alpha_stretch)
 
           ! Compute dy between first two points (assume uniform region at beginning)
           dymin = y_global(2) - y_global(1)
@@ -266,12 +268,14 @@ Contains
         ! U
         Do jj=1,ny_global-1
           ym_val = 0.5d0 * (y_global(jj) + y_global(jj + 1))
-          U(:,jj+1,:) = dpdx / (Ly_ref * nu) * ym_val * (Ly_ref - ym_val)
+          If ( ym_val .gt. 0d0 .and. ym_val .lt. Ly_channel ) Then
+            U(:,jj+1,:) = dpdx / (Ly_channel * nu) * ym_val * (Ly_channel - ym_val)
+          End If
         end Do
         Do ii=1,nx_global
           Do jj=1,nyg_global
              Do kk=1,nzg
-               U(ii,jj,kk) = U(ii,jj,kk) + 0.5*(rand()-0.5)
+               U(ii,jj,kk) = U(ii,jj,kk) + perturb_scale * (rand() - 0.5)
              End Do
           End Do
         End Do
@@ -283,7 +287,7 @@ Contains
         Do ii=1,nxg_global
           Do jj=1,ny_global
              Do kk=1,nzg
-               V(ii,jj,kk) = V(ii,jj,kk) + 0.5*(rand()-0.5)
+               V(ii,jj,kk) = V(ii,jj,kk) + perturb_scale * (rand() - 0.5)
              End Do
           End Do
         End Do
@@ -295,7 +299,7 @@ Contains
         Do ii=1,nxg_global
           Do jj=1,ny_global
              Do kk=1,nz
-               W(ii,jj,kk) = W(ii,jj,kk) + 0.5*(rand()-0.5)
+               W(ii,jj,kk) = W(ii,jj,kk) + perturb_scale * (rand() - 0.5)
              End Do
           End Do
         End Do

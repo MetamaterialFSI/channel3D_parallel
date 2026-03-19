@@ -94,7 +94,7 @@ Contains
           Do i = 1, nxb
             k = i + (j-1) * nxb
             xb(k) = (real(i,8) - 0.5d0) * dxb
-            yb(k) = 0.5d0 * Ly_ref
+            yb(k) = 0.5d0 * Ly_channel
             zb(k) = (real(j,8) - 0.5d0) * dzb
           End Do
           If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
@@ -125,7 +125,7 @@ Contains
         r1 = body_param_1
         r2 = body_param_2
         xc = 0.5d0 * Lxp
-        yc = 0.5d0 * Ly_ref
+        yc = 0.5d0 * Ly_channel
         nxb1 = Int(2 * 3.14159 * r1 / dxb)
         nxb2 = Int(2 * 3.14159 * r2 / dxb)
         nxb = nxb1 + nxb2
@@ -187,8 +187,8 @@ Contains
             k = i + 2 * nxb * (j - 1)
             xb(k)       = (real(i,8) - 0.5d0) * dxb
             xb(k + nxb) = (real(i,8) - 0.5d0) * dxb
-            yb(k)       =          body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
-            yb(k + nxb) = Ly_ref + body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
+            yb(k)       =              body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
+            yb(k + nxb) = Ly_channel + body_param_1 * sin(2d0 * pi * body_param_3 * xb(k) / Lxp) * cos(body_param_2 * t)
             zb(k)       = (real(j,8) - 0.5d0) * dzb
             zb(k + nxb) = (real(j,8) - 0.5d0) * dzb
 
@@ -292,8 +292,8 @@ Contains
             xb(k)       = (real(i,8) - 0.5d0) * dxb
             xb(k + nxb) = (real(i,8) - 0.5d0) * dxb
             phase = body_param_3 * (xb(k) - body_param_2 * t)
-            yb(k)       =          amp / (body_param_2 * body_param_3) * sin(phase)
-            yb(k + nxb) = Ly_ref + amp / (body_param_2 * body_param_3) * sin(phase + phi)
+            yb(k)       =              amp / (body_param_2 * body_param_3) * sin(phase)
+            yb(k + nxb) = Ly_channel + amp / (body_param_2 * body_param_3) * sin(phase + phi)
             zb(k)       = (real(j,8) - 0.5d0) * dzb
             zb(k + nxb) = (real(j,8) - 0.5d0) * dzb
 
@@ -416,7 +416,7 @@ Contains
         r1 = body_param_1
         r2 = body_param_2
         xc = 0.5d0 * Lxp
-        yc = 0.5d0 * Ly_ref
+        yc = 0.5d0 * Ly_channel
         nxb1 = int(2 * 3.14159 * r1 / dxb)
         nxb2 = int(2 * 3.14159 * r2 / dxb)
         

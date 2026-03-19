@@ -44,7 +44,7 @@ Module global
   Integer(Int32) :: grid_type, n_uniform
 
   ! domain size
-  Real(Int64) :: Lx, Lz, Ly, Lxp, Lzp, Ly_ref
+  Real(Int64) :: Lx, Lz, Ly, Lxp, Lzp, Ly_channel
 
   ! steps
   Integer(Int32) :: nsteps, nstep_init
@@ -59,6 +59,9 @@ Module global
 
   ! viscosity
   Real(Int64) :: nu
+
+  ! random input perturbation scale
+  Real(Int64) :: perturb_scale
 
   ! global face points
   Integer(Int32) :: nx_global, ny_global, nz_global
