@@ -47,22 +47,15 @@ Contains
   Subroutine compute_IB_projection
 
     ! - E u* + ub 
-    rhs_ib(1          : 3 * nb) = -regT(U, V, W) + ub
-    rhs_ib(3 * nb + 1 : 4 * nb) = -regTc_1n(P_interim)
-
-    ! Remove mean from rhs pressure
-    Call remove_mean_per_body(rhs_ib(3 * nb + 1 : 4 * nb))
+    rhs_ib = -regT(U, V, W) + ub
 
     ! solve for IB forcing
     call bicgstab(fb, rhs_ib)
 
-    dudn_jump = fb(1          : 3 * nb)
-    p_jump    = fb(3 * nb + 1 : 4 * nb)
-
     ! U_reg = R f
-    Call regu(U_reg, dt * nu * dudn_jump(1 : nb)              - dt * p_jump * normals(1 : nb))
-    Call regv(V_reg, dt * nu * dudn_jump(nb + 1 : 2 * nb)     - dt * p_jump * normals(nb + 1 : 2 * nb))
-    Call regw(W_reg, dt * nu * dudn_jump(2 * nb + 1 : 3 * nb) - dt * p_jump * normals(2 * nb + 1 : 3 * nb))
+    Call regu(U_reg, dt * fb(1 : nb)             )
+    Call regv(V_reg, dt * fb(nb + 1 : 2 * nb)    )
+    Call regw(W_reg, dt * fb(2 * nb + 1 : 3 * nb))
 
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
 
@@ -90,18 +83,15 @@ Contains
 
   Function schur(f_)
     Implicit None
-    Real(Int64), Dimension(4 * nb), Intent(In) :: f_
-    Real(Int64), Dimension(4 * nb) :: schur
+    Real(Int64), Dimension(3 * nb), Intent(In) :: f_
+    Real(Int64), Dimension(3 * nb) :: schur
 
     schur = 0.d0
 
-    dudn_jump = f_(1          : 3 * nb)
-    p_jump    = f_(3 * nb + 1 : 4 * nb)
-
     ! U_reg = R f
-    Call regu(U_reg, dt * nu * dudn_jump(1 : nb)              - dt * p_jump * normals(1 : nb))
-    Call regv(V_reg, dt * nu * dudn_jump(nb + 1 : 2 * nb)     - dt * p_jump * normals(nb + 1 : 2 * nb))
-    Call regw(W_reg, dt * nu * dudn_jump(2 * nb + 1 : 3 * nb) - dt * p_jump * normals(2 * nb + 1 : 3 * nb))
+    Call regu(U_reg, dt * f_(1 : nb)             )
+    Call regv(V_reg, dt * f_(nb + 1 : 2 * nb)    )
+    Call regw(W_reg, dt * f_(2 * nb + 1 : 3 * nb))
 
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
 
@@ -111,10 +101,6 @@ Contains
     ! rhs_p = Linv D R f
     call solve_poisson_equation(rhs_p)
     rhs_p = rhs_p / dt
-
-    schur(3 * nb + 1 : 4 * nb) = -regTc_1n(rhs_p)
-    Call remove_mean_per_body(schur(3 * nb + 1 : 4 * nb))
-    schur(3 * nb + 1 : 4 * nb) = schur(3 * nb + 1 : 4 * nb) - E1nHc_exterior * p_jump
 
     ! U, V, W = G Linv D R f
     Call gradient(U, V, W, dt * rhs_p)
@@ -126,14 +112,14 @@ Contains
     W = W - W_reg 
 
     ! schur = -E (I -  G Linv D) R f
-    schur(1 : 3 * nb) = regT(U, V, W) - E1nH_exterior * dudn_jump
+    schur = regT(U, V, W)
 
   End Function schur
 
   Subroutine bicgstab( bcg_x, bcg_b)
     Integer :: j, iter
-    Real(Int64), Dimension(4 * nb), Intent(In) :: bcg_b
-    Real(Int64), Dimension(4 * nb), Intent(Inout) :: bcg_x
+    Real(Int64), Dimension(3 * nb), Intent(In) :: bcg_b
+    Real(Int64), Dimension(3 * nb), Intent(Inout) :: bcg_x
     Real(Int64) :: rho_o, rho_n, alpha, om, eps, error, bta
 
     !initialize

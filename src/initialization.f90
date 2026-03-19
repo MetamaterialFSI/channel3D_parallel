@@ -496,12 +496,8 @@ Contains
     Allocate(sb (nb) )
 
     ! Body forcing
-    Allocate (fb(4 * nb) )
+    Allocate (fb(3 * nb) )
     fb = 0d0
-    Allocate (p_jump(nb) )
-    p_jump = 0d0
-    Allocate (dudn_jump(3 * nb) )
-    dudn_jump = 0d0
 
     ! Body velocity
     Allocate (ub (3 * nb) )
@@ -522,7 +518,7 @@ Contains
     Allocate (E1nH_exterior  (3 * nb) )
 
     ! Auxiliary surface arrays
-    Allocate ( rhs_ib (4 * nb) )
+    Allocate ( rhs_ib (3 * nb) )
     Allocate ( aux_surface_vector (3 * nb) )
     Allocate ( aux_surface_scalar (nb) )
     Allocate ( regT_buffer_vector (3 * nb) )
@@ -576,13 +572,13 @@ Contains
     Allocate ( send_counts_nb(nprocs), displs_nb(nprocs) )
 
     !--------------------Initialize BiCGSTAB arrays---------------!    
-    Allocate ( bcg_r( 4 * nb) )
-    Allocate ( bcg_rhat( 4 * nb) )
-    Allocate ( bcg_p( 4 * nb) )
-    Allocate ( bcg_nu( 4 * nb) )
-    Allocate ( bcg_h( 4 * nb) )
-    Allocate ( bcg_sv( 4 * nb) )
-    Allocate ( bcg_tv( 4 * nb) )
+    Allocate ( bcg_r( 3 * nb) )
+    Allocate ( bcg_rhat( 3 * nb) )
+    Allocate ( bcg_p( 3 * nb) )
+    Allocate ( bcg_nu( 3 * nb) )
+    Allocate ( bcg_h( 3 * nb) )
+    Allocate ( bcg_sv( 3 * nb) )
+    Allocate ( bcg_tv( 3 * nb) )
     cg_accum_iter = 0
 
     !-------------------------Done--------------------------------!
