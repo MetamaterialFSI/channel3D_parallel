@@ -513,6 +513,9 @@ Contains
     Allocate (normals (3 * nb) )
     Allocate (tangents_1 (3 * nb) )
     Allocate (tangents_2 (3 * nb) )
+    normals = 0d0
+    tangents_1 = 0d0
+    tangents_2 = 0d0
 
     ! Body scalar for debugging
     Allocate (debug_surface_scalar(nb) )
