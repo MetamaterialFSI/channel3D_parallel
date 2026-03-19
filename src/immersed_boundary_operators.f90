@@ -600,8 +600,6 @@ Contains
             stop 'Error: zi_supp out of [1..suppz]'
           END IF
           F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
-          !print *, 'Error: unexpected proc_idx =', proc_idx, ' for myid =', myid
-          !stop
         end if
       end do
     end do

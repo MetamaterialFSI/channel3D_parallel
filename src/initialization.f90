@@ -443,20 +443,17 @@ Contains
     Allocate (Hw_exterior ( nxm+2, nym+2,    nz ) )
     Allocate (Hc_interior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
     Allocate (Hc_exterior ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
-    Allocate (debug_rhs_p ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
 
     Allocate (Hu_interior_o  (    nx,  nym+2, nzm+2) )
     Allocate (Hv_interior_o  ( nxm+2,     ny, nzm+2) )
     Allocate (Hw_interior_o  ( nxm+2,  nym+2,    nz) )
     Allocate (Hc_interior_o  ( nxm+2,  nym+2, nzm+2) )
-    Allocate (debug_rhs_p_o  ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
 
     If (myid == 0) Then
        Allocate (Hu_interior_oo (    nx,  nym+2, nzme+2) ) ! z-planes modified for I/O
        Allocate (Hv_interior_oo ( nxm+2,     ny, nzme+2) )
        Allocate (Hw_interior_oo ( nxm+2,  nym+2,    nze) )
        Allocate (Hc_interior_oo ( nxm+2,  nym+2, nzme+2) )
-       Allocate (debug_rhs_p_oo ( 2:nxg-1, 2:nyg-1, 2:nzme+2) )
     End If
 
     !-------------------------Done--------------------------------!
@@ -530,21 +527,6 @@ Contains
     Allocate ( aux_surface_scalar (nb) )
     Allocate ( regT_buffer_vector (3 * nb) )
     Allocate ( regT_buffer_scalar (nb) )
-    Allocate ( Fibu (    nx, nym+2, nzm+2  ) ) 
-    Allocate ( Fibv ( nxm+2,    ny, nzm+2  ) )
-    Allocate ( Fibw ( nxm+2, nym+2,    nz  ) )
-    Allocate ( debug_u (    nx, nym+2, nzm+2  ) ) 
-    Allocate ( debug_v ( nxm+2,    ny, nzm+2  ) )
-    Allocate ( debug_w ( nxm+2, nym+2,    nz  ) )
-    Allocate (debug_u_o  (    nx,  nym+2, nzm+2) )
-    Allocate (debug_v_o  ( nxm+2,     ny, nzm+2) )
-    Allocate (debug_w_o  ( nxm+2,  nym+2,    nz) )
-
-    If (myid == 0) Then
-       Allocate (debug_u_oo (    nx,  nym+2, nzme+2) ) ! z-planes modified for I/O
-       Allocate (debug_v_oo ( nxm+2,     ny, nzme+2) )
-       Allocate (debug_w_oo ( nxm+2,  nym+2,    nze) )
-    End If
 
     !--------------------Initialize IB operator variables-------------------!    
 
