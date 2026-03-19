@@ -444,21 +444,21 @@ Contains
       Case ('standing_wave', 'traveling_wave_x')
         Do j = 1, nzb
           ! Bottom wall
-          favg_(1) = favg_(1) + sum(f_((j-1)*2*nxb + 1   : (j-1)*2*nxb + nxb  ))
+          favg_(1) = favg_(1) + sum(f_((j-1)*2*nxb + 1       : (j-1)*2*nxb + nxb  ))
 
           ! Top wall
-          favg_(2) = favg_(2) + sum(f_((j-1)*2*nxb + nxb : (j-1)*2*nxb + 2*nxb))
+          favg_(2) = favg_(2) + sum(f_((j-1)*2*nxb + nxb + 1 : (j-1)*2*nxb + 2*nxb))
         End Do
 
-        favg_(1) = favg_(1) / (nxb1 * nzb)
-        favg_(2) = favg_(2) / (nxb2 * nzb) 
+        favg_(1) = favg_(1) / (nxb * nzb)
+        favg_(2) = favg_(2) / (nxb * nzb) 
 
         Do j = 1, nzb
           ! Bottom wall
-          f_((j-1)*2*nxb + 1   : (j-1)*2*nxb + nxb  ) = f_((j-1)*2*nxb + 1   : (j-1)*2*nxb + nxb  ) - favg_(1)
+          f_((j-1)*2*nxb + 1       : (j-1)*2*nxb + nxb  ) = f_((j-1)*2*nxb + 1       : (j-1)*2*nxb + nxb  ) - favg_(1)
 
           ! Top wall
-          f_((j-1)*2*nxb + nxb : (j-1)*2*nxb + 2*nxb) = f_((j-1)*2*nxb + nxb : (j-1)*2*nxb + 2*nxb) - favg_(2)
+          f_((j-1)*2*nxb + nxb + 1 : (j-1)*2*nxb + 2*nxb) = f_((j-1)*2*nxb + nxb + 1 : (j-1)*2*nxb + 2*nxb) - favg_(2)
         End Do
 
 
