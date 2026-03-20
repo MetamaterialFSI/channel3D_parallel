@@ -240,9 +240,6 @@ Module global
   Real(Int64), Dimension(:), Allocatable :: dudn_jump
   Real(Int64), Dimension(:), Allocatable :: p_jump
 
-  ! scalar array on the immersed boundary for debug purposes
-  Real(Int64), Dimension(:), Allocatable :: debug_surface_scalar
-
   ! Heaviside arrays
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior, Hu_exterior
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hv_interior, Hv_exterior
