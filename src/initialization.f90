@@ -514,10 +514,6 @@ Contains
     tangents_1 = 0d0
     tangents_2 = 0d0
 
-    ! Body scalar for debugging
-    Allocate (debug_surface_scalar(nb) )
-    debug_surface_scalar = 0d0
-
     Allocate (E1nHc_exterior (nb) )
     Allocate (E1nH_exterior  (3 * nb) )
 
