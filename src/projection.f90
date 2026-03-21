@@ -161,7 +161,7 @@ Contains
     om = 1.d0
     bcg_nu = 0.d0
     bcg_p = 0.d0
-    Do While ((iter .le. cg_max_iter) .and. (error .ge. eps))
+    Do While ((iter .lt. cg_max_iter) .and. (error .ge. eps))
       rho_n = dot_product(bcg_rhat, bcg_r)
       bta = (rho_n / rho_o) * (alpha / om)
       rho_o = rho_n
