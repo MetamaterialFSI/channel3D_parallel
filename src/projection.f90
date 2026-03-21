@@ -179,7 +179,7 @@ Contains
       Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
     End Do
     cg_accum_iter = cg_accum_iter + iter
-    If (iter .gt. cg_max_iter .and. myid == 0) Then
+    If (iter .eq. cg_max_iter .and. myid == 0) Then
       Write(*,*)  "......WARNING, bicgstab used maximum number of iterations (", cg_max_iter, ")"
       Write(*,*)  "......max |residual| = ", Maxval(Abs(bcg_r))
     End If
