@@ -224,7 +224,8 @@ Contains
 
     Real(Int64), Intent(Out) :: max_slip
 
-    aux_surface_vector = regT(U, V, W) - E1nH_exterior * dudn_jump - ub
+    Call regT(Eu, U, V, W)
+    aux_surface_vector = Eu - E1nH_exterior * dudn_jump - ub
     max_slip = Maxval( Abs(aux_surface_vector) )
 
   end subroutine check_slip

@@ -130,11 +130,6 @@ Contains
        Allocate (Poo ( nxm+2,  nym+2, nzme+2) )
     End If
 
-    ! arrays for accepting regularized body distributions
-    Allocate (U_reg  (    nx,  nym+2, nzm+2) )
-    Allocate (V_reg  ( nxm+2,     ny, nzm+2) )
-    Allocate (W_reg  ( nxm+2,  nym+2,    nz) )
-
     ! arrays for storing intermediate velocity fields in the projection method
     Allocate (U_interim  (    nx,  nym+2, nzm+2) )
     Allocate (V_interim  ( nxm+2,     ny, nzm+2) )
@@ -524,6 +519,15 @@ Contains
     Allocate ( regT_buffer_vector (3 * nb) )
     Allocate ( regT_buffer_scalar (nb) )
 
+    ! Arrays for accepting regularized body distributions
+    Allocate (U_reg  (    nx,  nym+2, nzm+2) )
+    Allocate (V_reg  ( nxm+2,     ny, nzm+2) )
+    Allocate (W_reg  ( nxm+2,  nym+2,    nz) )
+
+    ! Body arrays for accepting interpolated fields
+    Allocate (Eu (3 * nb))
+    Allocate (E1np (nb))
+
     !--------------------Initialize IB operator variables-------------------!    
 
     Allocate ( x_pivot_index  (nb) )
@@ -572,6 +576,7 @@ Contains
     Allocate ( send_counts_nb(nprocs), displs_nb(nprocs) )
 
     !--------------------Initialize BiCGSTAB arrays---------------!    
+
     Allocate ( bcg_r( 4 * nb) )
     Allocate ( bcg_rhat( 4 * nb) )
     Allocate ( bcg_p( 4 * nb) )
