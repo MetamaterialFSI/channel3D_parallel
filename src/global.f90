@@ -236,6 +236,9 @@ Module global
   ! immersed body forcing
   Real(Int64), Dimension(:), Allocatable :: fb!, input_fb
 
+  ! body arrays for accepting interpolated fields
+  Real(Int64), Dimension(:), Allocatable :: Eu, E1np
+
   ! body normal velocity gradient jump and pressure jump
   Real(Int64), Dimension(:), Allocatable :: dudn_jump
   Real(Int64), Dimension(:), Allocatable :: p_jump
