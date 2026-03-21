@@ -468,10 +468,10 @@ Contains
   !    - Periodic z-direction assumed
   !    - Communication occurs in both directions
   !-------------------------------------------------------------------------------
-  Subroutine interior_planes_update_support(F,F_supp,id)
+  Subroutine interior_planes_update_support(F, F_supp, id)
 
-    Real   (Int64), Intent(InOut) :: F(:,:,:)    
-    Real   (Int64), Intent(InOut) :: F_supp(:,:,:)    
+    Real   (Int64), Contiguous, Intent(In)    :: F(:,:,:)    
+    Real   (Int64), Contiguous, Intent(InOut) :: F_supp(:,:,:)    
     Integer(Int32), Intent(In)    :: id
 
     Integer(Int32) :: sendto, recvfrom
@@ -660,10 +660,10 @@ Contains
     
   End Subroutine interior_planes_update_support
 
-  Subroutine interior_planes_update_support_pressure(F,F_supp)
+  Subroutine interior_planes_update_support_pressure(F, F_supp)
 
-    Real   (Int64), Dimension(2:nxg-1, 2:nyg-1, 2:nzg ),Intent(InOut) :: F 
-    Real   (Int64), Dimension(2:nxg-1, 2:nyg-1, suppz * 2 + 1 ), Intent(InOut) :: F_supp    
+    Real   (Int64), Contiguous, Intent(In)    :: F(2:, 2:, 2:)
+    Real   (Int64), Contiguous, Intent(InOut) :: F_supp(2:, 2:, :)
 
     Integer(Int32) :: sendto, recvfrom
     Integer(Int32) :: tagto,  tagfrom

@@ -48,8 +48,8 @@ Contains
 
     Call apply_boundary_conditions(Hu_interior, Hv_interior, Hw_interior)
     
-    E1nHc_exterior = regTc_1n(Hc_exterior)
-    E1nH_exterior = regT_1n(Hu_exterior, Hv_exterior, Hw_exterior)
+    Call regTc_1n(E1nHc_exterior, Hc_exterior)
+    Call regT_1n(E1nH_exterior, Hu_exterior, Hv_exterior, Hw_exterior)
 
   End Subroutine compute_heaviside
 
