@@ -1,5 +1,6 @@
-name: Build and Deploy Docs
+name: Build and Deploy Documentation
 
+# Trigger on PRs and pushes to main
 on:
   push:
     branches: [ main ]
@@ -7,14 +8,48 @@ on:
     branches: [ main ]
 
 jobs:
-  deploy:
+  # Build docs (runs on PRs and pushes)
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install MkDocs
-        run: pip install mkdocs mkdocs-material
-      - name: Build site
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
+
+      - name: Install dependencies
+        run: |
+          pip install mkdocs mkdocs-material
+          sudo apt-get update
+
+      - name: Build MkDocs site
         run: mkdocs build
+
+  # Deploy docs (runs only on push to main)
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
+
+      - name: Install dependencies
+        run: |
+          pip install mkdocs mkdocs-material
+          sudo apt-get update
+
+      - name: Build MkDocs site
+        run: mkdocs build
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
