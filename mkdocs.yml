@@ -1,0 +1,6 @@
+site_name: Channel3D (Parallel)
+nav:
+  - Home: index.md
+  - User guide: user_guide.md
+  - Developer guide: developer_guide.md
+theme: readthedocs
