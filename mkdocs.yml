@@ -2,5 +2,18 @@ site_name: Channel3D (Parallel)
 nav:
   - Home: index.md
   - User guide: user_guide.md
-  - Developer guide: developer_guide.md
-theme: readthedocs
+  - Developer Guide: developer_guide.md
+      # - Overview: developer_guide/index.md
+      # - Global Index and Local Index Rule for MPI Code: developer_guide/global_local_index.md
+      # - Support Cell Index Definition: developer_guide/support_cell_index.md
+theme:
+  name: readthedocs
+  features:
+    - navigation.expand
+markdown_extensions:
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
