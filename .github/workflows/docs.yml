@@ -30,6 +30,8 @@ jobs:
 
   # Deploy docs (runs only on push to main)
   deploy:
+    permissions:
+      contents: write
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
