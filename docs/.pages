@@ -1,0 +1,4 @@
+nav:
+  - Installation: installation.md
+  - User Guide: user-guide
+  - Developer Guide: developer-guide
