@@ -1,0 +1,26 @@
+site_name: Channel3D (Parallel)
+
+repo_url: https://github.com/MetamaterialFSI/channel3D_parallel
+repo_name: channel3D_parallel
+
+strict: true
+
+theme:
+  name: material
+  features:
+    - navigation.indexes
+    - content.code.copy
+
+markdown_extensions:
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.superfences
+  - pymdownx.details
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+plugins:
+  - search
+  - awesome-pages
