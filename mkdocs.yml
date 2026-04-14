@@ -1,19 +1,26 @@
 site_name: Channel3D (Parallel)
-nav:
-  - Home: index.md
-  - User guide: user_guide.md
-  - Developer Guide: developer_guide.md
-      # - Overview: developer_guide/index.md
-      # - Global Index and Local Index Rule for MPI Code: developer_guide/global_local_index.md
-      # - Support Cell Index Definition: developer_guide/support_cell_index.md
+
+repo_url: https://github.com/MetamaterialFSI/channel3D_parallel
+repo_name: channel3D_parallel
+
+strict: true
+
 theme:
-  name: readthedocs
+  name: material
   features:
-    - navigation.expand
+    - navigation.indexes
+    - content.code.copy
+
 markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
+  - pymdownx.superfences
+  - pymdownx.details
 
 extra_javascript:
   - javascripts/mathjax.js
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+plugins:
+  - search
+  - awesome-pages
