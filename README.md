@@ -1,5 +1,7 @@
 # channel3D
 
+[Documentation](https://metamaterialfsi.github.io/channel3D_parallel/)
+
 ## Building from source
 
 ### Prerequisites
