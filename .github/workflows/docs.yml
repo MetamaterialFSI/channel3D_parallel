@@ -22,7 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install mkdocs mkdocs-material
+          pip install -r docs/required_libs.txt
           sudo apt-get update
 
       - name: Build MkDocs site
@@ -44,7 +44,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install mkdocs mkdocs-material
+          pip install -r docs/required_libs.txt
           sudo apt-get update
 
       - name: Build MkDocs site
