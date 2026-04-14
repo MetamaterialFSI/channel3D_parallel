@@ -1,0 +1,1084 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../global_local_index/">
+      
+      
+        <link rel="next" href="../support_cell_index/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Interpolation and Regularization Operators with MPI - Channel3D (Parallel)</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#interpolation-and-regularization-operators-with-mpi" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Channel3D (Parallel)" class="md-header__button md-logo" aria-label="Channel3D (Parallel)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Channel3D (Parallel)
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Interpolation and Regularization Operators with MPI
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/MetamaterialFSI/channel3D_parallel" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    channel3D_parallel
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Channel3D (Parallel)" class="md-nav__button md-logo" aria-label="Channel3D (Parallel)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Channel3D (Parallel)
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/MetamaterialFSI/channel3D_parallel" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    channel3D_parallel
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../user-guide/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/model-and-equations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model and Equations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/running-simulations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Simulations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/input-parameters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/body-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Body types overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/post-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Post-processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../global_local_index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Index and Local Index Rule for MPI Code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interpolation and Regularization Operators with MPI
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interpolation and Regularization Operators with MPI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-support-cell-concept" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Support Cell Concept
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ib-point-distribution-across-ranks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IB Point Distribution Across Ranks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operator-e-interpolation-regt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operator E — Interpolation (regT)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operator E — Interpolation (regT)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#execution-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution Steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operator-r-regularization-regu-regv-regw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operator R — Regularization (regu / regv / regw)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operator R — Regularization (regu / regv / regw)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#execution-steps_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution Steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../support_cell_index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Support cell index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-support-cell-concept" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Support Cell Concept
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ib-point-distribution-across-ranks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IB Point Distribution Across Ranks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operator-e-interpolation-regt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operator E — Interpolation (regT)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operator E — Interpolation (regT)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#execution-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution Steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operator-r-regularization-regu-regv-regw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operator R — Regularization (regu / regv / regw)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operator R — Regularization (regu / regv / regw)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#execution-steps_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution Steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="interpolation-and-regularization-operators-with-mpi">Interpolation and Regularization Operators with MPI</h1>
+<p><img alt="E and R schematic" src="../../images/E_and_R_schematic.png" /></p>
+<p><em>Figure 1: Schematic of interpolation and regularization operator.</em></p>
+<p>In the Immersed Boundary Projection Method (IBPM), two operators link the
+fluid grid and the immersed boundary (IB) points:</p>
+<ul>
+<li><strong>Operator E</strong> (interpolation, <code>regT</code>): interpolates fluid velocity from
+  the Eulerian grid onto the Lagrangian IB points</li>
+<li><strong>Operator R</strong> (regularization, <code>regu</code>/<code>regv</code>/<code>regw</code>): spreads the IB
+  force from the Lagrangian IB points back onto the Eulerian grid</li>
+</ul>
+<p>Each IB point interacts with a local stencil of fluid grid points within a
+support radius <code>suppz</code> in the spanwise direction (and equivalently in x
+and y). The affected fluid cells are illustrated in the schematics above.</p>
+<hr />
+<h2 id="the-support-cell-concept">The Support Cell Concept</h2>
+<p><img alt="support cell schematic" src="../../images/schematic_support_cell.png" />
+<em>Figure 2: Schematic of support cell.</em></p>
+<p>Because the domain is partitioned along z, an IB point near a rank
+boundary may require fluid data that lives on a <strong>neighboring rank</strong>. To
+handle this without repeated point-to-point communication during the
+operator evaluation, each rank maintains a support cell buffer, called <strong>support cell</strong>, a local
+copy of the fluid planes from neighboring ranks that fall within the stencil
+of its assigned IB points.</p>
+<p>The support cell buffer for each variable has size:
+<div class="highlight"><pre><span></span><code>N_x × N_y × (2·suppz + 1)
+</code></pre></div></p>
+<p>where <code>2·suppz + 1</code> is the full stencil width in z. The subroutines
+<code>interior_planes_update_support</code> and <code>support_update_interior_planes</code>
+handle the MPI communication to keep these buffers synchronized before and
+after the operator evaluations.</p>
+<hr />
+<h2 id="ib-point-distribution-across-ranks">IB Point Distribution Across Ranks</h2>
+<p>Each rank is responsible for a contiguous subset of the <code>nb</code> total IB points,
+defined by the range <code>[nb_start, nb_end]</code>. The local number of IB points is:
+<div class="highlight"><pre><span></span><code><span class="n">local_size_nb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nb_end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">nb_start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+</code></pre></div></p>
+<hr />
+<h2 id="operator-e-interpolation-regt">Operator E — Interpolation (<code>regT</code>)</h2>
+<p><img alt="E chart" src="../../images/E_chart.png" />
+<em>Figure 2: Flow chart of interpolation operator.</em></p>
+<p>The interpolation operator evaluates the fluid velocity at each IB point as
+a weighted sum over the surrounding stencil points:</p>
+<div class="arithmatex">\[E\mathbf{u} = \sum_{i=1}^{N_{\text{weights}}} w_i \, \mathbf{u}(\mathbf{x}_i)\]</div>
+<h3 id="execution-steps">Execution Steps</h3>
+<p><strong>Step 1 — Populate support cells:</strong>
+<div class="highlight"><pre><span></span><code><span class="k">Call </span><span class="n">interior_planes_update_support</span><span class="p">(</span><span class="n">U_</span><span class="p">,</span><span class="w"> </span><span class="n">U_supp</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="k">Call </span><span class="n">interior_planes_update_support</span><span class="p">(</span><span class="n">V_</span><span class="p">,</span><span class="w"> </span><span class="n">V_supp</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span>
+<span class="k">Call </span><span class="n">interior_planes_update_support</span><span class="p">(</span><span class="n">W_</span><span class="p">,</span><span class="w"> </span><span class="n">W_supp</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span>
+</code></pre></div></p>
+<p>Fluid planes from neighboring ranks that fall within the stencil are copied
+into the local support buffers <code>U_supp</code>, <code>V_supp</code>, <code>W_supp</code>.</p>
+<p><strong>Step 2 — Local interpolation (<code>local_regT</code>):</strong></p>
+<p>For each IB point <code>j</code> in <code>[nb_start, nb_end]</code> and each stencil point <code>i</code>:
+<div class="highlight"><pre><span></span><code><span class="c">! If the stencil point lives on myid → read from local array</span>
+<span class="n">Eu_</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Eu_</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">u_weights</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">U_</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span><span class="w"> </span><span class="n">yi</span><span class="p">,</span><span class="w"> </span><span class="n">z_local</span><span class="p">)</span>
+
+<span class="c">! If the stencil point lives on a neighbor → read from support buffer</span>
+<span class="n">Eu_</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Eu_</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">u_weights</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">U_supp_</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span><span class="w"> </span><span class="n">yi</span><span class="p">,</span><span class="w"> </span><span class="n">z_supp</span><span class="p">)</span>
+</code></pre></div></p>
+<p>The rank that owns a given stencil point is stored in <code>u_proc(i,j)</code> (and
+equivalently <code>v_proc</code>, <code>w_proc</code>).</p>
+<p><strong>Step 3 — Global assembly (<code>MPI_Allgatherv</code>):</strong></p>
+<p>Each rank has computed the interpolated value only for its assigned IB
+points. A global gather assembles the full result across all ranks,
+separately for each velocity component:
+<div class="highlight"><pre><span></span><code><span class="c">! Gather u-component: indices 1      .. nb</span>
+<span class="k">Call </span><span class="n">MPI_Allgatherv</span><span class="p">(</span><span class="n">regT_buffer</span><span class="p">(</span><span class="n">nb_start</span><span class="w">     </span><span class="p">:</span><span class="w"> </span><span class="n">nb_end</span><span class="p">),</span><span class="w">     </span><span class="p">...)</span>
+
+<span class="c">! Gather v-component: indices nb+1   .. 2*nb</span>
+<span class="k">Call </span><span class="n">MPI_Allgatherv</span><span class="p">(</span><span class="n">regT_buffer</span><span class="p">(</span><span class="n">nb</span><span class="o">+</span><span class="n">nb_start</span><span class="w">  </span><span class="p">:</span><span class="w"> </span><span class="n">nb</span><span class="o">+</span><span class="n">nb_end</span><span class="p">),</span><span class="w">  </span><span class="p">...)</span>
+
+<span class="c">! Gather w-component: indices 2*nb+1 .. 3*nb</span>
+<span class="k">Call </span><span class="n">MPI_Allgatherv</span><span class="p">(</span><span class="n">regT_buffer</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">nb</span><span class="o">+</span><span class="n">nb_start</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="n">nb</span><span class="o">+</span><span class="n">nb_end</span><span class="p">),</span><span class="w"> </span><span class="p">...)</span>
+</code></pre></div></p>
+<p>After this step every rank holds the complete interpolated vector <code>Eu_</code> of
+length <code>3·nb</code>.</p>
+<hr />
+<h2 id="operator-r-regularization-regu-regv-regw">Operator R — Regularization (<code>regu</code> / <code>regv</code> / <code>regw</code>)</h2>
+<p><img alt="R chart" src="../../images/R_chart.png" />
+<em>Figure 2: Flow chart of regularization operator.</em></p>
+<p>The regularization operator spreads the IB body force back onto the fluid
+grid as a weighted sum scaled by the cell volume:</p>
+<div class="arithmatex">\[R\mathbf{f} = \sum_{j=1}^{N_b} w_j \, \frac{s_j}{\Delta x \, \Delta y_{\min} \, \Delta z} \, f_j \, \delta(\mathbf{x} - \mathbf{x}_j)\]</div>
+<h3 id="execution-steps_1">Execution Steps</h3>
+<p><strong>Step 1 — Local regularization (<code>local_reg</code>):</strong></p>
+<p>For each IB point <code>j</code> in <code>[nb_start, nb_end]</code> and each stencil point <code>i</code>,
+the body force is accumulated onto the fluid grid:
+<div class="highlight"><pre><span></span><code><span class="c">! If the stencil point lives on myid → write directly into F</span>
+<span class="n">F</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span><span class="w"> </span><span class="n">yi</span><span class="p">,</span><span class="w"> </span><span class="n">z_local</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">F</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span><span class="w"> </span><span class="n">yi</span><span class="p">,</span><span class="w"> </span><span class="n">z_local</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">weight</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">factor</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sb</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">f_</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+
+<span class="c">! If the stencil point lives on a neighbor → write into support buffer</span>
+<span class="n">F_supp</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span><span class="w"> </span><span class="n">yi</span><span class="p">,</span><span class="w"> </span><span class="n">z_supp</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">F_supp</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span><span class="w"> </span><span class="n">yi</span><span class="p">,</span><span class="w"> </span><span class="n">z_supp</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">weight</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">factor</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sb</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">f_</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+</code></pre></div></p>
+<p>where <code>factor = 1 / (dx · dy_min · dz)</code> and <code>sb(j)</code> is the arc-length
+weight of IB point <code>j</code>.</p>
+<p><strong>Step 2 — Reduce support buffer back to interior planes:</strong>
+<div class="highlight"><pre><span></span><code><span class="k">Call </span><span class="n">support_update_interior_planes</span><span class="p">(</span><span class="n">F</span><span class="p">,</span><span class="w"> </span><span class="n">F_supp</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">)</span>
+</code></pre></div></p>
+<p>Contributions that were accumulated in the support buffer (targeting
+neighboring ranks) are sent back and added into those ranks' interior
+arrays, completing the scatter operation.</p>
+<hr />
+<h2 id="summary">Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Operator E (<code>regT</code>)</th>
+<th>Operator R (<code>regu</code>/<code>regv</code>/<code>regw</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pre-communication</td>
+<td><code>interior_planes_update_support</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>Local computation</td>
+<td><code>local_regT</code></td>
+<td><code>local_reg</code></td>
+</tr>
+<tr>
+<td>Post-communication</td>
+<td><code>MPI_Allgatherv</code></td>
+<td><code>support_update_interior_planes</code></td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.indexes", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

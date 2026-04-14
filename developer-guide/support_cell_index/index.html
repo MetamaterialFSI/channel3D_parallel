@@ -1,0 +1,1067 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../E_and_R/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Support cell index - Channel3D (Parallel)</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#support-cell-index-definition" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Channel3D (Parallel)" class="md-header__button md-logo" aria-label="Channel3D (Parallel)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Channel3D (Parallel)
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Support cell index
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/MetamaterialFSI/channel3D_parallel" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    channel3D_parallel
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Channel3D (Parallel)" class="md-nav__button md-logo" aria-label="Channel3D (Parallel)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Channel3D (Parallel)
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/MetamaterialFSI/channel3D_parallel" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    channel3D_parallel
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../user-guide/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/model-and-equations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model and Equations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/running-simulations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Simulations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/input-parameters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/body-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Body types overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/post-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Post-processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../global_local_index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Index and Local Index Rule for MPI Code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../E_and_R/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interpolation and Regularization Operators with MPI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Support cell index
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Support cell index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#support-cell-index-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Support Cell Index Definition
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Support Cell Index Definition">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#support-buffer-layout-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Support Buffer Layout Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#case-1-interior-rank-for-center-index-all-rank-for-face-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Case 1 — Interior Rank for center index / All rank for face index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#periodic-boundary-condition-and-center-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Periodic Boundary Condition and Center Index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#case-2-right-boundary-rank-accessing-rank-0-periodic-center-index-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Case 2 — Right Boundary Rank Accessing Rank 0 (Periodic, Center Index Only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#case-3-left-boundary-rank-accessing-rank-nprocs-1-periodic-center-index-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Case 3 — Left Boundary Rank Accessing Rank nprocs-1 (Periodic, Center Index Only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#support-cell-index-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Support Cell Index Definition
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Support Cell Index Definition">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#support-buffer-layout-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Support Buffer Layout Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#case-1-interior-rank-for-center-index-all-rank-for-face-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Case 1 — Interior Rank for center index / All rank for face index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#periodic-boundary-condition-and-center-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Periodic Boundary Condition and Center Index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#case-2-right-boundary-rank-accessing-rank-0-periodic-center-index-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Case 2 — Right Boundary Rank Accessing Rank 0 (Periodic, Center Index Only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#case-3-left-boundary-rank-accessing-rank-nprocs-1-periodic-center-index-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Case 3 — Left Boundary Rank Accessing Rank nprocs-1 (Periodic, Center Index Only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Support cell index</h1>
+
+<h2 id="support-cell-index-definition">Support Cell Index Definition</h2>
+<p>Each IB stencil point has a global index <span class="arithmatex">\(k\)</span> in the spanwise direction.
+Before evaluating the interpolation or regularization operators, this global
+index must be mapped to either a <strong>local index</strong> <code>k_loc</code> (if the point lives
+on <code>myid</code>) or a <strong>support cell index</strong> <code>k_sup</code> (if the point lives on a
+neighboring rank). This section documents that mapping for both face-based
+(<span class="arithmatex">\(w\)</span>) and center-based (<span class="arithmatex">\(u\)</span>, <span class="arithmatex">\(v\)</span>, <span class="arithmatex">\(c\)</span>) variables.</p>
+<p>The two subroutines that implement this mapping are:</p>
+<ul>
+<li><code>global_to_local_face(k_global, k_sup, k_loc, rank)</code> — for <span class="arithmatex">\(w\)</span> (face index)</li>
+<li><code>global_to_local_center(k_global, k_sup, k_loc, rank)</code> — for <span class="arithmatex">\(u\)</span>, <span class="arithmatex">\(v\)</span>, <span class="arithmatex">\(c\)</span> (center index)</li>
+</ul>
+<p>Both return the same three outputs:</p>
+<table>
+<thead>
+<tr>
+<th>Output</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rank</code></td>
+<td>The rank that owns <code>k_global</code> (<code>myid</code>, <code>prev</code>, or <code>next</code>)</td>
+</tr>
+<tr>
+<td><code>k_loc</code></td>
+<td>Local array index in <code>F(:,:,k_loc)</code> — valid only when <code>rank == myid</code></td>
+</tr>
+<tr>
+<td><code>k_sup</code></td>
+<td>Support buffer index in <code>F_supp(:,:,k_sup)</code> — valid only when <code>rank /= myid</code></td>
+</tr>
+</tbody>
+</table>
+<p>The support buffer on each rank has size <code>2*suppz+1</code> in the <span class="arithmatex">\(z\)</span> direction,
+storing <code>suppz</code> planes from the left neighbor followed by <code>suppz+1</code> planes
+from the right neighbor (or vice versa depending on context).</p>
+<hr />
+<h3 id="support-buffer-layout-summary">Support Buffer Layout Summary</h3>
+<p>For any rank <code>myid</code>, the support buffer <code>F_supp(:,:, 1:2*suppz+1)</code> is
+organized as follows:
+<div class="highlight"><pre><span></span><code>Index in F_supp:   1        ...   suppz+1  |  suppz+2   ...   2*suppz+1
+                   ◄── from left neighbor ──┤──── from right neighbor ──►
+                   (rank prev / nprocs-1)   │   (rank next / rank 0)
+</code></pre></div></p>
+<p>A global index outside the range <code>[1, 2*suppz+1]</code> after the mapping is a
+fatal error, caught by both subroutines:
+<div class="highlight"><pre><span></span><code><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">k_sup</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">k_sup</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="n">suppz</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">stop</span><span class="w"> </span><span class="s1">&#39;Error: zi_supp out of [1..suppz*2+1]&#39;</span>
+</code></pre></div></p>
+<hr />
+<h3 id="case-1-interior-rank-for-center-index-all-rank-for-face-index">Case 1 — Interior Rank for center index / All rank for face index</h3>
+<p>This case applies to:</p>
+<ul>
+<li><strong>All ranks</strong> for the <strong>face index</strong> (<code>global_to_local_face</code>)</li>
+<li><strong>Interior ranks</strong> (<code>0 &lt; myid &lt; nprocs-1</code>) for the <strong>center index</strong> (<code>global_to_local_center</code>)</li>
+</ul>
+<p><img alt="Support cell index – interior rank" src="../../images/k_supp_interior.png" /></p>
+<p>For rank <span class="arithmatex">\(i\)</span>, the neighboring ranks are <code>prev = i-1</code> and <code>next = i+1</code>.
+A global index <span class="arithmatex">\(k\)</span> belonging to the <strong>left neighbor</strong> (rank <span class="arithmatex">\(i-1\)</span>) maps to:</p>
+<div class="arithmatex">\[k_{\text{supp}} = k - kg2_{i-1} + \text{supp}_z + 2\]</div>
+<p>which places it in the lower portion of the support buffer
+(indices <span class="arithmatex">\(\text{supp}_z - 1\)</span> to <span class="arithmatex">\(\text{supp}_z + 1\)</span> as shown in the schematic).</p>
+<p>A global index <span class="arithmatex">\(k\)</span> belonging to the <strong>right neighbor</strong> (rank <span class="arithmatex">\(i+1\)</span>) maps to:</p>
+<div class="arithmatex">\[k_{\text{supp}} = k - kg1_{i+1} + \text{supp}_z + 1\]</div>
+<p>which places it in the upper portion of the support buffer
+(indices <span class="arithmatex">\(\text{supp}_z + 2\)</span> to <span class="arithmatex">\(\text{supp}_z + 3\)</span>).</p>
+<p>In code:
+<div class="highlight"><pre><span></span><code><span class="c">! Left neighbor (rank == prev)</span>
+<span class="n">k_sup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k_global</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">kg2_global</span><span class="p">(</span><span class="n">prev</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">suppz</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span>
+
+<span class="c">! Right neighbor (rank == next)</span>
+<span class="n">k_sup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k_global</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">kg1_global</span><span class="p">(</span><span class="n">next</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">suppz</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+</code></pre></div></p>
+<p>The local index for a point owned by <code>myid</code> is simply:
+<div class="highlight"><pre><span></span><code><span class="n">k_loc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k_global</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">kg1_global</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="n">k_sup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="w">   </span><span class="c">! not used</span>
+</code></pre></div></p>
+<hr />
+<h3 id="periodic-boundary-condition-and-center-index">Periodic Boundary Condition and Center Index</h3>
+<p>Apart from the general interior rank case, special treatment is needed at
+the domain boundaries to account for the periodic boundary condition. Since
+the periodic condition for face-based variables (<span class="arithmatex">\(w\)</span>) is handled identically
+to the ghost cell treatment, only the <strong>center index</strong> special cases are
+documented here.</p>
+<p>The periodic boundary condition enforces the following equivalences for
+center-based variables (taking <span class="arithmatex">\(u\)</span> as an example):
+<div class="highlight"><pre><span></span><code><span class="n">U</span><span class="p">(:,:,</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">U</span><span class="p">(:,:,</span><span class="w"> </span><span class="n">nzg_global</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span><span class="w">  </span><span class="c">! rank 0, local k=1 ← rank nprocs-1, local k=nzg-2</span>
+<span class="n">U</span><span class="p">(:,:,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">U</span><span class="p">(:,:,</span><span class="w"> </span><span class="n">nzg_global</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w">  </span><span class="c">! rank 0, local k=2 ← rank nprocs-1, local k=nzg-1</span>
+<span class="n">U</span><span class="p">(:,:,</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">U</span><span class="p">(:,:,</span><span class="w"> </span><span class="n">nzg_global</span><span class="w">  </span><span class="p">)</span><span class="w">  </span><span class="c">! rank 0, local k=3 ← rank nprocs-1, local k=nzg</span>
+</code></pre></div></p>
+<p>This means that local index <code>k=2</code> on rank <code>0</code> holds the same physical value
+as local index <code>k=nzg-1</code> on rank <code>nprocs-1</code>. As a result:</p>
+<ul>
+<li><strong>Rank <code>0</code></strong> (right neighbor to rank <code>nprocs-1</code>): when rank <code>nprocs-1</code>
+  looks up data from rank <code>0</code>, the effective index must be shifted <strong>one
+  position to the left</strong> relative to the interior formula, because the first
+  meaningful plane of rank <code>0</code> starts one index later than a standard
+  interior rank would.</li>
+<li><strong>Rank <code>nprocs-1</code></strong> (left neighbor to rank <code>0</code>): when rank <code>0</code> looks up
+  data from rank <code>nprocs-1</code>, the effective index must be shifted <strong>one
+  position to the right</strong>, because <code>k=nzg-1</code> at rank <code>nprocs-1</code> is
+  physically equivalent to <code>k=2</code> at rank <code>0</code>.</li>
+</ul>
+<p>!!! note "Special treatment for <code>k=2</code> and <code>k=nzg_global-1</code>"
+    The planes at global index <code>k=2</code> (owned by rank <code>0</code>) and
+    <code>k=nzg_global-1</code> (owned by rank <code>nprocs-1</code>) require special handling
+    because they are periodic images of each other:</p>
+<ul>
+<li><strong>Regularization:</strong> the contribution to these planes is computed as
+      if the point is interior to rank <code>nprocs-1</code>. The result is then
+      transferred to rank <code>0</code> and accumulated there. After the solve, the
+      periodic boundary condition propagates the correct value back to rank
+      <code>nprocs-1</code>, ensuring consistency.</li>
+<li><strong>Interpolation:</strong> since the velocity field already satisfies the
+      periodic boundary condition before the operator is applied, rank
+      <code>nprocs-1</code> can read data directly from index <code>3+</code> in rank <code>0</code>
+      without any additional correction.</li>
+</ul>
+<hr />
+<h3 id="case-2-right-boundary-rank-accessing-rank-0-periodic-center-index-only">Case 2 — Right Boundary Rank Accessing Rank 0 (Periodic, Center Index Only)</h3>
+<p>This case applies to <strong>rank <code>nprocs-1</code></strong> when it needs support cell data
+from <strong>rank <code>0</code></strong> (its right neighbor under the periodic boundary condition).</p>
+<p><img alt="Support cell index – right boundary" src="../../images/k_supp_left_boundary.png" /></p>
+<p>In the interior formula, the support index for a right neighbor is:</p>
+<div class="arithmatex">\[k_{\text{supp}} = k - kg1_{i+1} + \text{supp}_z + 1\]</div>
+<p>However, because <code>k=2</code> on rank <code>0</code> is the periodic image of <code>k=nzg-1</code> on
+rank <code>nprocs-1</code>, rank <code>0</code>'s effective interior starts one plane later than
+a standard interior rank. The support index must therefore be shifted one
+position to the left:</p>
+<div class="arithmatex">\[k_{\text{supp}} = k - kg1_{1} + \text{supp}_z\]</div>
+<p>In code:
+<div class="highlight"><pre><span></span><code><span class="c">! Right neighbor is rank 0 — apply periodic correction</span>
+<span class="n">k_sup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k_global</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">kg1_global</span><span class="p">(</span><span class="n">next</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">suppz</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rank</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">k_sup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k_sup</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+</code></pre></div></p>
+<hr />
+<h3 id="case-3-left-boundary-rank-accessing-rank-nprocs-1-periodic-center-index-only">Case 3 — Left Boundary Rank Accessing Rank <code>nprocs-1</code> (Periodic, Center Index Only)</h3>
+<p>This case applies to <strong>rank <code>0</code></strong> when it needs support cell data from
+<strong>rank <code>nprocs-1</code></strong> (its left neighbor under the periodic boundary condition).</p>
+<p><img alt="Support cell index – left boundary" src="../../images/k_supp_right_boundary.png" /></p>
+<p>In the interior formula, the support index for a left neighbor is:</p>
+<div class="arithmatex">\[k_{\text{supp}} = k - kg2_{i-1} + \text{supp}_z + 2\]</div>
+<p>However, because <code>k=nzg-1</code> on rank <code>nprocs-1</code> is the periodic image of
+<code>k=2</code> on rank <code>0</code>, the last meaningful plane of rank <code>nprocs-1</code> extends one
+index further than a standard interior rank. The support index must therefore
+be shifted one position to the right:</p>
+<div class="arithmatex">\[k_{\text{supp}} = k - kg2_{n-1} + \text{supp}_z + 3\]</div>
+<p>In code:
+<div class="highlight"><pre><span></span><code><span class="c">! Left neighbor is rank nprocs-1 — apply periodic correction</span>
+<span class="n">k_sup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k_global</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">kg2_global</span><span class="p">(</span><span class="n">prev</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">suppz</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rank</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">nprocs</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="n">k_sup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k_sup</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+</code></pre></div></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.indexes", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
