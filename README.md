@@ -9,7 +9,7 @@
 - LAPACK
 - MPI (tested with version 3.1)
 - FFTW with MPI enabled (tested with version 3.3.10)
-- Fortran compiler (currently only tested with Intel compilers)
+- Intel Fortran compiler (extension to non-Intel compilers is in progress)
 
 For example, on the Caltech HPC, you can run
 ```
