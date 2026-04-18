@@ -12,14 +12,13 @@ Before building, make sure the following dependencies are installed on your syst
 - **LAPACK**
 - **MPI** (tested with version 3.1)
 - **FFTW with MPI support** (tested with version 3.3.10)
-- **Fortran compiler**  
-  - Currently, only Intel Fortran compilers are supported
+- **Fortran compiler** (currently, only Intel Fortran compilers are supported)
 
 ---
 
-## Environment Setup (Example)
+## Environment Setup (Example for Caltech HPC)
 
-On systems like Caltech HPC, you can load the required modules with:
+On Caltech HPC, you can load the required modules with:
 
 ```bash
 module load fftw
@@ -27,7 +26,7 @@ module load intel-oneapi-compilers
 module load openmpi
 ```
 
-Alternatively, if you prefer Intel MPI:
+Alternatively, if you prefer Intel MPI on Caltech HPC:
 
 ```bash
 module load fftw/3.3.10-oneapi-2023.2.1-7czoymn
