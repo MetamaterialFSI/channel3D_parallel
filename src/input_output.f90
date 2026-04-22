@@ -49,7 +49,7 @@ Contains
     cg_max_iter = 50
     t_init = 0d0
     body_type = 'none'
-    exterior_flow = True
+    exterior_flow = .True.
     x_mass_cte = 0
     y_mass_cte = 0
     z_mass_cte = 0
