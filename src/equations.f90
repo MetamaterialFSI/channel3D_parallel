@@ -21,12 +21,12 @@ Contains
   !                                                                    !
   ! du/dt = -du^2/dx - duv/dy - duw/dz + div(nu grad(u))               ! 
   !--------------------------------------------------------------------!
-  Subroutine compute_rhs_u(U_,V_,W_,rhs_u)
+  Subroutine compute_rhs_u(U_, V_, W_, rhs_u)
 
-    Real(Int64), Dimension(nx,nyg,nzg), Intent(In) :: U_
-    Real(Int64), Dimension(nxg,ny,nzg), Intent(In) :: V_
-    Real(Int64), Dimension(nxg,nyg,nz), Intent(In) :: W_
-    Real(Int64), Dimension(2:nx-1,2:nyg-1,2:nzg-1), Intent(Out) :: rhs_u
+    Real(Int64), Contiguous, Intent(In) :: U_(:, :, :)
+    Real(Int64), Contiguous, Intent(In) :: V_(:, :, :)
+    Real(Int64), Contiguous, Intent(In) :: W_(:, :, :)
+    Real(Int64), Contiguous, Intent(Out) :: rhs_u(2:, 2:, 2:)
 
     ! local variables
     Integer(Int32) :: i, j, k
@@ -157,12 +157,12 @@ Contains
   !                                                                    !
   ! dv/dt = -duv/dx - dv^2/dy - dvw/dz + div(nu grad(v))               ! 
   !--------------------------------------------------------------------!
-  Subroutine compute_rhs_v(U_,V_,W_,rhs_v)
+  Subroutine compute_rhs_v(U_, V_, W_, rhs_v)
 
-    Real(Int64), Dimension(nx,nyg,nzg), Intent(In) :: U_
-    Real(Int64), Dimension(nxg,ny,nzg), Intent(In) :: V_
-    Real(Int64), Dimension(nxg,nyg,nz), Intent(In) :: W_
-    Real(Int64), Dimension(2:nxg-1,2:ny-1,2:nzg-1), Intent(Out) :: rhs_v
+    Real(Int64), Contiguous, Intent(In) :: U_(:, :, :)
+    Real(Int64), Contiguous, Intent(In) :: V_(:, :, :)
+    Real(Int64), Contiguous, Intent(In) :: W_(:, :, :)
+    Real(Int64), Contiguous, Intent(Out) :: rhs_v(2:, 2:, 2:)
 
     ! local variables
     Integer(Int32) :: i, j, k
@@ -292,12 +292,12 @@ Contains
   !                                                       !
   !  dw/dt = -duw/dx - dvw/dy - dw^2/dz + div(nu grad(w)) !
   !-------------------------------------------------------!
-  Subroutine compute_rhs_w(U_,V_,W_,rhs_w)
+  Subroutine compute_rhs_w(U_, V_, W_, rhs_w)
 
-    Real(Int64), Dimension(nx,nyg,nzg), Intent(In) :: U_
-    Real(Int64), Dimension(nxg,ny,nzg), Intent(In) :: V_
-    Real(Int64), Dimension(nxg,nyg,nz), Intent(In) :: W_
-    Real(Int64), Dimension(2:nxg-1,2:nyg-1,2:nz-1), Intent(Out) :: rhs_w
+    Real(Int64), Contiguous, Intent(In) :: U_(:, :, :)
+    Real(Int64), Contiguous, Intent(In) :: V_(:, :, :)
+    Real(Int64), Contiguous, Intent(In) :: W_(:, :, :)
+    Real(Int64), Contiguous, Intent(Out) :: rhs_w(2:, 2:, 2:)
 
     ! local variables
     Integer(Int32) :: i, j, k    
