@@ -86,12 +86,23 @@ Program channel_FD
     Hw_exterior = 0.d0
   End If
 
-  ! recompute initial mass flow with heaviside masking
-  Call compute_mean_mass_flow_U(U,Qflow_x_0)
-  Call compute_mean_mass_flow_V(V,Qflow_y_0)
-  Call compute_mean_mass_flow_W(W,Qflow_z_0)
+  ! Compute initial mass flows with heaviside masking if they're not set in the input file
+  If (Qflow_x_0 == -999999.0) Then
+    Call compute_mean_mass_flow_U(U,Qflow_x_0)
+  End If
+  If (Qflow_y_0 == -999999.0) Then
+    Call compute_mean_mass_flow_V(V,Qflow_y_0)
+  End If
+  If (Qflow_z_0 == -999999.0) Then
+    Call compute_mean_mass_flow_W(W,Qflow_z_0)
+  End If
+
   Qflow_y_0 = 0d0
   dPdy      = 0d0
+
+  write(*,*) "Initial mass flow rate in x = ", Qflow_x_0
+  write(*,*) "Initial mass flow rate in y = ", Qflow_y_0
+  write(*,*) "Initial mass flow rate in z = ", Qflow_z_0
   
   ! write snapshot if needed
   Call output_data
