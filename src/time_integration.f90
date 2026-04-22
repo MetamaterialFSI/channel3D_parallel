@@ -185,26 +185,29 @@ Contains
 
     ! compute mean pressure gradient for constant mass flow in x
     If ( x_mass_cte == 1 ) Then
-       Call compute_dPx_for_constant_mass_flow(U,dPdx)
-       U(2:nx-1,2:nyg-1,2:nzg-1) = U(2:nx-1,2:nyg-1,2:nzg-1) + dPdx
-       dPdx = dPdx/dt ! to be used later by rhs_*
-       Call apply_boundary_conditions(U, V, W)
+      dPdx_prev = dPdx 
+      Call compute_dPx_for_constant_mass_flow(U,dPdx)
+      U(2:nx-1,2:nyg-1,2:nzg-1) = U(2:nx-1,2:nyg-1,2:nzg-1) + dPdx
+      dPdx = 0.5d0 * (dPdx_prev + dPdx/dt) ! to be used later by rhs_*
+      Call apply_boundary_conditions(U, V, W)
     End If
 
     ! compute mean pressure gradient for constant mass flow in y
     If ( y_mass_cte == 1 ) Then
-       Call compute_dPy_for_constant_mass_flow(V,dPdy)
-       V(2:nxg-1,2:ny-1,2:nzg-1) = V(2:nxg-1,2:ny-1,2:nzg-1) + dPdy
-       dPdy = dPdy/dt ! to be used later by rhs_*
-       Call apply_boundary_conditions(U, V, W)
+      dPdy_prev = dPdy 
+      Call compute_dPy_for_constant_mass_flow(V,dPdy)
+      V(2:nxg-1,2:ny-1,2:nzg-1) = V(2:nxg-1,2:ny-1,2:nzg-1) + dPdy
+      dPdy = 0.5d0 * (dPdy_prev + dPdy/dt) ! to be used later by rhs_*
+      Call apply_boundary_conditions(U, V, W)
     End If
 
     ! compute mean pressure gradient for constant mass flow in z
     If ( z_mass_cte == 1 ) Then
-       Call compute_dPz_for_constant_mass_flow(W,dPdz)
-       W(2:nxg-1,2:nyg-1,2:nz-1) = W(2:nxg-1,2:nyg-1,2:nz-1) + dPdz
-       dPdz = dPdz/dt ! to be used later by rhs_*
-       Call apply_boundary_conditions(U, V, W)
+      dPdz_prev = dPdz 
+      Call compute_dPz_for_constant_mass_flow(W,dPdz)
+      W(2:nxg-1,2:nyg-1,2:nz-1) = W(2:nxg-1,2:nyg-1,2:nz-1) + dPdz
+      dPdz = 0.5d0 * (dPdz_prev + dPdz/dt) ! to be used later by rhs_*
+      Call apply_boundary_conditions(U, V, W)
     End If
 
   End Subroutine compute_time_step_RK3
