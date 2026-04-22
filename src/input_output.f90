@@ -35,7 +35,7 @@ Contains
       nsteps, nsave, nstats, nmonitor, &
       filein, fileout, &
       nstep_init, t_init, &
-      init_type, grid_type, body_type, exterior_flow, &
+      init_type, grid_type, body_type, exterior_pressure_gradient, &
       body_param_3, body_param_1, body_param_2, body_ramp_up_time, &
       min_buffer_width, cg_tol, cg_max_iter, perturb_scale
 
@@ -49,7 +49,7 @@ Contains
     cg_max_iter = 50
     t_init = 0d0
     body_type = 'none'
-    exterior_flow = .True.
+    exterior_pressure_gradient = .True.
     x_mass_cte = 0
     y_mass_cte = 0
     z_mass_cte = 0
@@ -114,7 +114,7 @@ Contains
     Call Mpi_bcast (   init_type,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   grid_type,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_type,len(body_type),MPI_character,0,MPI_COMM_WORLD,ierr )
-    Call Mpi_bcast (exterior_flow,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (exterior_pressure_gradient,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  x_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  y_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  z_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )

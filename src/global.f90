@@ -205,7 +205,7 @@ Module global
   ! body mode
   Character(200) :: body_type
   Logical(Int32) :: moving_body
-  Logical(Int32) :: exterior_flow
+  Logical(Int32) :: exterior_pressure_gradient
 
   ! number of bodies
   Integer(Int32) :: nbodies
