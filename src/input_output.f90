@@ -30,12 +30,12 @@ Contains
       nxb, nzb, &
       CFL, &
       nu, &
-      dPdx, dPdz, &
+      dPdx, dPdz, Qflow_x_0, Qflow_z_0, &
       x_mass_cte, y_mass_cte, z_mass_cte, &
       nsteps, nsave, nstats, nmonitor, &
       filein, fileout, &
       nstep_init, t_init, &
-      init_type, grid_type, body_type, &
+      init_type, grid_type, body_type, exterior_flow, &
       body_param_3, body_param_1, body_param_2, body_ramp_up_time, &
       min_buffer_width, cg_tol, cg_max_iter, perturb_scale
 
@@ -49,6 +49,7 @@ Contains
     cg_max_iter = 50
     t_init = 0d0
     body_type = 'none'
+    exterior_flow = True
     x_mass_cte = 0
     y_mass_cte = 0
     z_mass_cte = 0
@@ -57,6 +58,8 @@ Contains
     dPdz = 0
     body_ramp_up_time = 0
     perturb_scale = 0.5d0
+    Qflow_x_0 = -999999.0
+    Qflow_z_0 = -999999.0 
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
@@ -98,6 +101,8 @@ Contains
     Call Mpi_bcast (       nu,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (     dPdx,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (     dPdz,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (Qflow_x_0,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (Qflow_z_0,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( dPdx_ref,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   t_init,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
@@ -109,6 +114,7 @@ Contains
     Call Mpi_bcast (   init_type,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   grid_type,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_type,len(body_type),MPI_character,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (exterior_flow,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  x_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  y_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  z_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )

@@ -174,6 +174,7 @@ Module global
 
   ! pressure gradients
   Real(Int64) :: dPdx, dPdy, dPdz, dPdx_ref
+  Real(Int64) :: dPdx_prev, dPdy_prev, dPdz_prev
 
   ! constant mass flow
   Real   (Int64) :: Qflow_x_0, Qflow_y_0, Qflow_z_0
@@ -204,6 +205,7 @@ Module global
   ! body mode
   Character(200) :: body_type
   Logical(Int32) :: moving_body
+  Logical(Int32) :: exterior_flow
 
   ! number of bodies
   Integer(Int32) :: nbodies

@@ -7,7 +7,8 @@ Module equations
   Use iso_fortran_env, Only : error_unit, Int32, Int64
   Use global,          Only : x, xm, xg, y, ym, yg, z, zm, zg, term_1, & 
                               term_2, nx, nxg, ny, nyg, nz, nzg,       & 
-                              nu, dPdx, dPdz, yg_m
+                              nu, dPdx, dPdy, dPdz, yg_m, &
+                              Hu_interior, Hv_interior, Hw_interior
   Use interpolation
   
   ! prevent implicit typing
@@ -143,7 +144,7 @@ Contains
     rhs_u = rhs_u + term_2(2:nx-1,2:nyg-1,2:nzg-1)
 
     !--------------Constant pressure gradient-------------!
-    rhs_u = rhs_u + dPdx
+    rhs_u = rhs_u + dPdx * Hu_interior(2:nx-1,2:nyg-1,2:nzg-1)
 
   End Subroutine compute_rhs_u
 
@@ -272,6 +273,9 @@ Contains
     End Do
 
     rhs_v = rhs_v + term_2(2:nxg-1,2:ny-1,2:nzg-1)
+
+    !--------------Constant pressure gradient-------------!
+    rhs_v = rhs_v + dPdy * Hv_interior(2:nxg-1,2:ny-1,2:nzg-1)
 
   End Subroutine compute_rhs_v
 
@@ -402,7 +406,7 @@ Contains
     rhs_w = rhs_w + term_2(2:nxg-1,2:nyg-1,2:nz-1)
 
     !--------------Constant pressure gradient-------------!
-    rhs_w = rhs_w + dPdz
+    rhs_w = rhs_w + dPdz * Hw_interior(2:nxg-1,2:nyg-1,2:nz-1)
 
   End Subroutine compute_rhs_w
 
