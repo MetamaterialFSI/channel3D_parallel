@@ -82,7 +82,7 @@ The following variables can be set in the input parameters file:
 | $\alpha$  | `alpha_stretch`               | 2.6            | Stretching factor 
 
 ![stretched_grid](../images/docs_diagram_grid_type_1.png)
-*Figure 1: Example of the stretched grid type.*
+*Figure 2: Example of the stretched grid type.*
 
 ---
 
@@ -102,6 +102,6 @@ The following input parameters are applicable:
 |           | `min_buffer_width`            | 0.0            | Minimum buffer width 
 
 ![stretched_grid_with_uniform_buffers](../images/docs_diagram_grid_type_2.png)
-*Figure 1: Example of the stretched grid type with uniform buffers.*
+*Figure 3: Example of the stretched grid type with uniform buffers.*
 
 ---
