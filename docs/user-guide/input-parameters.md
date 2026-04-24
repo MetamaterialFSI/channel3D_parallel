@@ -8,8 +8,8 @@ This document lists all input parameters for the simulation, including types, de
 
 | Parameter       | Type   | Default Value | Description / Notes | Possible Values |
 |-----------------|--------|---------------|-------------------|----------------|
-| `Lxp`           | float  | 2π            | Domain length in x-direction | >0 |
-| `Lzp`           | float  | π             | Domain length in z-direction | >0 |
+| `Lxp`           | float  | 2π            | Periodic domain length in x-direction | >0 |
+| `Lzp`           | float  | π             | Periodic domain length in z-direction | >0 |
 | `Ly_channel`    | float  | 2.0           | Channel height | >0 |
 
 ---
@@ -18,9 +18,9 @@ This document lists all input parameters for the simulation, including types, de
 
 | Parameter       | Type   | Default Value | Description / Notes    | Possible Values |
 |-----------------|--------|---------------|------------------------|----------------|
-| `nx_global`     | int    | N/A           | Total grid points in x | >0 |
-| `ny_global`     | int    | N/A           | Total grid points in y | >0 |
-| `nz_global`     | int    | N/A           | Total grid points in z | >0 |
+| `nx_global`     | int    | N/A           | Total number of grid points in x | >0 |
+| `ny_global`     | int    | N/A           | Total number of grid points in y | >0 |
+| `nz_global`     | int    | N/A           | Total number of grid points in z | >0 |
 | `alpha_stretch` | float  | 2.6           | Stretching factor for grid | ≥1 |
 | `grid_type`     | int    | N/A           | Type of grid (uniform, stretched, etc.) | 0 (uniform), 1 (stretched grid wall to wall), 2 (stretched grid with uniform buffers on each end) |
 | `min_buffer_width` | float | 0.0         | Minimum buffer width for grid type 2 | ≥0 |
