@@ -4,5 +4,6 @@ nav:
   - model-and-equations.md
   - running-simulations.md
   - input-parameters.md
+  - grid-types.md
   - body-types.md
   - post-processing.md
