@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../grid-types/">
+        <link rel="prev" href="../input-parameters/">
       
       
-        <link rel="next" href="../post-processing/">
+        <link rel="next" href="../body-types/">
       
       
         
@@ -23,7 +23,7 @@
     
     
       
-        <title>Body types - Channel3D (Parallel)</title>
+        <title>Grid types - Channel3D (Parallel)</title>
       
     
     
@@ -64,7 +64,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#body-types" class="md-skip">
+        <a href="#grid-types" class="md-skip">
           Skip to content
         </a>
       
@@ -100,7 +100,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Body types
+              Grid types
             
           </span>
         </div>
@@ -404,34 +404,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../grid-types/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Grid types
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -451,7 +423,7 @@
   <span class="md-ellipsis">
     
   
-    Body types
+    Grid types
   
 
     
@@ -469,7 +441,7 @@
   <span class="md-ellipsis">
     
   
-    Body types
+    Grid types
   
 
     
@@ -506,10 +478,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#center-wall-body_typecenter_wall" class="md-nav__link">
+  <a href="#uniform-grid-grid_type0" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Center wall (body_type=center_wall)
+        Uniform grid (grid_type=0)
       
     </span>
   </a>
@@ -517,10 +489,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#two-concentric-cylinders-parallel-to-the-z-axis-body_typedouble_cylinders_z" class="md-nav__link">
+  <a href="#stretched-grid-wall-to-wall-grid_type1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Two concentric cylinders parallel to the z axis (body_type=double_cylinders_z)
+        Stretched grid (wall-to-wall) (grid_type=1)
       
     </span>
   </a>
@@ -528,21 +500,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#streamwise-standing-wave-deformation-body_typestanding_wave" class="md-nav__link">
+  <a href="#stretched-grid-with-uniform-buffers-on-each-end-grid_type2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Streamwise standing wave deformation (body_type=standing_wave)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#streamwise-traveling-wave-deformations-body_typetraveling_wave_x" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Streamwise traveling wave deformations (body_type=traveling_wave_x)
+        Stretched grid with uniform buffers on each end (grid_type=2)
       
     </span>
   </a>
@@ -553,6 +514,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../body-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Body types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -790,10 +779,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#center-wall-body_typecenter_wall" class="md-nav__link">
+  <a href="#uniform-grid-grid_type0" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Center wall (body_type=center_wall)
+        Uniform grid (grid_type=0)
       
     </span>
   </a>
@@ -801,10 +790,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#two-concentric-cylinders-parallel-to-the-z-axis-body_typedouble_cylinders_z" class="md-nav__link">
+  <a href="#stretched-grid-wall-to-wall-grid_type1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Two concentric cylinders parallel to the z axis (body_type=double_cylinders_z)
+        Stretched grid (wall-to-wall) (grid_type=1)
       
     </span>
   </a>
@@ -812,21 +801,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#streamwise-standing-wave-deformation-body_typestanding_wave" class="md-nav__link">
+  <a href="#stretched-grid-with-uniform-buffers-on-each-end-grid_type2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Streamwise standing wave deformation (body_type=standing_wave)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#streamwise-traveling-wave-deformations-body_typetraveling_wave_x" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Streamwise traveling wave deformations (body_type=traveling_wave_x)
+        Stretched grid with uniform buffers on each end (grid_type=2)
       
     </span>
   </a>
@@ -853,190 +831,200 @@
   
 
 
-<h1 id="body-types">Body types</h1>
+<h1 id="grid-types">Grid types</h1>
 <h2 id="overview">Overview</h2>
+<p>The flow grid is uniform in the streamwise (x) and spanwise (z) directions. The spacing in those directions is:</p>
+<div class="arithmatex">\[ \Delta x = \frac{L_{x,p}}{N_x - 2} \]</div>
+<div class="arithmatex">\[ \Delta z = \frac{L_{z,p}}{N_z - 2} \]</div>
+<p>where the parameters are the following:</p>
 <table>
 <thead>
 <tr>
-<th>Parameter value for <code>body_type</code></th>
+<th>Variable</th>
+<th>Corresponding input parameter</th>
+<th>Default Value</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>none</code> (default)</td>
-<td>No immersed boundary</td>
+<td><span class="arithmatex">\(L_{x,p}\)</span></td>
+<td><code>Lxp</code></td>
+<td>2π</td>
+<td>Periodic domain length in x-direction</td>
 </tr>
 <tr>
-<td><code>center_wall</code></td>
-<td>Planar static wall centered in y</td>
-</tr>
-<tr>
-<td><code>double_cylinders_z</code></td>
-<td>Two concentric cylinders parallel to the z axis</td>
-</tr>
-<tr>
-<td><code>standing_wave</code></td>
-<td>Two walls (at y = 0 and y = <code>Ly_channel</code>) undergoing a prescribed streamwise standing wave deformation with the same phase</td>
-</tr>
-<tr>
-<td><code>traveling_wave_x</code></td>
-<td>Two walls (at y = 0 and y = <code>Ly_channel</code>) undergoing a prescribed streamwise traveling wave deformation with the opposite phase</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<h2 id="center-wall-body_typecenter_wall">Center wall (<code>body_type=center_wall</code>)</h2>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Parameter value for <code>body_type</code></td>
-<td><code>center_wall</code></td>
-</tr>
-<tr>
-<td><code>nb</code></td>
-<td><code>nxb</code> * <code>nzb</code></td>
-</tr>
-<tr>
-<td><code>body_param_1</code></td>
+<td><span class="arithmatex">\(N_x\)</span></td>
+<td><code>nx_global</code></td>
 <td>N/A</td>
+<td>Total number of grid points in x</td>
 </tr>
 <tr>
-<td><code>body_param_2</code></td>
+<td><span class="arithmatex">\(L_{z,p}\)</span></td>
+<td><code>Lzp</code></td>
+<td>π</td>
+<td>Periodic domain length in z-direction</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(N_z\)</span></td>
+<td><code>nz_global</code></td>
 <td>N/A</td>
+<td>Total number of grid points in z</td>
+</tr>
+</tbody>
+</table>
+<p>In the wall-normal (y) direction, the grid can be distributed in several ways. This is controlled by the <code>grid_type</code> parameter:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter value for <code>grid_type</code></th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Uniform grid</td>
 </tr>
 <tr>
-<td><code>body_param_3</code></td>
+<td>1</td>
+<td>Stretched grid (wall-to-wall)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Stretched grid with uniform buffers on each end</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="uniform-grid-grid_type0">Uniform grid (<code>grid_type=0</code>)</h2>
+<p>In this configuration, the spacing is uniform in the wall-normal (y) direction and given by:</p>
+<div class="arithmatex">\[ \Delta y = \frac{L_{y,c}}{N_y - 1} \]</div>
+<p>where the parameters are the following:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Corresponding input parameter</th>
+<th>Default Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(L_{y,c}\)</span></td>
+<td><code>Ly_channel</code></td>
+<td>2</td>
+<td>Channel height</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(N_y\)</span></td>
+<td><code>ny_global</code></td>
 <td>N/A</td>
-</tr>
-<tr>
-<td><code>body_ramp_up_time</code> considered?</td>
-<td>No</td>
+<td>Total number of grid points in x</td>
 </tr>
 </tbody>
 </table>
+<p><img alt="uniform_grid" src="../../images/docs_diagram_grid_type_0.png" />
+<em>Figure 1: Example of the uniform grid type.</em></p>
 <hr />
-<h2 id="two-concentric-cylinders-parallel-to-the-z-axis-body_typedouble_cylinders_z">Two concentric cylinders parallel to the z axis (<code>body_type=double_cylinders_z</code>)</h2>
+<h2 id="stretched-grid-wall-to-wall-grid_type1">Stretched grid (wall-to-wall) (<code>grid_type=1</code>)</h2>
+<p>In this configuration, the grid spacing is non-uniform in the wall-normal (y) direction and is obtained by applying a hyperbolic tangent stretching to a uniformly distributed grid.</p>
+<p>First, a uniformly spaced computational coordinate <span class="arithmatex">\(\eta \in [-1,1]\)</span> is defined:</p>
+<div class="arithmatex">\[ \eta_i = 2 \frac{i-1}{N_y - 1} - 1 \]</div>
+<p>where:</p>
+<ul>
+<li><span class="arithmatex">\(i = 1, \dots, N_y\)</span> is the grid index</li>
+<li><span class="arithmatex">\(N_y\)</span> is the total number of grid points</li>
+</ul>
+<p>Then, a stretching transformation is applied using a hyperbolic tangent function:
+where the parameters are the following:</p>
+<div class="arithmatex">\[ y_i^* = \frac{\tanh\!\left(\alpha \, \eta_i\right)}{\tanh(\alpha)} \]</div>
+<p>where <span class="arithmatex">\(\alpha\)</span> is the stretching parameter controlling grid clustering</p>
+<ul>
+<li><span class="arithmatex">\(\alpha \rightarrow 0\)</span>: uniform grid (use <code>grid_type=0</code> for uniform grids)</li>
+<li>larger <span class="arithmatex">\(\alpha\)</span>: stronger clustering toward the walls</li>
+</ul>
+<p>Finally, the stretched coordinate is shifted and scaled to match the physical domain size <span class="arithmatex">\([0, L_{y,c}]\)</span>:</p>
+<div class="arithmatex">\[ y_i = \left( y_i^* - \min\limits_j y_j^* \right)
+      \frac{L_{y,c}}{\max\limits_j y_j^* - \min\limits_j y_j^*} \]</div>
+<p>The following variables can be set in the input parameters file:</p>
 <table>
 <thead>
 <tr>
-<th>Field</th>
-<th>Value</th>
+<th>Variable</th>
+<th>Corresponding input parameter</th>
+<th>Default Value</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Parameter value for <code>body_type</code></td>
-<td><code>double_cylinders_z</code></td>
+<td><span class="arithmatex">\(L_{y,c}\)</span></td>
+<td><code>Ly_channel</code></td>
+<td>2</td>
+<td>Channel height</td>
 </tr>
 <tr>
-<td><code>nb</code></td>
-<td>Computed such that the body-to-grid spacing ratio in the x direction matches that of the z direction, determined by <code>nzb</code> and <code>nz_global</code></td>
+<td><span class="arithmatex">\(N_y\)</span></td>
+<td><code>ny_global</code></td>
+<td>N/A</td>
+<td>Total number of grid points in x</td>
 </tr>
 <tr>
-<td><code>body_param_1</code></td>
-<td>Radius inner cylinder</td>
-</tr>
-<tr>
-<td><code>body_param_2</code></td>
-<td>Radius outer cylinder</td>
-</tr>
-<tr>
-<td><code>body_param_3</code></td>
-<td>Tangential velocity boundary condition at the inner cylinder</td>
-</tr>
-<tr>
-<td><code>body_ramp_up_time</code> considered?</td>
-<td>No</td>
+<td><span class="arithmatex">\(\alpha\)</span></td>
+<td><code>alpha_stretch</code></td>
+<td>2.6</td>
+<td>Stretching factor</td>
 </tr>
 </tbody>
 </table>
+<p><img alt="stretched_grid" src="../../images/docs_diagram_grid_type_1.png" />
+<em>Figure 1: Example of the stretched grid type.</em></p>
 <hr />
-<h2 id="streamwise-standing-wave-deformation-body_typestanding_wave">Streamwise standing wave deformation (<code>body_type=standing_wave</code>)</h2>
-<p>Displacement upper wall:</p>
-<div class="arithmatex">\[ \eta_{U} = b_1 \cos( b_2 t) \sin( 2 \pi b_3 x / L_{x,p}) \]</div>
-<p>Displacement lower wall:</p>
-<div class="arithmatex">\[ \eta_{L} = b_1 \cos( b_2 t) \sin( 2 \pi b_3 x / L_{x,p}) \]</div>
+<h2 id="stretched-grid-with-uniform-buffers-on-each-end-grid_type2">Stretched grid with uniform buffers on each end (<code>grid_type=2</code>)</h2>
+<p>In this configuration, the grid spacing in the wall-normal (y) direction is non-uniform in the center of the domain and uniform at the top and bottom of the domain. This grid type can be used in conjunction with, e.g., the <code>standing_wave</code> and <code>traveling_wave_x</code> <a href="../body-types/">body types</a> to ensure that the grid spacing near the immersed boundaries is uniform (which is required for the IB method in this work).</p>
+<p>The grid is centered about <span class="arithmatex">\(y = L_{y,c} / 2\)</span> and is set up such that <span class="arithmatex">\(y = 0\)</span> and <span class="arithmatex">\(y = L_{y,c}\)</span> are the centers of the uniform regions. The total number of grid points (uniform and stretched regions combined) is <span class="arithmatex">\(N_y\)</span>. The stretching factor of the center region is set by <span class="arithmatex">\(\alpha\)</span> in a similar to the <a href="#stretched-grid-wall-to-wall-grid_type1">stretched grid case</a>. The width of the uniform buffers is controlled by the <code>min_buffer_width</code> input parameter. The code iteratively finds the grid spacing such that the width of the uniform region is at least as large as <code>min_buffer_width</code> plus twice the radius of the discrete delta function (see <a href="../model-and-equations/">model and equations</a>), while respecting the total number of grid points and the stretching factor.</p>
+<p>The following input parameters are applicable:</p>
 <table>
 <thead>
 <tr>
-<th>Field</th>
-<th>Value</th>
+<th>Variable</th>
+<th>Corresponding input parameter</th>
+<th>Default Value</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Parameter value for <code>body_type</code></td>
-<td><code>standing_wave</code></td>
+<td><span class="arithmatex">\(L_{y,c}\)</span></td>
+<td><code>Ly_channel</code></td>
+<td>2</td>
+<td>Channel height</td>
 </tr>
 <tr>
-<td><code>nb</code></td>
-<td>2 * <code>nxb</code> * <code>nzb</code></td>
+<td><span class="arithmatex">\(N_y\)</span></td>
+<td><code>ny_global</code></td>
+<td>N/A</td>
+<td>Total number of grid points in x</td>
 </tr>
 <tr>
-<td><code>body_param_1</code> (<span class="arithmatex">\(b_1\)</span>)</td>
-<td>Displacement amplitude</td>
+<td><span class="arithmatex">\(\alpha\)</span></td>
+<td><code>alpha_stretch</code></td>
+<td>2.6</td>
+<td>Stretching factor</td>
 </tr>
 <tr>
-<td><code>body_param_2</code> (<span class="arithmatex">\(b_2\)</span>)</td>
-<td>Angular frequency</td>
-</tr>
-<tr>
-<td><code>body_param_3</code> (<span class="arithmatex">\(b_3\)</span>)</td>
-<td>Streamwise mode index</td>
-</tr>
-<tr>
-<td><code>body_ramp_up_time</code> considered?</td>
-<td>No</td>
+<td></td>
+<td><code>min_buffer_width</code></td>
+<td>0.0</td>
+<td>Minimum buffer width</td>
 </tr>
 </tbody>
 </table>
+<p><img alt="stretched_grid_with_uniform_buffers" src="../../images/docs_diagram_grid_type_2.png" />
+<em>Figure 1: Example of the stretched grid type with uniform buffers.</em></p>
 <hr />
-<h2 id="streamwise-traveling-wave-deformations-body_typetraveling_wave_x">Streamwise traveling wave deformations (<code>body_type=traveling_wave_x</code>)</h2>
-<p>Displacement upper wall:</p>
-<div class="arithmatex">\[ \eta_{U} = -\frac{b_1}{b_2 b_3} \sin( b_3 (x - b_2 t)) \]</div>
-<p>Displacement lower wall:</p>
-<div class="arithmatex">\[ \eta_{L} = \frac{b_1}{b_2 b_3} \sin( b_3 (x - b_2 t)) \]</div>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Parameter value for <code>body_type</code></td>
-<td><code>standing_wave</code></td>
-</tr>
-<tr>
-<td><code>nb</code></td>
-<td>2 * <code>nxb</code> * <code>nzb</code></td>
-</tr>
-<tr>
-<td><code>body_param_1</code> (<span class="arithmatex">\(b_1\)</span>)</td>
-<td>Velocity amplitude</td>
-</tr>
-<tr>
-<td><code>body_param_2</code> (<span class="arithmatex">\(b_2\)</span>)</td>
-<td>Wave speed</td>
-</tr>
-<tr>
-<td><code>body_param_3</code> (<span class="arithmatex">\(b_3\)</span>)</td>
-<td>Streamwise wavenumber</td>
-</tr>
-<tr>
-<td><code>body_ramp_up_time</code> considered?</td>
-<td>Yes</td>
-</tr>
-</tbody>
-</table>
 
 
 

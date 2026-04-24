@@ -289,10 +289,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#environment-setup-example" class="md-nav__link">
+  <a href="#environment-setup-example-for-caltech-hpc" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Environment Setup (Example)
+        Environment Setup (Example for Caltech HPC)
       
     </span>
   </a>
@@ -340,6 +340,8 @@
       
         
           
+        
+      
         
       
         
@@ -492,6 +494,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../user-guide/grid-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Grid types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../user-guide/body-types/" class="md-nav__link">
         
   
@@ -499,7 +529,7 @@
   <span class="md-ellipsis">
     
   
-    Body types overview
+    Body types
   
 
     
@@ -745,10 +775,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#environment-setup-example" class="md-nav__link">
+  <a href="#environment-setup-example-for-caltech-hpc" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Environment Setup (Example)
+        Environment Setup (Example for Caltech HPC)
       
     </span>
   </a>
@@ -807,17 +837,16 @@
 <li><strong>LAPACK</strong></li>
 <li><strong>MPI</strong> (tested with version 3.1)</li>
 <li><strong>FFTW with MPI support</strong> (tested with version 3.3.10)</li>
-<li><strong>Fortran compiler</strong>  </li>
-<li>Currently, only Intel Fortran compilers are supported</li>
+<li><strong>Fortran compiler</strong> (currently, only Intel Fortran compilers are supported)</li>
 </ul>
 <hr />
-<h2 id="environment-setup-example">Environment Setup (Example)</h2>
-<p>On systems like Caltech HPC, you can load the required modules with:</p>
+<h2 id="environment-setup-example-for-caltech-hpc">Environment Setup (Example for Caltech HPC)</h2>
+<p>On Caltech HPC, you can load the required modules with:</p>
 <div class="highlight"><pre><span></span><code>module<span class="w"> </span>load<span class="w"> </span>fftw
 module<span class="w"> </span>load<span class="w"> </span>intel-oneapi-compilers
 module<span class="w"> </span>load<span class="w"> </span>openmpi
 </code></pre></div>
-<p>Alternatively, if you prefer Intel MPI:</p>
+<p>Alternatively, if you prefer Intel MPI on Caltech HPC:</p>
 <div class="highlight"><pre><span></span><code>module<span class="w"> </span>load<span class="w"> </span>fftw/3.3.10-oneapi-2023.2.1-7czoymn
 module<span class="w"> </span>load<span class="w"> </span>intel-oneapi-compilers
 module<span class="w"> </span>load<span class="w"> </span>intel-oneapi-mpi

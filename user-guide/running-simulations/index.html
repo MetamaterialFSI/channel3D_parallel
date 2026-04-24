@@ -265,6 +265,8 @@
       
         
       
+        
+      
     
     
     
@@ -485,6 +487,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../grid-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Grid types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../body-types/" class="md-nav__link">
         
   
@@ -492,7 +522,7 @@
   <span class="md-ellipsis">
     
   
-    Body types overview
+    Body types
   
 
     
@@ -787,7 +817,7 @@
 <ul>
 <li><strong>MPI is available</strong> in your environment  </li>
 <li>The project has been successfully built  </li>
-<li>Your input file is prepared (e.g., <code>input_parameters</code>)  </li>
+<li>Your input file is prepared (input file examples can be found in <code>/examples</code>)  </li>
 </ul>
 <hr />
 <h2 id="example-workflow">Example Workflow</h2>
@@ -798,9 +828,6 @@
 <span class="c1"># Create output directory (must match `fileout` in input file)</span>
 mkdir<span class="w"> </span>-p<span class="w"> </span>output_dir
 
-<span class="c1"># Move to submission directory</span>
-<span class="nb">cd</span><span class="w"> </span><span class="nv">$SLURM_SUBMIT_DIR</span>
-
 <span class="c1"># Run simulation with MPI</span>
 <span class="c1"># IMPORTANT: must use at least 2 processes (np &gt;= 2), otherwise it will fail</span>
 mpirun<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>../build/channel3D<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$input_file</span><span class="s2">&quot;</span>
@@ -809,7 +836,7 @@ mpirun<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span
 <h2 id="notes">Notes</h2>
 <ul>
 <li>The <code>output_dir</code> must match the <code>fileout</code> path specified in your input file.</li>
-<li>The number of processes (<code>-np</code>) <strong>must be at least 2</strong> — running with <code>1</code> will cause the simulation to fail.</li>
+<li>The number of processes (<code>-np</code>) <strong>must be at least 2</strong> — running with <code>-np 1</code> will cause the simulation to fail.</li>
 <li>Adjust <code>-np</code> to match the number of processes you want to run (≥ 2).</li>
 <li>Ensure your MPI environment is properly loaded before executing the command.</li>
 </ul>
