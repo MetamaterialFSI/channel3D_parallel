@@ -1,16 +1,18 @@
-# Body types overview
+# Body types
+
+## Overview
 
 | Parameter value for `body_type` | Description          |
 |---------------------------------|----------------------|
 | `none` (default)                | No immersed boundary |
 | `center_wall`                   | Planar static wall centered in y |
 | `double_cylinders_z`            | Two concentric cylinders parallel to the z axis |
-| `standing_wave`                 | Two walls (at y = 0 and y = `Ly_ref`) undergoing a prescribed streamwise standing wave deformation with the same phase |
-| `traveling_wave_x`              | Two walls (at y = 0 and y = `Ly_ref`) undergoing a prescribed streamwise traveling wave deformation with the opposite phase |
+| `standing_wave`                 | Two walls (at y = 0 and y = `Ly_channel`) undergoing a prescribed streamwise standing wave deformation with the same phase |
+| `traveling_wave_x`              | Two walls (at y = 0 and y = `Ly_channel`) undergoing a prescribed streamwise traveling wave deformation with the opposite phase |
 
 ---
 
-## Center wall (`center_wall`)
+## Center wall (`body_type=center_wall`)
 
 | Field                              | Value                    |
 |------------------------------------|--------------------------|
@@ -23,7 +25,7 @@
 
 ---
 
-## Two concentric cylinders parallel to the z axis (`double_cylinders_z`)
+## Two concentric cylinders parallel to the z axis (`body_type=double_cylinders_z`)
 
 | Field                              | Value                    |
 |------------------------------------|--------------------------|
@@ -36,7 +38,7 @@
 
 ---
 
-## Streamwise standing wave deformation (`standing_wave`)
+## Streamwise standing wave deformation (`body_type=standing_wave`)
 
 Displacement upper wall:
 
@@ -57,7 +59,7 @@ $$ \eta_{L} = b_1 \cos( b_2 t) \sin( 2 \pi b_3 x / L_{x,p}) $$
 
 ---
 
-## Streamwise traveling wave deformations (`standing_wave`)
+## Streamwise traveling wave deformations (`body_type=traveling_wave_x`)
 
 Displacement upper wall:
 
