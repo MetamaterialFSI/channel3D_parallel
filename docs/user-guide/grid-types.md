@@ -88,7 +88,7 @@ The following variables can be set in the input parameters file:
 
 ## Stretched grid with uniform buffers on each end (`grid_type=2`)
 
-In this configuration, the grid spacing in the wall-normal (y) direction is non-uniform in the center of the domain and uniform at the top and bottom of the domain. This grid type can be used in conjunction with, e.g., the `standing_wave` and `traveling_wave_x` [body types](body-types.md) to ensure that the grid spacing near the immersed boundaries is uniform (which is required for the IB method in this work).
+In this configuration, the grid spacing in the wall-normal (y) direction is non-uniform in the center of the domain and uniform at the top and bottom of the domain. This grid type can be used in conjunction with, e.g., the `standing_wave_x` and `traveling_wave_x` [body types](body-types.md) to ensure that the grid spacing near the immersed boundaries is uniform (which is required for the IB method in this work).
 
 The grid is centered about $y = L_{y,c} / 2$ and is set up such that $y = 0$ and $y = L_{y,c}$ are the centers of the uniform regions. The total number of grid points (uniform and stretched regions combined) is $N_y$. The stretching factor of the center region is set by $\alpha$ in a similar to the [stretched grid case](#stretched-grid-wall-to-wall-grid_type1). The width of the uniform buffers is controlled by the `min_buffer_width` input parameter. The code iteratively finds the grid spacing such that the width of the uniform region is at least as large as `min_buffer_width` plus twice the radius of the discrete delta function (see [model and equations](model-and-equations.md)), while respecting the total number of grid points and the stretching factor.
 
