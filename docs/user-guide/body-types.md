@@ -7,7 +7,7 @@
 | `none` (default)                | No immersed boundary |
 | `center_wall`                   | Planar static wall centered in y |
 | `double_cylinders_z`            | Two concentric cylinders parallel to the z axis |
-| `standing_wave`                 | Two walls (at y = 0 and y = `Ly_channel`) undergoing a prescribed streamwise standing wave deformation with the same phase |
+| `standing_wave_x`                 | Two walls (at y = 0 and y = `Ly_channel`) undergoing a prescribed streamwise standing wave deformation with the same phase |
 | `traveling_wave_x`              | Two walls (at y = 0 and y = `Ly_channel`) undergoing a prescribed streamwise traveling wave deformation with the opposite phase |
 
 ---
@@ -38,7 +38,7 @@
 
 ---
 
-## Streamwise standing wave deformation (`body_type=standing_wave`)
+## Streamwise standing wave deformation (`body_type=standing_wave_x`)
 
 Displacement upper wall:
 
@@ -50,7 +50,7 @@ $$ \eta_{L} = b_1 \cos( b_2 t) \sin( 2 \pi b_3 x / L_{x,p}) $$
 
 | Field                              | Value                    |
 |------------------------------------|--------------------------|
-| Parameter value for `body_type`    | `standing_wave`          |
+| Parameter value for `body_type`    | `standing_wave_x`          |
 | `nb`                               | 2 * `nxb` * `nzb`        |
 | `body_param_1` ($b_1$)             | Displacement amplitude   |
 | `body_param_2` ($b_2$)             | Angular frequency        |
@@ -71,7 +71,7 @@ $$ \eta_{L} = \frac{b_1}{b_2 b_3} \sin( b_3 (x - b_2 t)) $$
 
 | Field                              | Value                    |
 |------------------------------------|--------------------------|
-| Parameter value for `body_type`    | `standing_wave`          |
+| Parameter value for `body_type`    | `standing_wave_x`          |
 | `nb`                               | 2 * `nxb` * `nzb`        |
 | `body_param_1` ($b_1$)             | Velocity amplitude       |
 | `body_param_2` ($b_2$)             | Wave speed               |

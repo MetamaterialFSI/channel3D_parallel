@@ -6,13 +6,13 @@
 #SBATCH --time=8:00:00
 
 #SBATCH --job-name=channel_trial
-#SBATCH --output=status_ib_standing_wave.out
+#SBATCH --output=status_ib_standing_wave_x.out
 
 module load openmpi
 
-input_file="input_parameters_ib_standing_wave"
+input_file="input_parameters_ib_standing_wave_x"
 
-mkdir -p channel_output_ib_standing_wave
+mkdir -p channel_output_ib_standing_wave_x
 
 cd $SLURM_SUBMIT_DIR
 mpirun -np 2 ../build/channel3D "$input_file" 

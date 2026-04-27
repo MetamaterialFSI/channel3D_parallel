@@ -39,7 +39,7 @@ Contains
         nxb = nxb1 + nxb2
         nb = nxb * nzb
 
-      Case ('standing_wave') ! Top and bottom wall undergoing standing wave motion
+      Case ('standing_wave_x') ! Top and bottom wall undergoing standing wave motion
         nbodies = 2
         nb = 2 * nxb * nzb
         dxb = real(Lxp / nxb, 8)
@@ -173,7 +173,7 @@ Contains
           End If
         End Do
 
-      Case ('standing_wave') ! Top and bottom wall undergoing standing wave motion in x-direction
+      Case ('standing_wave_x') ! Top and bottom wall undergoing standing wave motion in x-direction
         If ( body_param_1 > min_buffer_width ) Stop 'Error: IB amplitude is bigger than the minimum buffer width'
         moving_body = .True.
         moving_z_flag = .False.
@@ -441,7 +441,7 @@ Contains
                f_((j-1)*nxb + nxb1 + 1 : j*nxb) - favg_(2)
         End Do
 
-      Case ('standing_wave', 'traveling_wave_x')
+      Case ('standing_wave_x', 'traveling_wave_x')
         Do j = 1, nzb
           ! Bottom wall
           favg_(1) = favg_(1) + sum(f_((j-1)*2*nxb + 1       : (j-1)*2*nxb + nxb  ))

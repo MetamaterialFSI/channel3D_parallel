@@ -43,7 +43,7 @@ This document lists all input parameters for the simulation, including types, de
 |---------------------|--------|---------------|----------------------------------------------|-----------------|
 | `nxb`               | int    | N/A           | Number of IB points in x                     | ≥0 |
 | `nzb`               | int    | N/A           | Number of IB points in z                     | ≥0 |
-| `body_type`         | string | 'none'        | Type of immersed body                        | 'none', 'center_wall', 'double_cylinders_z', 'standing_wave', traveling_wave_x', 'traveling_wave_z' |
+| `body_type`         | string | 'none'        | Type of immersed body                        | 'none', 'center_wall', 'double_cylinders_z', 'standing_wave_x', traveling_wave_x', 'traveling_wave_z' |
 | `body_param_1`      | float  | N/A           | Body-specific parameter 1                    | Depends on body type |
 | `body_param_2`      | float  | N/A           | Body-specific parameter 2                    | Depends on body type |
 | `body_param_3`      | float  | N/A           | Body-specific parameter 3                    | Depends on body type |
