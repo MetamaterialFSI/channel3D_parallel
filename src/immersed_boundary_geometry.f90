@@ -269,7 +269,9 @@ Contains
         End Do
 
       Case ('traveling_wave_x') ! Top and bottom wall undergoing traveling wave motion
+        If ( body_param_1 / (body_param_2 * body_param_3) > min_buffer_width ) Stop 'Error: IB amplitude is bigger than the minimum buffer width'
         moving_body = .True.
+        moving_z_flag = .False.
 
         if (t < body_ramp_up_time .and. body_ramp_up_time > 0d0) then
           tau = t / body_ramp_up_time
