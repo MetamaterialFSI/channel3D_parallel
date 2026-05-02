@@ -222,48 +222,71 @@ Contains
     Real   (Int64) :: lUmax, lVmax, lWmax, dt_local
     Real   (Int64) :: dt_conv_u, dt_conv_v, dt_conv_w, dt_conv
     Real   (Int64) :: dt_vis_u, dt_vis_v, dt_vis_w, dt_vis
-    Real   (Int64) :: dt_max
-    
-    ! convective time step
+    Real   (Int64) :: dt_conv_ref, dt_vis_ref
+    Real   (Int64) :: CFL_conv_eff, CFL_vis_eff
+    Real   (Int64) :: CFL_conv_tmp, CFL_vis_tmp
+    Real   (Int64) :: dt_max, eps
+
+    eps = 1d-12
+
+    !----------------------------------------
+    ! convective time scale (CFL = 1 reference)
+    !----------------------------------------
     lUmax = 0d0
     lVmax = 0d0
     lWmax = 0d0
+
     Do i=2,nxg-1
        Do j=2,nyg-1
           Do k=2,nzg-1
-             lUmax = Max( lUmax,(xg(i+1)-xg(i))/Abs(U(i,j,k)) )
-             lVmax = Max( lVmax,(yg(j+1)-yg(j))/Abs(V(i,j,k)) )
-             lWmax = Max( lWmax,(zg(k+1)-zg(k))/Abs(W(i,j,k)) )
+             lUmax = Max(lUmax, (xg(i+1)-xg(i)) / (Abs(U(i,j,k)) + eps))
+             lVmax = Max(lVmax, (yg(j+1)-yg(j)) / (Abs(V(i,j,k)) + eps))
+             lWmax = Max(lWmax, (zg(k+1)-zg(k)) / (Abs(W(i,j,k)) + eps))
           End Do
        End Do
     End Do
-    
-    dt_conv_u = CFL*lUmax 
-    dt_conv_v = CFL*lVmax
-    dt_conv_w = CFL*lWmax
-    
-    dt_conv = Minval( (/dt_conv_u,dt_conv_v,dt_conv_w/) )
-    
-    ! viscous time step
-    dt_vis_u = CFL*dxmin**2d0/nu
-    dt_vis_v = CFL*dymin**2d0/nu
-    dt_vis_w = CFL*dzmin**2d0/nu
-    
-    dt_vis = Minval( (/dt_vis_u,dt_vis_v,dt_vis_w/) )
-    
-    ! time step
-    dt_local = Min ( dt_conv,dt_vis )
 
-    ! compute global minimum and communicate results to all processors
-    Call MPI_Allreduce(dt_local,dt,1,MPI_real8,MPI_min,MPI_COMM_WORLD,ierr)
+    dt_conv_ref = Minval( (/lUmax, lVmax, lWmax/) )
 
-    ! time step limiter
+    !----------------------------------------
+    ! viscous time scale (CFL = 1 reference)
+    !----------------------------------------
+    dt_vis_ref = Minval( (/dxmin**2d0/nu, dymin**2d0/nu, dzmin**2d0/nu/) )
+
+    !----------------------------------------
+    ! apply CFL (normal mode)
+    !----------------------------------------
+    dt_conv = CFL * dt_conv_ref
+    dt_vis  = CFL * dt_vis_ref
+
+    dt_local = Min(dt_conv, dt_vis)
+
+    Call MPI_Allreduce(dt_local, dt, 1, MPI_real8, MPI_min, MPI_COMM_WORLD, ierr)
+
     dt_max = 1d-1
-    dt     = Min( dt, dt_max )
-    If ( CFL<0 ) Then
+    dt     = Min(dt, dt_max)
+
+    !----------------------------------------
+    ! prescribed dt mode (CFL < 0)
+    !----------------------------------------
+    If (CFL < 0d0) Then
+
        dt = -CFL
+
+       ! local effective CFLs
+       CFL_conv_eff = dt / dt_conv_ref
+       CFL_vis_eff  = dt / dt_vis_ref
+
+       ! get global maximum CFLs across all ranks
+       Call MPI_Allreduce(CFL_conv_eff, CFL_conv_tmp, 1, MPI_real8, MPI_max, MPI_COMM_WORLD, ierr)
+       Call MPI_Allreduce(CFL_vis_eff , CFL_vis_tmp , 1, MPI_real8, MPI_max, MPI_COMM_WORLD, ierr)
+
+       ! store in global variables
+       CFL_conv_max = Max(CFL_conv_max, CFL_conv_tmp)
+       CFL_vis_max  = Max(CFL_vis_max, CFL_vis_tmp)
+
     End If
-     
-   End Subroutine compute_dt
+
+  End Subroutine compute_dt
 
 End Module time_integration

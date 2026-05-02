@@ -213,6 +213,10 @@ Contains
     dymin = Minval ( yg_global(2:nyg_global) - yg_global(1:nyg_global-1) )
     dzmin = Minval ( zg_global(2:nzg_global) - zg_global(1:nzg_global-1) )
 
+    ! max CFL for monitoring
+    CFL_conv_max = 0d0
+    CFL_vis_max = 0d0
+
     ! total domain size
     Lx = x_global(nx_global) - x_global(1)
     Ly = y_global(ny_global) - y_global(1)

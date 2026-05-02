@@ -89,6 +89,8 @@ Contains
         
         Write(*,*) ' '
         write(*,*) 'Maximum divergence               :', max_divergence
+        write(*,*) 'Maximum convective CFL over last monitor interval :', CFL_conv_max
+        write(*,*) 'Maximum viscous CFL over last monitor interval :', CFL_vis_max
         If ( trim(body_type) /= 'none' ) Then
           write(*,*) 'Maximum IB slip                  :', max_slip
           write(*,'(A,F10.3)') ' Average BiCGSTAB iteration count :', cg_mean_iter
@@ -98,6 +100,10 @@ Contains
         Write(*,*) '------------------------------------------------------'
 
       End If
+
+      ! reset CFL
+      CFL_conv_max = 0d0
+      CFL_vis_max = 0d0
 
       ! start measure time per step
       time1 = MPI_WTIME()

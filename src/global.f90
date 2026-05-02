@@ -182,6 +182,7 @@ Module global
     
   ! CFL parameters
   Real(Int64) :: CFL, dxmin, dymin, dzmin
+  Real(Int64) :: CFL_conv_max, CFL_vis_max
 
   ! actual pressure boundary conditions
   Real   (Int64) :: coef_bc_1, coef_bc_2
