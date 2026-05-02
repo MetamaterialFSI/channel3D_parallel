@@ -71,7 +71,7 @@ $$ \eta_{L} = \frac{b_1}{b_2 b_3} \sin( b_3 (x - b_2 t)) $$
 
 | Field                              | Value                    |
 |------------------------------------|--------------------------|
-| Parameter value for `body_type`    | `standing_wave_x`          |
+| Parameter value for `body_type`    | `traveling_wave_x`       |
 | `nb`                               | 2 * `nxb` * `nzb`        |
 | `body_param_1` ($b_1$)             | Velocity amplitude       |
 | `body_param_2` ($b_2$)             | Wave speed               |
