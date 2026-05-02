@@ -5,14 +5,14 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --time=1:00:00
 
-#SBATCH --job-name=channel_trial
-#SBATCH --output=status_ib_double_rotating_cylinders.out
+#SBATCH --job-name=double_cylinders_z
+#SBATCH --output=status_ib_double_rotating_cylinders_z.out
 
 module load openmpi
 
-input_file="input_parameters_ib_double_rotating_cylinders"
+input_file="input_parameters_ib_double_rotating_cylinders_z"
 
-mkdir -p channel_output_ib_double_rotating_cylinders
+mkdir -p channel_output_ib_double_rotating_cylinders_z
 
 cd $SLURM_SUBMIT_DIR
 mpirun -np 2 ../build/channel3D "$input_file" 

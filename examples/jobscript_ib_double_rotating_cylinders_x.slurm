@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --time=1:00:00
 
-#SBATCH --job-name=channel_trial
+#SBATCH --job-name=double_cylinders_x
 #SBATCH --output=status_ib_double_rotating_cylinders_x.out
 
 module load openmpi
