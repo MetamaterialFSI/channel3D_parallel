@@ -10,7 +10,7 @@ Module immersed_boundary_geometry
 Contains
 
   Subroutine compute_nb
-    Integer(Int32) :: nxb1, nxb2
+    Integer(Int32) :: nxb1, nxb2, nzb1, nzb2
     Real   (Int64) :: r, r1, r2
 
     Select Case (trim(body_type))
@@ -37,6 +37,17 @@ Contains
         nxb1 = int(2 * 3.14159 * r1 / dxb)
         nxb2 = int(2 * 3.14159 * r2 / dxb)
         nxb = nxb1 + nxb2
+        nb = nxb * nzb
+
+      Case ('double_cylinders_x') ! Double concentric cylinders with axis parallel to x
+        nbodies = 2
+        r1 = body_param_1
+        r2 = body_param_2
+        dxb = real(Lxp / nxb, 8)
+        dzb = dxb * dz / dx
+        nzb1 = int(2 * 3.14159 * r1 / dzb)
+        nzb2 = int(2 * 3.14159 * r2 / dzb)
+        nzb = nzb1 + nzb2
         nb = nxb * nzb
 
       Case ('standing_wave_x') ! Top and bottom wall undergoing standing wave motion
@@ -68,8 +79,8 @@ Contains
   End Subroutine compute_nb
 
   Subroutine setup_IB_geometry
-    Integer(Int32) :: i, j, k, l, nxb1, nxb2
-    Real   (Int64) :: a1, a2, r1, r2, xc, yc, theta, dsb1, dsb2, phi, amp, slope_bottom, slope_top, phase, damp_dt, tau
+    Integer(Int32) :: i, j, k, l, nxb1, nxb2, nzb1, nzb2
+    Real   (Int64) :: a1, a2, r1, r2, xc, yc, zc, theta, dsb1, dsb2, phi, amp, slope_bottom, slope_top, phase, damp_dt, tau
 
     Select Case (trim(body_type))
       Case ('none') ! No IB
@@ -170,6 +181,75 @@ Contains
           End If
           If (zb(j * nxb) < z(nz-1) .and. nb_end < j * nxb) then
             nb_end = j * nxb
+          End If
+        End Do
+
+      Case ('double_cylinders_x') ! Double rotating cylinders with axis parallel to x
+        If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
+        moving_body = .False.
+        moving_z_flag = .False.
+        nb_start = nb + 1
+        nb_end = 1
+        y_ref_index = 1
+
+        r1 = body_param_1
+        r2 = body_param_2
+        yc = 0.5d0 * Ly_channel
+        zc = 0.5d0 * Lzp
+        nzb1 = Int(2 * 3.14159 * r1 / dzb)
+        nzb2 = Int(2 * 3.14159 * r2 / dzb)
+        nzb = nzb1 + nzb2
+        dsb1 = 2 * 3.14159 * r1 / nzb1
+        dsb2 = 2 * 3.14159 * r2 / nzb2
+        ub = 0d0
+
+        ! Inner cylinder
+        Do j = 1, nzb1
+          theta = Real(j - 1, 8) * dsb1 / r1
+          Do i = 1, nxb
+            k = i + (j - 1) * nxb
+            xb(k) = (Real(i, 8) - 0.5d0) * dxb
+            yb(k) = r1 * cos(theta) + yc
+            zb(k) = r1 * sin(theta) + zc
+            ub(nb + k)       = -sin(theta) * body_param_3
+            ub(2 * nb + k)   =  cos(theta) * body_param_3
+            sb(k) = dsb1 * dxb
+            normals(nb + k)       = -cos(theta)
+            normals(2 * nb + k)   = -sin(theta)
+            tangents_1(nb + k)     =  sin(theta)
+            tangents_1(2 * nb + k) = -cos(theta)
+            tangents_2(k)          =  1d0
+          End Do
+
+          If (zb((j - 1) * nxb + 1) >= z(1) .and. nb_start > (j - 1) * nxb + 1) then
+            nb_start = (j - 1) * nxb + 1
+          End If
+          If (zb(j * nxb) < z(nz - 1) .and. nb_end < j * nxb) then
+            nb_end = j * nxb
+          End If
+        End Do
+
+        ! Outer cylinder
+        Do j = 1, nzb2
+          theta = Real(j - 1, 8) * dsb2 / r2
+          Do i = 1, nxb
+            k = i + (nzb1 + j - 1) * nxb
+            xb(k) = (Real(i, 8) - 0.5d0) * dxb
+            yb(k) = r2 * cos(theta) + yc
+            zb(k) = r2 * sin(theta) + zc
+            sb(k) = dsb2 * dxb
+            normals(nb + k)       =  cos(theta)
+            normals(2 * nb + k)   =  sin(theta)
+            tangents_1(nb + k)     = -sin(theta)
+            tangents_1(2 * nb + k) =  cos(theta)
+            tangents_2(k)          =  1d0
+          End Do
+
+          If (zb((nzb1 + j - 1) * nxb + 1) >= z(1) .and. nb_start > (nzb1 + j - 1) * nxb + 1) then
+            nb_start = (nzb1 + j - 1) * nxb + 1
+          End If
+          If (zb((nzb1 + j) * nxb) < z(nz - 1) .and. nb_end < (nzb1 + j) * nxb) then
+            nb_end = (nzb1 + j) * nxb
           End If
         End Do
 
@@ -405,7 +485,7 @@ Contains
     Real(Int64), Dimension(nbodies) :: favg_
     Real(Int64) :: r1, r2, xc, yc
     Integer(Int32) :: j
-    Integer(Int32) :: nxb1, nxb2
+    Integer(Int32) :: nxb1, nxb2, nzb1, nzb2
 
     favg_ = 0d0
 
@@ -421,7 +501,7 @@ Contains
         yc = 0.5d0 * Ly_channel
         nxb1 = int(2 * 3.14159 * r1 / dxb)
         nxb2 = int(2 * 3.14159 * r2 / dxb)
-        
+
         Do j = 1, nzb
           ! Inner cylinder
           favg_(1) = favg_(1) + sum(f_((j-1)*nxb + 1 : (j-1)*nxb + nxb1))
@@ -431,7 +511,7 @@ Contains
         End Do
 
         favg_(1) = favg_(1) / (nxb1 * nzb)
-        favg_(2) = favg_(2) / (nxb2 * nzb) 
+        favg_(2) = favg_(2) / (nxb2 * nzb)
 
         Do j = 1, nzb
           ! Inner cylinder
@@ -441,6 +521,29 @@ Contains
           ! Outer cylinder
           f_((j-1)*nxb + nxb1 + 1 : j*nxb) = &
                f_((j-1)*nxb + nxb1 + 1 : j*nxb) - favg_(2)
+        End Do
+
+      Case ('double_cylinders_x')
+        r1 = body_param_1
+        r2 = body_param_2
+        nzb1 = int(2 * 3.14159 * r1 / dzb)
+        nzb2 = int(2 * 3.14159 * r2 / dzb)
+
+        Do j = 1, nzb1
+          favg_(1) = favg_(1) + sum(f_((j-1)*nxb + 1 : j*nxb))
+        End Do
+        Do j = nzb1 + 1, nzb1 + nzb2
+          favg_(2) = favg_(2) + sum(f_((j-1)*nxb + 1 : j*nxb))
+        End Do
+
+        favg_(1) = favg_(1) / (nzb1 * nxb)
+        favg_(2) = favg_(2) / (nzb2 * nxb)
+
+        Do j = 1, nzb1
+          f_((j-1)*nxb + 1 : j*nxb) = f_((j-1)*nxb + 1 : j*nxb) - favg_(1)
+        End Do
+        Do j = nzb1 + 1, nzb1 + nzb2
+          f_((j-1)*nxb + 1 : j*nxb) = f_((j-1)*nxb + 1 : j*nxb) - favg_(2)
         End Do
 
       Case ('standing_wave_x', 'traveling_wave_x')

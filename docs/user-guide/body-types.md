@@ -7,6 +7,7 @@
 | `none` (default)                | No immersed boundary |
 | `center_wall`                   | Planar static wall centered in y |
 | `double_cylinders_z`            | Two concentric cylinders parallel to the z axis |
+| `double_cylinders_x`            | Two concentric cylinders parallel to the x axis |
 | `standing_wave_x`                 | Two walls (at y = 0 and y = `Ly_channel`) undergoing a prescribed streamwise standing wave deformation with the same phase |
 | `traveling_wave_x`              | Two walls (at y = 0 and y = `Ly_channel`) undergoing a prescribed streamwise traveling wave deformation with the opposite phase |
 
@@ -31,6 +32,19 @@
 |------------------------------------|--------------------------|
 | Parameter value for `body_type`    | `double_cylinders_z`     |
 | `nb`                               | Computed such that the body-to-grid spacing ratio in the x direction matches that of the z direction, determined by `nzb` and `nz_global` |
+| `body_param_1`                     | Radius inner cylinder    |
+| `body_param_2`                     | Radius outer cylinder    |
+| `body_param_3`                     | Tangential velocity boundary condition at the inner cylinder                       |
+| `body_ramp_up_time` considered?    | No                       |
+
+---
+
+## Two concentric cylinders parallel to the x axis (`body_type=double_cylinders_x`)
+
+| Field                              | Value                    |
+|------------------------------------|--------------------------|
+| Parameter value for `body_type`    | `double_cylinders_x`     |
+| `nb`                               | Computed such that the body-to-grid spacing ratio in the z direction matches that of the x direction, determined by `nxb` and `nx_global` |
 | `body_param_1`                     | Radius inner cylinder    |
 | `body_param_2`                     | Radius outer cylinder    |
 | `body_param_3`                     | Tangential velocity boundary condition at the inner cylinder                       |
