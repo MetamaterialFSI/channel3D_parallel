@@ -153,7 +153,7 @@ Contains
       Do k = -suppz, suppz
         Do j = -suppy, suppy
           Do i = -suppx, suppx
-            ii = xm_pivot_index(l) + i - 1
+            ii = xm_pivot_index(l) + i
             jj = ym_pivot_index(l) + j
             kk = z_pivot_index(l) + k
 
