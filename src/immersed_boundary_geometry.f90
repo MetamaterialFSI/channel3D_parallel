@@ -27,6 +27,17 @@ Contains
         nb = nxb * nzb
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
+      Case ('center_wall_deforming_testcase') ! Deforming planar IB wall centered in y (testcase)
+        nbodies = 1
+        nb = nxb * nzb
+        dxb = real(Lxp / nxb, 8)
+        dzb = real(Lzp / nzb, 8)
+
+      Case ('center_wall_deforming_subsurface') ! Deforming planar IB wall centered in y (subsurface)
+        nbodies = 1
+        nb = nxb * nzb
+        dxb = real(Lxp / nxb, 8)
+        dzb = real(Lzp / nzb, 8)
 
       Case ('double_cylinders_z') ! Double concentric cylinders with axis parallel to z
         nbodies = 2
@@ -392,6 +403,79 @@ Contains
       Case ('traveling_wave_z') ! Top and bottom wall undergoing traveling wave motion
         Write(*,*) 'traveling wave in z-direction not yet implemented'
         Stop 
+     Case ('center_wall_deforming_testcase') ! Deforming planar wall centered at y = 1 (testcase)
+        If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
+        moving_body = .False.
+        moving_z_flag = .False.
+
+        ub = 0d0
+        ! Reference points are the center of the domain
+        y_ref_index = ny_global / 2 ! automatically rounds down
+
+        ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
+        ! (i.e., fall between an nb_start and nb_end)
+        nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
+        nb_end = 1         ! Initialize to the lowest possible index
+        Do j = 1, nzb
+          Do i = 1, nxb
+            k = i + (j-1) * nxb
+            xb(k) = (real(i,8) - 0.75d0) * dxb
+            yb(k) = 0.5d0 * Ly_channel
+            zb(k) = (real(j,8) - 0.75d0) * dzb
+          End Do
+          If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
+            nb_start = (j-1) * nxb + 1
+          End If
+          If (zb(j * nxb) < z(nz-1) .and. nb_end < j * nxb) then
+            nb_end = j * nxb
+          End If
+        End Do
+        
+        sb = dxb * dzb
+
+        ! Vector arrays
+        Do k=1,nb
+          tangents_1(k) = 1d0
+          tangents_2(2*nb + k) = -1d0
+          normals(nb + k) = -1d0
+        End Do
+
+      Case ('center_wall_deforming_subsurface') ! Deforming planar wall centered at y = 1 (subsurface)
+        If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
+        moving_body = .False.
+        moving_z_flag = .False.
+
+        ub = 0d0
+        ! Reference points are the center of the domain
+        y_ref_index = ny_global / 2 ! automatically rounds down
+
+        ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
+        ! (i.e., fall between an nb_start and nb_end)
+        nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
+        nb_end = 1         ! Initialize to the lowest possible index
+        Do j = 1, nzb
+          Do i = 1, nxb
+            k = i + (j-1) * nxb
+            xb(k) = (real(i,8) - 0.5d0) * dxb
+            yb(k) = 0.5d0 * Ly_channel
+            zb(k) = (real(j,8) - 0.5d0) * dzb
+          End Do
+          If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
+            nb_start = (j-1) * nxb + 1
+          End If
+          If (zb(j * nxb) < z(nz-1) .and. nb_end < j * nxb) then
+            nb_end = j * nxb
+          End If
+        End Do
+        
+        sb = dxb * dzb
+
+        ! Vector arrays
+        Do k=1,nb
+          tangents_1(k) = 1d0
+          tangents_2(2*nb + k) = -1d0
+          normals(nb + k) = -1d0
+        End Do
 
     End Select
 
@@ -410,6 +494,10 @@ Contains
     Select Case (trim(body_type))
 
       Case ('center_wall')
+        f_ = f_ - sum(f_) / size(f_)
+      Case ('center_wall_deforming_testcase')
+        f_ = f_ - sum(f_) / size(f_)
+      Case ('center_wall_deforming_subsurface')
         f_ = f_ - sum(f_) / size(f_)
 
       Case ('double_cylinders_z')

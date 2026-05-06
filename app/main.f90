@@ -2,8 +2,8 @@
 ! My channel :)                                        !
 !                                                      !
 ! Solve incompression Navier-Stokes eqs                !
-!       with spanwise rotation                         !   
-!                                                      !    
+!       with spanwise rotation                         !
+!                                                      !
 ! Spatial discretization:                              !
 !        - 2nd order finite differences                !
 !        - Staggered mesh                              !
@@ -42,12 +42,13 @@ Program channel_FD
   Use finalization
   Use immersed_boundary_geometry
   Use immersed_boundary_operators
+  Use operators_FSI
   Use heaviside
   Use mpi
-  
+
   ! prevent implicit typing
   Implicit None
-
+  integer :: i, j
   ! initialize mpi
   call Mpi_init(ierr)
   call Mpi_comm_size(MPI_COMM_WORLD, nprocs, ierr)
@@ -66,7 +67,7 @@ Program channel_FD
   Call initialize_ib_arrays
 
   ! initialize IB geometry
-  Call setup_IB_geometry 
+  Call setup_IB_geometry
 
   ! small summary of input parameters
   Call summary
@@ -85,22 +86,33 @@ Program channel_FD
     Hv_exterior = 0.d0
     Hw_exterior = 0.d0
   End If
+!build mass and stiffnes matrix of structure in case FSI functionality is opted
+ If ( functionality .eq. 1 ) Then
+     call preprocess_FSI
+    ! record reference position of the compliant model
+      xbref=xb
+      ybref=yb
+      zbref=zb
 
+
+end if
   ! recompute initial mass flow with heaviside masking
   Call compute_mean_mass_flow_U(U,Qflow_x_0)
   Call compute_mean_mass_flow_V(V,Qflow_y_0)
   Call compute_mean_mass_flow_W(W,Qflow_z_0)
   Qflow_y_0 = 0d0
   dPdy      = 0d0
-  
+
   ! write snapshot if needed
   Call output_data
-  Call compute_statistics 
+  Call compute_statistics
   Call output_monitor
+
+
 
   ! temporal loop
   Do istep = 1, nsteps
-    
+
     ! compute dt based on CFL
     Call compute_dt
 
@@ -108,13 +120,29 @@ Program channel_FD
     Call compute_time_step_RK3
 
     ! compute a few statistics
-    Call compute_statistics 
+    Call compute_statistics
 
     ! output some key values
     Call output_monitor
 
     ! write snapshot if needed
     Call output_data
+
+  ! FSI diagnostics at each time instance
+
+! FSI diagnostics at each time instance
+If ( functionality .eq. 1 ) Then
+
+  call check_slip_FSI
+
+  If ( myid .eq. 0 ) Then
+    call writechimax(chi_k)
+    call writestuffiterfsi(iter_FSI)
+  End If
+
+End If
+
+
 
   End Do
 

@@ -766,5 +766,178 @@ Contains
       END IF
     end if
   end subroutine global_to_local_center
+subroutine preprocess_FSI
+  Select Case (trim(body_type))
+      Case ('center_wall_deforming_testcase')
+          Call mass_matrix_testcase(Mmat_testcase)
+          Call stiffness_matrix_testcase(Kmat_testcase,Kmat_testcase1,Kmat_testcase2,Kmat_testcase3) 
+          Call damping_matrix_testcase( Cmat_testcase ) 
+       Case ('center_wall_deforming_subsurface')
+          Call mass_matrix(Mmat)
+          Call stiffness_matrix(Kmat)
+ 
+  end Select 
+  end subroutine preprocess_FSI
+   subroutine mass_matrix_testcase( Mmat_testcase )
+!computes the mass matrix for the subsurface unit cell structure
+  integer :: j
+  real(kind(0.d0)), dimension(nb, nb), intent(inout) :: Mmat_testcase
+  do j = 1 , nb
+      Mmat_testcase(j,j)=m_parm_testcase
+  end do
+  end subroutine
 
+
+subroutine stiffness_matrix_testcase( Kmat_testcase, Kmat_testcase1, Kmat_testcase2, Kmat_testcase3 )
+  implicit none
+
+  integer :: i, j, iblock, i1, i2, band, flag
+  real(kind(0.d0)), dimension(nb, nb), intent(inout) :: Kmat_testcase, Kmat_testcase1, Kmat_testcase2, Kmat_testcase3
+  real(kind(0.d0)), dimension(nxb, nxb) :: Dxxrow
+
+  Kmat_testcase  = 0.0d0
+  Kmat_testcase1 = 0.0d0
+  Kmat_testcase2 = 0.0d0
+  Kmat_testcase3 = 0.0d0
+
+  ! --------------------------------------------------
+  ! fill up Kmat_testcase1
+  ! --------------------------------------------------
+  do j = 1, nb
+    Kmat_testcase1(j,j) = k_parm_testcase
+  end do
+
+  ! --------------------------------------------------
+  ! fill up Kmat_testcase2 = -Tx*A*Dxx
+  ! --------------------------------------------------
+  Dxxrow = 0.0d0
+
+  ! main diagonal
+  do i = 1, nxb
+    Dxxrow(i,i) = -2.0d0
+  end do
+
+  ! upper diagonal
+  do i = 1, nxb-1
+    Dxxrow(i,i+1) = 1.0d0
+  end do
+
+  ! lower diagonal
+  do i = 2, nxb
+    Dxxrow(i,i-1) = 1.0d0
+  end do
+
+  ! x-periodic boundary conditions
+  Dxxrow(1,nxb) = 1.0d0
+  Dxxrow(nxb,1) = 1.0d0
+
+  ! scaling
+  Dxxrow = Dxxrow / (dxb*dxb)
+
+  ! place Dxxrow into block diagonal locations
+  do iblock = 0, nzb-1
+    i1 = iblock*nxb + 1
+    i2 = (iblock+1)*nxb
+    Kmat_testcase2(i1:i2, i1:i2) = -Tx * A * Dxxrow
+  end do
+
+  ! --------------------------------------------------
+  ! fill up Kmat_testcase3 = -Tz*A*Dzz
+  ! --------------------------------------------------
+  band = nxb
+
+  ! main diagonal
+  do i = 1, nb
+    Kmat_testcase3(i,i) = -2.0d0
+  end do
+
+  ! leading band diagonal
+  do i = 1, nb-nxb
+    Kmat_testcase3(i,i+band) = 1.0d0
+  end do
+
+  ! trailing band diagonal
+  do i = nxb+1, nb
+    Kmat_testcase3(i,i-band) = 1.0d0
+  end do
+
+  ! periodic BCs
+  do i = 1, nxb
+    Kmat_testcase3(i,nb-nxb+i) = 1.0d0
+  end do
+
+  flag = 1
+  do i = nb-nxb+1, nb
+    Kmat_testcase3(i,flag) = 1.0d0
+    flag = flag + 1
+  end do
+
+  ! scaling and multiply by -Tz*A
+  Kmat_testcase3 = (-Tz * A / (dzb*dzb)) * Kmat_testcase3
+
+  ! --------------------------------------------------
+  ! assemble final matrix
+  ! --------------------------------------------------
+  do i = 1, nb
+    do j = 1, nb
+      Kmat_testcase(i,j) = Kmat_testcase1(i,j) + Kmat_testcase2(i,j) + Kmat_testcase3(i,j)
+    end do
+  end do
+
+end subroutine stiffness_matrix_testcase
+
+subroutine damping_matrix_testcase( Cmat_testcase )
+  implicit none
+  integer :: j
+real(kind(0.d0)), dimension(nb, nb), intent(inout) :: Cmat_testcase
+  Cmat_testcase = 0.0d0
+  ! --- interior masses ---
+  do j = 1, nb
+    Cmat_testcase(j,j)   = c_parm_testcase
+  end do
+end subroutine damping_matrix_testcase
+subroutine mass_matrix( Mmat )
+!computes the mass matrix for the subsurface unit cell structure
+  integer :: j
+  real(kind(0.d0)), dimension(nblocks, nblocks), intent(inout) :: Mmat
+  do j = 1 , nblocks
+      Mmat(j,j)=m_parm;
+  end do
+  end subroutine
+ subroutine stiffness_matrix( Kmat )
+  implicit none
+  integer :: j
+real(kind(0.d0)), dimension(nblocks, nblocks), intent(inout) :: Kmat
+  Kmat = 0.0d0
+
+  if (nblocks == 1) then
+    ! Single mass with a grounded spring only:
+    Kmat(1,1) = k_parm
+    return
+  end if
+
+  ! --- first mass (left boundary): spring between 1 and 2 ---
+  Kmat(1,1) = Kmat(1,1) + k_parm
+  Kmat(1,2) = Kmat(1,2) - k_parm
+
+  ! --- interior masses ---
+  do j = 2, nblocks-1
+    Kmat(j,j)   = Kmat(j,j)   + 2.0d0*k_parm
+    Kmat(j,j-1) = Kmat(j,j-1) - k_parm
+    Kmat(j,j+1) = Kmat(j,j+1) - k_parm
+  end do
+
+  ! --- last mass: spring between nblocks-1 and nblocks ---
+  Kmat(nblocks,nblocks-1) = Kmat(nblocks,nblocks-1) - k_parm
+  Kmat(nblocks,nblocks)   = Kmat(nblocks,nblocks)   + k_parm
+
+  ! grounding spring on last mass
+  Kmat(nblocks,nblocks)   = Kmat(nblocks,nblocks)   + k_parm
+
+  ! enforce symmetry
+  do j = 2, nblocks
+    Kmat(j-1,j) = Kmat(j,j-1)
+  end do
+
+end subroutine stiffness_matrix
 End Module immersed_boundary_operators

@@ -12,7 +12,7 @@ Module global
   Implicit None
 
   ! FFTW
-  Include 'fftw3-mpi.f03'  
+  Include 'fftw3-mpi.f03'
 
   !------------------Declarations-----------------!
 
@@ -31,7 +31,7 @@ Module global
   Real   (Int64) :: time1, time2
 
   ! constants
-  Real(Int64) :: pi = 4d0 * datan(1d0)  
+  Real(Int64) :: pi = 4d0 * datan(1d0)
 
   ! files
   Character(200) :: filein, fileout, fileparams
@@ -106,12 +106,12 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: U,V,W,P
   Real(Int64), Allocatable, Dimension(:,:,:) :: Uo,Vo,Wo,Po
   Real(Int64), Allocatable, Dimension(:,:,:) :: Uoo,Voo,Woo,Poo
-  Real(Int64), Allocatable, Dimension(:,:,:) :: Vw 
+  Real(Int64), Allocatable, Dimension(:,:,:) :: Vw
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_reg, V_reg, W_reg
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_interim, V_interim, W_interim, P_interim
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_supp, V_supp, W_supp, P_supp! first 1:suppz is for left boundary; suppz+1:2*suppz is for right boundary
 
-  ! local auxiliary 
+  ! local auxiliary
   Real(Int64), Allocatable, Dimension(:,:,:) :: term_1, term_2
 
   ! local rhs for velocities and pressure
@@ -140,12 +140,12 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_vsupp_s, buffer_vsupp_r
   Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_wsupp_s, buffer_wsupp_r
   Real(Int64), Allocatable, Dimension(:,:,:) :: buffer_psupp_s, buffer_psupp_r
-  
+
   ! local auxiliary planes for FFTW
   Type(C_PTR) :: cplane_fft
   Complex(C_DOUBLE_COMPLEX), Pointer, Dimension(:,:) :: plane, plane_hat
 
-  ! Fourier points and wave numbers 
+  ! Fourier points and wave numbers
   Integer(C_INTPTR_T) :: nxp_global, nzp_global, local_k_offset
   Integer(C_INTPTR_T) :: nxp, nzp
   Integer(C_INTPTR_T) :: mx_global, mz_global
@@ -156,7 +156,7 @@ Module global
   ! Mappings for fft modes
   Integer(Int64), Dimension(:),   Allocatable :: kmode_map
   Integer(Int64), Dimension(:,:), Allocatable :: imode_map_fft, kmode_map_fft
-  
+
   ! FFTW plans
   Integer(C_INTPTR_T) :: alloc_local
   Type   (C_PTR)      :: plan_d, plan_i
@@ -168,7 +168,7 @@ Module global
 
   ! linear solver
   Integer (Int32) :: nr, nrhs
-  Integer (Int32), Dimension(:),   Allocatable :: pivot  
+  Integer (Int32), Dimension(:),   Allocatable :: pivot
   Complex (Int64), Dimension(:),   Allocatable :: D, DL, DU
   Complex (Int64), Dimension(:,:), Allocatable :: M, Dyy
 
@@ -178,7 +178,7 @@ Module global
   ! constant mass flow
   Real   (Int64) :: Qflow_x_0, Qflow_y_0, Qflow_z_0
   Integer(Int32) :: x_mass_cte, y_mass_cte, z_mass_cte
-    
+
   ! CFL parameters
   Real(Int64) :: CFL, dxmin, dymin, dzmin
 
@@ -280,5 +280,31 @@ Module global
   ! BiCGSTAB arrays
   Real(Int64), Dimension(:), Allocatable :: bcg_r, bcg_rhat, bcg_p, bcg_nu, bcg_h, bcg_sv, bcg_tv
 
-  
+  !FSI intializations
+!structural model from 2014 kim paper
+REAL(KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE :: Mmat_testcase,Cmat_testcase,Kmat_testcase
+REAL(KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE ::  Kmat_testcase1,Kmat_testcase2,Kmat_testcase3
+Real   (kind(0.d0)) :: m_parm_testcase,k_parm_testcase,c_parm_testcase,Tx,Tz,A
+
+!parameters for subsurface model
+Real   (kind(0.d0)) :: m_parm,k_parm,c_parm, xtopmass, ytopmass, ztopmass
+Integer(Int32) :: nblocks
+Real   (kind(0.d0)) :: sigma
+REAL(KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE :: Mmat,Kmat,Cmat,sol_mat
+
+
+
+!FSI parameters common across structural  models
+!allocation sizes might vary based on model
+Real   (kind(0.d0)) ::  err_FSI, tol_FSI
+Integer(Int32) :: iter_FSI
+real(kind(0.d0)), dimension(:), ALLOCATABLE  ::F_bf
+REAL(KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: chi, zeta, zetadot, chi_k, zeta_k, zetadot_k,ugamma
+Real   (Int64), Dimension(:), Allocatable :: xbref, ybref, zbref
+ Real(Int64),    Dimension(:),     Allocatable :: rhsib
+Integer(Int32) :: functionality
+Logical :: static_body, no_exterior_velocity
+Real   (Int64) :: dt_fsi
+Real(KIND(0.D0)), Allocatable, Dimension(:,:,:) :: Ustarfsi,Vstarfsi,Wstarfsi
+
 End Module global

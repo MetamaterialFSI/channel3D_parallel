@@ -581,6 +581,66 @@ Contains
     Allocate ( bcg_tv( 3 * nb) )
     cg_accum_iter = 0
 
+
+    If ( trim(body_type) == 'center_wall_deforming_testcase' .and. functionality==1 ) Then
+  !allocate data structures for testcase model
+    Allocate(xbref(3*nb))
+    Allocate(ybref(3*nb))
+    Allocate(zbref(3*nb))
+    Allocate(Mmat_testcase(nb,nb))
+    Mmat_testcase=0.d0
+    Allocate(Kmat_testcase(nb,nb))
+    Kmat_testcase=0.d0
+    Allocate(Kmat_testcase1(nb,nb))
+    Kmat_testcase1=0.d0
+    Allocate(Kmat_testcase2(nb,nb))
+    Kmat_testcase2=0.d0
+    Allocate(Kmat_testcase3(nb,nb))
+    Kmat_testcase3=0.d0
+    Allocate(Cmat_testcase(nb,nb))
+    Cmat_testcase=0.d0
+    Allocate(sol_mat(nb,nb))
+    sol_mat=0.d0
+    Allocate (chi(nb))
+    Allocate (zeta(nb))
+    Allocate (zetadot(nb))
+    Allocate (chi_k(nb))
+    Allocate (zeta_k(nb))
+    Allocate (zetadot_k(nb))
+    chi_k=0.0;
+    chi_k(1)=0.0
+    zeta_k=0.d0;
+    zetadot_k=0.d0;
+    Allocate (F_bf(nb))
+    F_bf=0.d0
+    Allocate(rhsib(3*nb))
+    rhsib = 0d0
+ end if 
+
+  !allocate data structures for subsurface model
+  If ( trim(body_type) == 'center_wall_deforming_subsurface' .and. functionality==1 ) Then
+    Allocate(Mmat(nblocks,nblocks))
+    Mmat=0.d0
+    Allocate(Kmat(nblocks,nblocks))
+    Kmat=0.d0
+    Allocate(sol_mat(nblocks,nblocks))
+    sol_mat=0.d0
+    Allocate (chi(nblocks))
+    Allocate (zeta(nblocks))
+    Allocate (zetadot(nblocks))
+    Allocate (chi_k(nblocks))
+    Allocate (zeta_k(nblocks))
+    Allocate (zetadot_k(nblocks))
+    chi_k=0.0;
+    zeta_k=0.d0;
+    zetadot_k=0.d0;
+    Allocate(xbref(3*nb))
+    Allocate(ybref(3*nb))
+    Allocate(zbref(3*nb))
+    Allocate (F_bf(nblocks))
+    F_bf=0.d0  
+end if 
+
     !-------------------------Done--------------------------------!
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)
 

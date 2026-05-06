@@ -20,65 +20,96 @@ Contains
   !----------------------------------------!
   Subroutine read_input_parameters
 
-    Character(200) :: dummy_line, msg
+        Character(200) :: dummy_line, msg
     Real(Int64)    :: Rossby_plus, utau_
     Integer(Int32) :: ioerr, iounit
-
+    logical :: exterior_pressure_gradient
     namelist /params/ &
       Lxp, Lzp, Ly_channel, alpha_stretch, &
       nx_global, ny_global, nz_global, &
       nxb, nzb, &
       CFL, &
       nu, &
-      dPdx, dPdz, &
+      dPdx, dPdz, Qflow_x_0, Qflow_z_0, &
       x_mass_cte, y_mass_cte, z_mass_cte, &
       nsteps, nsave, nstats, nmonitor, &
       filein, fileout, &
       nstep_init, t_init, &
-      init_type, grid_type, body_type, &
+      init_type, grid_type, body_type, exterior_pressure_gradient, &
       body_param_3, body_param_1, body_param_2, body_ramp_up_time, &
-      min_buffer_width, cg_tol, cg_max_iter, perturb_scale
+      min_buffer_width, cg_tol, cg_max_iter, perturb_scale, &
+      functionality, nblocks, &
+      m_parm, k_parm, c_parm, &
+      xtopmass, ytopmass, ztopmass, sigma, &
+      m_parm_testcase, k_parm_testcase, c_parm_testcase, &
+      Tx, Tz, A
 
     ! default values
     alpha_stretch = 2.6d0
-    Lxp = 2d0 * pi
-    Lzp = 1d0 * pi
-    Ly_channel = 2d0
+    Lxp = 9.4248
+    Lzp = 3.1416
+    Ly_channel = 4d0
     min_buffer_width = 0d0
-    cg_tol = 1e-8
+    cg_tol = 1d-8
     cg_max_iter = 50
     t_init = 0d0
     body_type = 'none'
+    exterior_pressure_gradient = .True.
     x_mass_cte = 0
     y_mass_cte = 0
     z_mass_cte = 0
-    dPdx = 0
-    dPdy = 0
-    dPdz = 0
-    body_ramp_up_time = 0
+    dPdx = 0d0
+    dPdy = 0d0
+    dPdz = 0d0
+    body_ramp_up_time = 0d0
     perturb_scale = 0.5d0
+    Qflow_x_0 = -999999.0d0
+    Qflow_z_0 = -999999.0d0
+
+    functionality = 0
+    nblocks = 1
+
+    m_parm = 0d0
+    k_parm = 0d0
+    c_parm = 0d0
+
+    xtopmass = 0d0
+    ytopmass = 0d0
+    ztopmass = 0d0
+    sigma = 0d0
+
+    m_parm_testcase = 0d0
+    k_parm_testcase = 0d0
+    c_parm_testcase = 0d0
+
+    Tx = 0d0
+    Tz = 0d0
+    A  = 1d0
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
       Write(*,*) 'reading input parameters...'
 
       Open(newunit=iounit, file=fileparams, status="old", action="read", iostat=ioerr, iomsg=msg)
-      If (ierr /= 0) then
+      If (ioerr /= 0) then
           Print *, "Error opening input file. IOSTAT =", ioerr, " IOMSG = ", msg
           Stop 1
       End If
+
       Read(iounit, Nml=params, IOSTAT=ioerr, IOMSG=msg)
-      If (ierr /= 0) then
+      If (ioerr /= 0) then
           Print *, "Error reading namelist. IOSTAT =", ioerr, " IOMSG = ", msg
           Stop 1
       End If
+
+      Close(iounit)
 
       utau_    = dPdx ** 0.5d0
       dPdx_ref = dPdx
       Call to_lower(body_type)
 
       Print params
-       
+
     End If
 
     ! broadcast data to all processors
@@ -98,6 +129,8 @@ Contains
     Call Mpi_bcast (       nu,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (     dPdx,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (     dPdz,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (Qflow_x_0,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (Qflow_z_0,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( dPdx_ref,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   t_init,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
@@ -109,6 +142,7 @@ Contains
     Call Mpi_bcast (   init_type,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   grid_type,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_type,len(body_type),MPI_character,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (exterior_pressure_gradient,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  x_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  y_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  z_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
@@ -122,6 +156,26 @@ Contains
     Call Mpi_bcast (   body_param_2,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_param_3,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_ramp_up_time,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+
+    Call Mpi_bcast ( functionality,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( nblocks,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+
+    Call Mpi_bcast ( m_parm,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( k_parm,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( c_parm,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+
+    Call Mpi_bcast ( xtopmass,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( ytopmass,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( ztopmass,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( sigma,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+
+    Call Mpi_bcast ( m_parm_testcase,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( k_parm_testcase,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( c_parm_testcase,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+
+    Call Mpi_bcast ( Tx,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( Tz,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( A,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
   End Subroutine read_input_parameters
 
