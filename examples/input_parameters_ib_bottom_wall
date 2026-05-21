@@ -1,0 +1,30 @@
+&params
+	! domain size
+	nx_global = 386
+	ny_global = 285
+	nz_global = 194
+	nxb = 386
+	nzb = 194
+	! (positive->CFL, negative->timestep size)
+	CFL = -0.001
+	! viscosity
+	nu = 3.076923076923077e-04 
+	! Pressure gradient
+	dPdx = 0.00003275394114261
+	dPdz = 0.000000000000 
+	x_mass_cte = 0 ! (0->use dPdx, 1->constant mass flow)
+	y_mass_cte = 0
+	! nsteps, nsave, nstats, nmonitor
+	nsteps = 100
+	nsave = 10
+	nstats = 10
+	nmonitor = 10
+	filein = '../../output/uncontrol_4pi_2pi/'
+	fileout = '../../output/channel_bottom_IB/channelIB'
+	! first number for output flow field
+	nstep_init = 0
+	init_type = 0 ! (0->reads previous file, 1->zero, 2->random)
+	grid_type = 0 ! (0->uniform, 1->stretched, 2->stretched with uniform buffers)
+	body_type = 'bottom_IB_wall'
+	exterior_pressure_gradient= .False.
+/
