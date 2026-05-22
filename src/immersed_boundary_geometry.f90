@@ -28,6 +28,12 @@ Contains
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
 
+      Case ('bottom_ib_wall') ! Static planar IB wall centered in y
+        nbodies = 1
+        nb = nxb * nzb
+        dxb = real(Lxp / nxb, 8)
+        dzb = real(Lzp / nzb, 8)
+
       Case ('double_cylinders_z') ! Double concentric cylinders with axis parallel to z
         nbodies = 2
         r1 = body_param_1
@@ -39,7 +45,7 @@ Contains
         nxb = nxb1 + nxb2
         nb = nxb * nzb
 
-      Case ('standing_wave') ! Top and bottom wall undergoing standing wave motion
+      Case ('standing_wave_x') ! Top and bottom wall undergoing standing wave motion
         nbodies = 2
         nb = 2 * nxb * nzb
         dxb = real(Lxp / nxb, 8)
@@ -173,7 +179,7 @@ Contains
           End If
         End Do
 
-      Case ('standing_wave') ! Top and bottom wall undergoing standing wave motion in x-direction
+      Case ('standing_wave_x') ! Top and bottom wall undergoing standing wave motion in x-direction
         If ( body_param_1 > min_buffer_width ) Stop 'Error: IB amplitude is bigger than the minimum buffer width'
         moving_body = .True.
         moving_z_flag = .False.
@@ -269,7 +275,9 @@ Contains
         End Do
 
       Case ('traveling_wave_x') ! Top and bottom wall undergoing traveling wave motion
+        If ( body_param_1 / (body_param_2 * body_param_3) > min_buffer_width ) Stop 'Error: IB amplitude is bigger than the minimum buffer width'
         moving_body = .True.
+        moving_z_flag = .False.
 
         if (t < body_ramp_up_time .and. body_ramp_up_time > 0d0) then
           tau = t / body_ramp_up_time
@@ -392,6 +400,42 @@ Contains
       Case ('traveling_wave_z') ! Top and bottom wall undergoing traveling wave motion
         Write(*,*) 'traveling wave in z-direction not yet implemented'
         Stop 
+      Case ('bottom_ib_wall') ! Static planar wall centered at y = 0
+        If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
+        moving_body = .False.
+        moving_z_flag = .False.
+
+        ub = 0d0
+        ! Reference points are the center of the domain
+        y_ref_index = ny_global / 2 ! automatically rounds down
+
+        ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
+        ! (i.e., fall between an nb_start and nb_end)
+        nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
+        nb_end = 1         ! Initialize to the lowest possible index
+        Do j = 1, nzb
+          Do i = 1, nxb
+            k = i + (j-1) * nxb
+            xb(k) = (real(i,8) - 0.5d0) * dxb
+            yb(k) = 0
+            zb(k) = (real(j,8) - 0.5d0) * dzb
+          End Do
+          If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
+            nb_start = (j-1) * nxb + 1
+          End If
+          If (zb(j * nxb) < z(nz-1) .and. nb_end < j * nxb) then
+            nb_end = j * nxb
+          End If
+        End Do
+        
+        sb = dxb * dzb
+
+        ! Vector arrays
+        Do k=1,nb
+          tangents_1(k) = 1d0
+          tangents_2(2*nb + k) = -1d0
+          normals(nb + k) = -1d0
+        End Do
 
     End Select
 
@@ -409,7 +453,7 @@ Contains
 
     Select Case (trim(body_type))
 
-      Case ('center_wall')
+      Case ('center_wall','bottom_ib_wall')
         f_ = f_ - sum(f_) / size(f_)
 
       Case ('double_cylinders_z')
@@ -441,24 +485,24 @@ Contains
                f_((j-1)*nxb + nxb1 + 1 : j*nxb) - favg_(2)
         End Do
 
-      Case ('standing_wave', 'traveling_wave_x')
+      Case ('standing_wave_x', 'traveling_wave_x')
         Do j = 1, nzb
           ! Bottom wall
-          favg_(1) = favg_(1) + sum(f_((j-1)*2*nxb + 1   : (j-1)*2*nxb + nxb  ))
+          favg_(1) = favg_(1) + sum(f_((j-1)*2*nxb + 1       : (j-1)*2*nxb + nxb  ))
 
           ! Top wall
-          favg_(2) = favg_(2) + sum(f_((j-1)*2*nxb + nxb : (j-1)*2*nxb + 2*nxb))
+          favg_(2) = favg_(2) + sum(f_((j-1)*2*nxb + nxb + 1 : (j-1)*2*nxb + 2*nxb))
         End Do
 
-        favg_(1) = favg_(1) / (nxb1 * nzb)
-        favg_(2) = favg_(2) / (nxb2 * nzb) 
+        favg_(1) = favg_(1) / (nxb * nzb)
+        favg_(2) = favg_(2) / (nxb * nzb) 
 
         Do j = 1, nzb
           ! Bottom wall
-          f_((j-1)*2*nxb + 1   : (j-1)*2*nxb + nxb  ) = f_((j-1)*2*nxb + 1   : (j-1)*2*nxb + nxb  ) - favg_(1)
+          f_((j-1)*2*nxb + 1       : (j-1)*2*nxb + nxb  ) = f_((j-1)*2*nxb + 1       : (j-1)*2*nxb + nxb  ) - favg_(1)
 
           ! Top wall
-          f_((j-1)*2*nxb + nxb : (j-1)*2*nxb + 2*nxb) = f_((j-1)*2*nxb + nxb : (j-1)*2*nxb + 2*nxb) - favg_(2)
+          f_((j-1)*2*nxb + nxb + 1 : (j-1)*2*nxb + 2*nxb) = f_((j-1)*2*nxb + nxb + 1 : (j-1)*2*nxb + 2*nxb) - favg_(2)
         End Do
 
 
