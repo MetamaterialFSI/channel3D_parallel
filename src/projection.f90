@@ -34,8 +34,8 @@ Contains
 
     ! save for use in the subsequent projection steps
     P_interim = rhs_p
-
-    Call gradient(U, V, W, dt * rhs_p)
+    rhs_p=dt * rhs_p
+    Call gradient(U, V, W, rhs_p)
 
     ! U* = U** - Gp*
     U = U_interim - U
@@ -47,15 +47,19 @@ Contains
   Subroutine compute_IB_projection
 
     ! - E u* + ub 
-    rhs_ib = -regT(U, V, W) + ub
+    Call regT(Eu, U, V, W)
+    rhs_ib = -Eu + ub
 
     ! solve for IB forcing
-    call bicgstab(fb, rhs_ib)
+    Call bicgstab(fb, rhs_ib)
 
     ! U_reg = R f
-    Call regu(U_reg, dt * fb(1 : nb)             )
-    Call regv(V_reg, dt * fb(nb + 1 : 2 * nb)    )
-    Call regw(W_reg, dt * fb(2 * nb + 1 : 3 * nb))
+    aux_surface_scalar=dt * fb(1 : nb) 
+    Call regu(U_reg, aux_surface_scalar)
+    aux_surface_scalar=dt * fb(nb + 1 : 2 * nb)
+    Call regv(V_reg, aux_surface_scalar)
+    aux_surface_scalar= dt * fb(2 * nb + 1 : 3 * nb)
+    Call regw(W_reg, aux_surface_scalar)
 
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
 
@@ -69,8 +73,9 @@ Contains
     ! Pnp1 = P* - Linv D R f
     rhs_p = P_interim - rhs_p
 
-    ! U, V, W = G Pnp1
-    call gradient(U, V, W, dt * rhs_p)
+    ! U, V, W = G Pnp1'
+    rhs_p=dt * rhs_p
+    call gradient(U, V, W, rhs_p)
 
     ! Unp1 = U** - R f - G Pnp1
     U = U_interim - U_reg - U
@@ -81,17 +86,20 @@ Contains
 
   End Subroutine compute_IB_projection
 
-  Function schur(f_)
+  Subroutine schur(Sf_, f_)
     Implicit None
-    Real(Int64), Dimension(3 * nb), Intent(In) :: f_
-    Real(Int64), Dimension(3 * nb) :: schur
+    Real(Int64), Contiguous, Intent(In) :: f_(:)
+    Real(Int64), Contiguous, Intent(Out) :: Sf_(:)
 
-    schur = 0.d0
+    Sf_ = 0.d0
 
     ! U_reg = R f
-    Call regu(U_reg, dt * f_(1 : nb)             )
-    Call regv(V_reg, dt * f_(nb + 1 : 2 * nb)    )
-    Call regw(W_reg, dt * f_(2 * nb + 1 : 3 * nb))
+    aux_surface_scalar=dt * f_(1 : nb) 
+    Call regu(U_reg, aux_surface_scalar)
+    aux_surface_scalar=dt * f_(nb + 1 : 2 * nb)
+    Call regv(V_reg, aux_surface_scalar)
+    aux_surface_scalar=dt * f_(2 * nb + 1 : 3 * nb)
+    Call regw(W_reg, aux_surface_scalar)
 
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
 
@@ -100,10 +108,11 @@ Contains
 
     ! rhs_p = Linv D R f
     call solve_poisson_equation(rhs_p)
-    rhs_p = rhs_p / dt
+    !rhs_p = rhs_p / dt
 
     ! U, V, W = G Linv D R f
-    Call gradient(U, V, W, dt * rhs_p)
+    !rhs_p=dt * rhs_p
+    call gradient(U, V, W, rhs_p)
     Call apply_boundary_conditions(U, V, W)
 
     ! U, V, W = -R f + G Linv D R f
@@ -112,21 +121,23 @@ Contains
     W = W - W_reg 
 
     ! schur = -E (I -  G Linv D) R f
-    schur = regT(U, V, W)
+    Call regT(Eu, U, V, W)
+    Sf_ = Eu
 
-  End Function schur
+  End Subroutine schur
 
   Subroutine bicgstab( bcg_x, bcg_b)
     Integer :: j, iter
-    Real(Int64), Dimension(3 * nb), Intent(In) :: bcg_b
-    Real(Int64), Dimension(3 * nb), Intent(Inout) :: bcg_x
+    Real(Int64), Contiguous, Intent(In) :: bcg_b(:)
+    Real(Int64), Contiguous, Intent(InOut) :: bcg_x(:)
     Real(Int64) :: rho_o, rho_n, alpha, om, eps, error, bta
 
     !initialize
     error = 1.d0
     eps = cg_tol * cg_tol
     iter = 0
-    bcg_r = bcg_b - schur(bcg_x)
+    Call schur(bcg_r, bcg_x)
+    bcg_r = bcg_b - bcg_r
     bcg_rhat = bcg_r
     rho_o = 1.d0
     alpha = 1.d0
@@ -138,11 +149,11 @@ Contains
       bta = (rho_n / rho_o) * (alpha / om)
       rho_o = rho_n
       bcg_p = bcg_r + bta * (bcg_p - om * bcg_nu)
-      bcg_nu = schur(bcg_p)
+      Call schur(bcg_nu, bcg_p)
       alpha = rho_n / dot_product(bcg_rhat, bcg_nu)
       bcg_h = bcg_x + alpha * bcg_p
       bcg_sv = bcg_r - alpha * bcg_nu
-      bcg_tv = schur(bcg_sv )
+      Call schur(bcg_tv, bcg_sv)
       om = dot_product( bcg_tv, bcg_sv) / dot_product(bcg_tv, bcg_tv)
       bcg_x = bcg_h + om * bcg_sv
       bcg_r = bcg_sv - om * bcg_tv

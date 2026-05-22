@@ -7,7 +7,8 @@ Module equations
   Use iso_fortran_env, Only : error_unit, Int32, Int64
   Use global,          Only : x, xm, xg, y, ym, yg, z, zm, zg, term_1, & 
                               term_2, nx, nxg, ny, nyg, nz, nzg,       & 
-                              nu, dPdx, dPdz, yg_m
+                              nu, dPdx, dPdz, yg_m, exterior_pressure_gradient, &
+                              Hu_interior, Hv_interior, Hw_interior
   Use interpolation
   
   ! prevent implicit typing
@@ -143,7 +144,11 @@ Contains
     rhs_u = rhs_u + term_2(2:nx-1,2:nyg-1,2:nzg-1)
 
     !--------------Constant pressure gradient-------------!
-    rhs_u = rhs_u + dPdx
+    If (exterior_pressure_gradient == .False.) Then
+      rhs_u = rhs_u + dPdx * Hu_interior(2:nx-1,2:nyg-1,2:nzg-1)
+    Else
+      rhs_u = rhs_u + dPdx
+    End If
 
   End Subroutine compute_rhs_u
 
@@ -402,7 +407,11 @@ Contains
     rhs_w = rhs_w + term_2(2:nxg-1,2:nyg-1,2:nz-1)
 
     !--------------Constant pressure gradient-------------!
-    rhs_w = rhs_w + dPdz
+    If (exterior_pressure_gradient == .False.) Then
+      rhs_w = rhs_w + dPdz * Hw_interior(2:nxg-1,2:nyg-1,2:nz-1)
+    Else
+      rhs_w = rhs_w + dPdz
+    End If
 
   End Subroutine compute_rhs_w
 

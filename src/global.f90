@@ -204,6 +204,7 @@ Module global
   ! body mode
   Character(200) :: body_type
   Logical(Int32) :: moving_body
+  Logical(Int32) :: exterior_pressure_gradient
 
   ! number of bodies
   Integer(Int32) :: nbodies
@@ -235,6 +236,10 @@ Module global
 
   ! immersed body forcing
   Real(Int64), Dimension(:), Allocatable :: fb!, input_fb
+
+  ! body arrays for accepting interpolated fields
+  Real(Int64), Dimension(:), Allocatable :: Eu, E1np
+
 
   ! scalar array on the immersed boundary for debug purposes
   Real(Int64), Dimension(:), Allocatable :: debug_surface_scalar
