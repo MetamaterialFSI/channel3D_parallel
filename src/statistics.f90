@@ -136,7 +136,30 @@ Contains
        Call compute_mean_mass_flow_V(W, Qflow_z)
 
        ! write statistics
-       Call output_statistics
+       !Call output_statistics
+       !Calculat mean shear stress of IB points
+       CALL project_force_to_tangent(fb, tangents_1, fb_t1)
+       Call compute_global_mean(fb_t1,tau_w)
+       if (myid .eq. 0) Then
+         !WRITE(*,*) 'write output stats'
+         tau_w_log(store_index,1)=t+REAL(nstep_init)*dt
+         tau_w_log(store_index,2)=tau_w 
+         dPdx_log(store_index,1)=dPdx
+         !WRITE(*,*) 't,tau_w=',tau_w_log(store_index,1),tau_w_log(store_index,2)
+         if (store_index .eq. 1000 .or. istep .eq. nsteps) then
+           Call output_response
+           store_index=1
+         elseif ( istep==1) then
+          Call output_response
+          !store_index=store_index+1
+          store_index=1
+         elseif (Any( Isnan(U)) .or. Any( Isnan(V)) .or. Any( Isnan(W))) then
+            Call output_response
+         else
+           store_index=store_index+1
+         end if
+
+       end if
 
        ! Sanity check 
        If ( Any( Isnan(U) ) ) Stop 'Error: NaNs!'
@@ -146,5 +169,66 @@ Contains
     End If
     
   End Subroutine compute_statistics
+
+  Subroutine project_force_to_tangent(f_, tangents_, fbt_)
+
+   Implicit None
+   Real(Int64), Contiguous,Intent(In)  :: f_(:)
+   Real(Int64), Contiguous,Intent(In)  :: tangents_(:)
+ 
+   ! Scalar projection at each IB point
+   Real(Int64), Contiguous,Intent(Out) :: fbt_(:)
+ 
+   Integer :: i, ix, iy, iz
+ 
+   Do i = 1, nb
+ 
+      ix = 3*(i-1) + 1
+      iy = 3*(i-1) + 2
+      iz = 3*(i-1) + 3
+ 
+      ! Dot product: fb · tangents_1
+      fbt_(i) = f_(ix) * tangents_(ix) &
+               + f_(iy) * tangents_(iy) &
+               + f_(iz) * tangents_(iz)
+ 
+   End Do
+ 
+ End Subroutine project_force_to_tangent
+
+ Subroutine compute_global_mean(fbt_, mean_)
+
+   Use mpi
+   Implicit None
+ 
+   Real(Int64), Contiguous, Intent(In)  :: fbt_(:)
+   Real(Int64),               Intent(Out) :: mean_
+ 
+   Integer :: n_global
+ 
+   Real(Int64) :: local_sum
+   Real(Int64) :: global_sum
+ 
+   local_sum = Sum(fbt_)
+ 
+   ! Reduce force sum
+   If ( myid == 0 ) Then
+ 
+      Call MPI_Reduce(MPI_IN_PLACE, global_sum, 1, MPI_real8, &
+                      MPI_sum, 0, MPI_COMM_WORLD, ierr)
+   Else
+      global_sum = local_sum
+ 
+      Call MPI_Reduce(global_sum, 0, 1, MPI_real8, &
+                      MPI_sum, 0, MPI_COMM_WORLD, ierr)
+ 
+   End If
+ 
+   ! Root computes mean
+   If ( myid == 0 ) Then
+      mean_ = global_sum / Real(nb, Int64)
+   End If
+ 
+ End Subroutine compute_global_mean
 
 End Module statistics

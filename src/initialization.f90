@@ -492,7 +492,9 @@ Contains
 
     ! Body forcing
     Allocate (fb(3 * nb) )
+    Allocate (fb_t1(nb) )
     fb = 0d0
+    fb_t1 = 0d0
 
     ! Body velocity
     Allocate (ub (3 * nb) )

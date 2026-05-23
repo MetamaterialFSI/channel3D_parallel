@@ -190,7 +190,7 @@ Module global
 
   ! statistics
   Integer(Int32) :: nstats
-  Real   (Int64) :: Retau_u, utau, Retau_w, wtau, Qflow_x, Qflow_y, Qflow_z
+  Real   (Int64) :: Retau_u, utau, Retau_w, wtau, Qflow_x, Qflow_y, Qflow_z, tau_w
   Real   (Int64), Dimension(:), Allocatable ::  Umean,  Vmean,  Wmean
   Real   (Int64), Dimension(:), Allocatable :: U2mean, V2mean, W2mean, UVmean
 
@@ -235,7 +235,7 @@ Module global
   Real(Int64), Dimension(:), Allocatable :: normals, tangents_1, tangents_2
 
   ! immersed body forcing
-  Real(Int64), Dimension(:), Allocatable :: fb!, input_fb
+  Real(Int64), Dimension(:), Allocatable :: fb, fb_t1!, input_fb
 
   ! body arrays for accepting interpolated fields
   Real(Int64), Dimension(:), Allocatable :: Eu, E1np
@@ -285,5 +285,9 @@ Module global
   ! BiCGSTAB arrays
   Real(Int64), Dimension(:), Allocatable :: bcg_r, bcg_rhat, bcg_p, bcg_nu, bcg_h, bcg_sv, bcg_tv
 
+  ! saving tau_w every 1000 time step
+  Integer(Int32) :: store_index
+  REAL(Int64), Dimension(1000,2) :: tau_w_log
+  REAL(Int64), Dimension(1000,1) :: dPdx_log
   
 End Module global
