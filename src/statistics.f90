@@ -182,19 +182,16 @@ Contains
  
    Integer :: n_global
  
-   Real(Int64) :: local_sum
    Real(Int64) :: global_sum
  
-   local_sum = Sum(fbt_)
+   global_sum = Sum(fbt_)
  
    ! Reduce force sum
    If ( myid == 0 ) Then
  
       Call MPI_Reduce(MPI_IN_PLACE, global_sum, 1, MPI_real8, &
                       MPI_sum, 0, MPI_COMM_WORLD, ierr)
-   Else
-      global_sum = local_sum
- 
+   Else 
       Call MPI_Reduce(global_sum, 0, 1, MPI_real8, &
                       MPI_sum, 0, MPI_COMM_WORLD, ierr)
  

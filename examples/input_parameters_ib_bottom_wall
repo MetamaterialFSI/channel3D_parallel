@@ -15,8 +15,8 @@
 	x_mass_cte = 1 ! (0->use dPdx, 1->constant mass flow)
 	y_mass_cte = 0
 	! nsteps, nsave, nstats, nmonitor
-	nsteps = 10000
-	nsave = 1000
+	nsteps = 20000
+	nsave = 2000
 	nstats = 1
 	nmonitor = 1000
 	filein = '/resnick/groups/bae-group/ctlin/channel_IBPM_WFMI/output/uncontrol_4pi_2pi/channelIB_386_285_194.100000'
