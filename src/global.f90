@@ -289,5 +289,31 @@ Module global
   Integer(Int32) :: store_index
   REAL(Int64), Dimension(1000,2) :: tau_w_log
   REAL(Int64), Dimension(1000,1) :: dPdx_log
+
+  ! no controller
+  INTEGER :: n_control       ! number of controls (value assigned in control.f90)
+  TYPE siso_actuator
+    INTEGER :: nx_local
+    REAL(KIND(0.D0)) :: xbs,zbs,width, angle, amp, freq
+    REAL(KIND(0.D0)) :: sigma,error_actuator, kx_forcing ! for 2D feedback
+  END TYPE siso_actuator
+
+  TYPE control_t
+    INTEGER :: id
+    INTEGER :: ncsteps
+    Character(200) :: ctrl_type
+    TYPE(siso_actuator), ALLOCATABLE :: actuators(:)
+    ! control setting
+    ! type of control
+    ! x_dir_gaussian
+    INTEGER :: num_act,ord_ctrl,sample_interval,count_e,count_u! order of controller
+    REAL(KIND(0.D0)) :: xbs, zbs, width
+    REAL(KIND(0.D0)), ALLOCATABLE :: values(:) ! control(nh)
+    REAL(KIND(0.D0)), ALLOCATABLE :: K_A(:,:),K_B(:,:),K_C(:,:),K_D(:,:), tmp_xn(:,:),tmp_xn1(:,:)
+    REAL(KIND(0.D0)), ALLOCATABLE :: zero_func_local(:), dfdx_local(:)
+    REAL(KIND(0.D0)), ALLOCATABLE :: u_i_2D(:,:),e_i_2D(:,:), y_i_2D(:,:)
+    ! for open-loop control
+    REAL(KIND(0.D0)), ALLOCATABLE :: u_values(:,:)
+  END TYPE control_t
   
 End Module global

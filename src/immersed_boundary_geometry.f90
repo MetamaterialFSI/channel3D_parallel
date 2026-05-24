@@ -2,6 +2,7 @@ Module immersed_boundary_geometry
 
   Use iso_fortran_env, Only : error_unit, Int32, Int64
   Use global
+  Use controls
 
   ! prevent implicit typing
   Implicit None
@@ -28,7 +29,7 @@ Contains
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
 
-      Case ('bottom_ib_wall') ! Static planar IB wall centered in y
+      Case ('bottom_ib_wall','moving_bottom_wall') ! Static planar IB wall centered in y
         nbodies = 1
         nb = nxb * nzb
         dxb = real(Lxp / nxb, 8)
@@ -417,7 +418,6 @@ Contains
           Do i = 1, nxb
             k = i + (j-1) * nxb
             xb(k) = (real(i,8) - 0.5d0) * dxb
-            yb(k) = 0
             zb(k) = (real(j,8) - 0.5d0) * dzb
           End Do
           If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
@@ -427,6 +427,7 @@ Contains
             nb_end = j * nxb
           End If
         End Do
+        call   
         
         sb = dxb * dzb
 
@@ -436,6 +437,60 @@ Contains
           tangents_2(2*nb + k) = -1d0
           normals(nb + k) = -1d0
         End Do
+        Call normalize_vector(tangents_1)
+        Call normalize_vector(tangents_2)
+        Call normalize_vector(normals)
+
+      Case ('moving_bottom_wall') ! moving wall based on controls.f90 (weakly-coupled)
+        moving_body = .True.
+        moving_z_flag = .False.
+
+        ub = 0d0
+
+        ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
+        ! (i.e., fall between an nb_start and nb_end)
+        nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
+        nb_end = 1         ! Initialize to the lowest possible index
+        Do j = 1, nzb
+          Do i = 1, nxb
+            k = i + (j-1) * nxb
+            xb(k) = (real(i,8) - 0.5d0) * dxb
+            zb(k) = (real(j,8) - 0.5d0) * dzb
+          End Do
+          If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
+            nb_start = (j-1) * nxb + 1
+          End If
+          If (zb(j * nxb) < z(nz-1) .and. nb_end < j * nxb) then
+            nb_end = j * nxb
+          End If
+        End Do  
+        do i = 1, n_control
+          call controls_actuating(i)
+        end do
+        
+        ! For now, make a naive sb calculation that assumes no variation in z
+        Do j = 1, nzb
+          Do i = 1, nxb
+            ! Bottom wall
+            k = i + (j-1) * nxb
+            If (i .eq. 1) Then
+              a1 = sqrt((xb(k) - (xb(nxb + 2 * nxb * (j - 1)) - Lxp)) ** 2 + (yb(k) - yb(nxb + 2 * nxb * (j - 1))) ** 2)
+              a2 = sqrt((xb(k) - (xb(k + 1))                        ) ** 2 + (yb(k) - yb(k + 1)                  ) ** 2)
+            Else If (i .eq. nxb) Then
+              a1 = sqrt((xb(k) - (xb(k - 1))                      ) ** 2   + (yb(k) - yb(k - 1)                  ) ** 2)
+              a2 = sqrt((xb(k) - (xb(1 + 2 * nxb * (j - 1)) + Lxp)) ** 2   + (yb(k) - yb(1 + 2 * nxb * (j - 1))) ** 2)
+            Else
+              a1 = sqrt((xb(k) - (xb(k - 1))) ** 2                     + (yb(k) - yb(k - 1)) ** 2)
+              a2 = sqrt((xb(k) - (xb(k + 1))) ** 2                     + (yb(k) - yb(k + 1)) ** 2)
+            End If
+            sb(k) = dzb * (0.5d0 * a1 + 0.5d0 * a2)
+          End Do
+        End Do
+
+        ! Vector arrays
+        Call normalize_vector(tangents_1)
+        Call normalize_vector(tangents_2)
+        Call normalize_vector(normals)
 
     End Select
 
@@ -511,6 +566,38 @@ Contains
 
     End Select
 
-  End Subroutine
+  End Subroutine remove_mean_per_body
+
+! ============================================================
+! Normalize vector field stored as:
+!
+!   1:nb           -> x-component
+!   nb+1:2*nb      -> y-component
+!   2*nb+1:3*nb    -> z-component
+!
+! ============================================================
+Subroutine normalize_vector(vec)
+
+  Implicit None
+  Real(Int64), Contiguous, Intent(In) :: vec(:)
+
+  Integer :: k
+  Real(Int64) :: mag
+
+  Do k = 1, nb
+
+    mag = sqrt( vec(k)**2              &
+              + vec(nb+k)**2           &
+              + vec(2*nb+k)**2 )
+
+    If (mag > 0d0) Then
+      vec(k)        = vec(k)        / mag
+      vec(nb+k)     = vec(nb+k)     / mag
+      vec(2*nb+k)   = vec(2*nb+k)   / mag
+    End If
+
+  End Do
+
+End Subroutine normalize_vector
 
 End Module immersed_boundary_geometry

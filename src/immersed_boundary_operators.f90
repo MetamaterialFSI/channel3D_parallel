@@ -764,4 +764,59 @@ Contains
     end if
   end subroutine global_to_local_center
 
+  ! project ib force
+
+  Subroutine project_force_to_tangent(f_, tangents_, fbt_)
+
+    Implicit None
+    Real(Int64), Contiguous,Intent(In)  :: f_(:)
+    Real(Int64), Contiguous,Intent(In)  :: tangents_(:)
+  
+    ! Scalar projection at each IB point
+    Real(Int64), Contiguous,Intent(Out) :: fbt_(:)
+  
+    Integer :: i, ix, iy, iz
+  
+    Do i = 1, nb
+  
+       ix = 3*(i-1) + 1
+       iy = 3*(i-1) + 2
+       iz = 3*(i-1) + 3
+  
+       ! Dot product: fb · tangents_1
+       fbt_(i) = f_(ix) * tangents_(ix) &
+                + f_(iy) * tangents_(iy) &
+                + f_(iz) * tangents_(iz)
+  
+    End Do
+  
+  End Subroutine project_force_to_tangent
+
+  Subroutine project_force_to_normal(f_, normals_, fbn_)
+
+    Implicit None
+  
+    Real(Int64), Contiguous, Intent(In)  :: f_(:)
+    Real(Int64), Contiguous, Intent(In)  :: normals_(:)
+  
+    ! Scalar projection at each IB point
+    Real(Int64), Contiguous, Intent(Out) :: fbn_(:)
+  
+    Integer :: i, ix, iy, iz
+  
+    nb = Size(fbn_)
+  
+    Do i = 1, nb
+  
+       ix = 3*(i-1) + 1
+       iy = 3*(i-1) + 2
+       iz = 3*(i-1) + 3
+       ! Dot product: f · normal
+       fbn_(i) = f_(ix) * normals_(ix) &
+               + f_(iy) * normals_(iy) &
+               + f_(iz) * normals_(iz)
+    End Do
+  
+  End Subroutine project_force_to_normal
+
 End Module immersed_boundary_operators

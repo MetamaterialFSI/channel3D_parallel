@@ -10,6 +10,7 @@ Module statistics
   Use interpolation
   Use input_output
   Use mass_flow
+  Use immersed_boundary_operators
 
   ! prevent implicit typing
   Implicit None
@@ -36,7 +37,7 @@ Contains
        ! Compute actual pressure (should be called first, uses term_1,...)
        !Call compute_pressure       
        ! now computed in projection.f90
-       pressure_computed = .True.
+       !pressure_computed = .True.
        
        ! interpolate U in x -> term_1
        Call interpolate_x(U,term_1(2:nxg-1,1:nyg,1:nzg))
@@ -170,31 +171,6 @@ Contains
     
   End Subroutine compute_statistics
 
-  Subroutine project_force_to_tangent(f_, tangents_, fbt_)
-
-   Implicit None
-   Real(Int64), Contiguous,Intent(In)  :: f_(:)
-   Real(Int64), Contiguous,Intent(In)  :: tangents_(:)
- 
-   ! Scalar projection at each IB point
-   Real(Int64), Contiguous,Intent(Out) :: fbt_(:)
- 
-   Integer :: i, ix, iy, iz
- 
-   Do i = 1, nb
- 
-      ix = 3*(i-1) + 1
-      iy = 3*(i-1) + 2
-      iz = 3*(i-1) + 3
- 
-      ! Dot product: fb · tangents_1
-      fbt_(i) = f_(ix) * tangents_(ix) &
-               + f_(iy) * tangents_(iy) &
-               + f_(iz) * tangents_(iz)
- 
-   End Do
- 
- End Subroutine project_force_to_tangent
 
  Subroutine compute_global_mean(fbt_, mean_)
 

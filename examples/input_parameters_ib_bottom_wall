@@ -12,7 +12,7 @@
 	! Pressure gradient
 	dPdx = 0.00158603
 	dPdz = 0.000000000000 
-	x_mass_cte = 0 ! (0->use dPdx, 1->constant mass flow)
+	x_mass_cte = 1 ! (0->use dPdx, 1->constant mass flow)
 	y_mass_cte = 0
 	! nsteps, nsave, nstats, nmonitor
 	nsteps = 10000
