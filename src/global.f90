@@ -34,7 +34,7 @@ Module global
   Real(Int64) :: pi = 4d0 * datan(1d0)  
 
   ! files
-  Character(200) :: filein, fileout, fileparams
+  Character(200) :: filein, fileout, fileparams, logs_in
   Integer(Int32) :: nsave, nmonitor
 
   ! initial condition
@@ -176,6 +176,7 @@ Module global
   Real(Int64) :: dPdx, dPdy, dPdz, dPdx_ref
 
   ! constant mass flow
+  Integer(Int32) :: read_dPdx_flag
   Real   (Int64) :: Qflow_x_0, Qflow_y_0, Qflow_z_0
   Integer(Int32) :: x_mass_cte, y_mass_cte, z_mass_cte
     
@@ -305,13 +306,13 @@ Module global
     TYPE(siso_actuator), ALLOCATABLE :: actuators(:)
     ! control setting
     ! type of control
-    ! x_dir_gaussian
+    ! spanwise_const_gauss_x
     INTEGER :: num_act,ord_ctrl,sample_interval,count_e,count_u! order of controller
     REAL(KIND(0.D0)) :: xbs, zbs, width
     REAL(KIND(0.D0)), ALLOCATABLE :: values(:) ! control(nh)
     REAL(KIND(0.D0)), ALLOCATABLE :: K_A(:,:),K_B(:,:),K_C(:,:),K_D(:,:), tmp_xn(:,:),tmp_xn1(:,:)
     REAL(KIND(0.D0)), ALLOCATABLE :: zero_func_local(:), dfdx_local(:)
-    REAL(KIND(0.D0)), ALLOCATABLE :: u_i_2D(:,:),e_i_2D(:,:), y_i_2D(:,:)
+    REAL(KIND(0.D0)), ALLOCATABLE :: u_i_2D(:,:),e_i_2D(:,:), y_i_2D(:,:),t_i(:)
     ! for open-loop control
     REAL(KIND(0.D0)), ALLOCATABLE :: u_values(:,:)
   END TYPE control_t

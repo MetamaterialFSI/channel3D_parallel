@@ -16,18 +16,18 @@
 	y_mass_cte = 0
 	! nsteps, nsave, nstats, nmonitor
 	nsteps = 20000
-	nsave = 2000
+	nsave = 1000
 	nstats = 1
 	nmonitor = 1000
-	filein = '/resnick/groups/bae-group/ctlin/channel_IBPM_WFMI/output/channel_bottom_IB/channelIB.20000'
-	fileout = '/resnick/groups/bae-group/ctlin/channel_IBPM_WFMI/output/channel_bottom_IB/channelIB'
+	filein = '/resnick/groups/bae-group/ctlin/channel_IBPM_WFMI/output/channel_bottom_IB/channelIB.18000'
+	fileout = '/resnick/groups/bae-group/ctlin/channel_IBPM_WFMI/output/channel_gaus_x/channelIB'
 	! first number for output flow field
-	nstep_init = 20000
+	nstep_init = 0
 	init_type = 0 ! (0->reads previous file, 1->zero, 2->random)
 	grid_type = 0 ! (0->uniform, 1->stretched, 2->stretched with uniform buffers)
-	body_type = 'bottom_ib_wall'
+	body_type = 'moving_bottom_wall'
 	exterior_pressure_gradient= .False.
 	cg_tol = 1e-2
     cg_max_iter = 20
-	read_dpdx_flag=1
+	read_dPdx_flag=1
 /

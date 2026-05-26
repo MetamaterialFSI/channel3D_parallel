@@ -23,13 +23,7 @@ Contains
         dxb = real(Lxp / nxb, 8)
         dzb = real(Lzp / nzb, 8)
 
-      Case ('center_wall') ! Static planar IB wall centered in y
-        nbodies = 1
-        nb = nxb * nzb
-        dxb = real(Lxp / nxb, 8)
-        dzb = real(Lzp / nzb, 8)
-
-      Case ('bottom_ib_wall','moving_bottom_wall') ! Static planar IB wall centered in y
+      Case ('center_wall','bottom_ib_wall','moving_bottom_wall') ! Static planar IB wall centered in y
         nbodies = 1
         nb = nxb * nzb
         dxb = real(Lxp / nxb, 8)
@@ -408,7 +402,7 @@ Contains
 
         ub = 0d0
         ! Reference points are the center of the domain
-        y_ref_index = ny_global / 2 ! automatically rounds down
+        y_ref_index = 1 ! automatically rounds down
 
         ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
         ! (i.e., fall between an nb_start and nb_end)
@@ -418,6 +412,7 @@ Contains
           Do i = 1, nxb
             k = i + (j-1) * nxb
             xb(k) = (real(i,8) - 0.5d0) * dxb
+            yb(k) = 0.d0
             zb(k) = (real(j,8) - 0.5d0) * dzb
           End Do
           If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
@@ -427,7 +422,6 @@ Contains
             nb_end = j * nxb
           End If
         End Do
-        call   
         
         sb = dxb * dzb
 
@@ -437,15 +431,17 @@ Contains
           tangents_2(2*nb + k) = -1d0
           normals(nb + k) = -1d0
         End Do
-        Call normalize_vector(tangents_1)
-        Call normalize_vector(tangents_2)
-        Call normalize_vector(normals)
+        ! Call normalize_vector(tangents_1)
+        ! Call normalize_vector(tangents_2)
+        ! Call normalize_vector(normals)
 
       Case ('moving_bottom_wall') ! moving wall based on controls.f90 (weakly-coupled)
+        !WRITE(*,*) 'myid',myid,'istep',istep,'compute_IB geometry' 
         moving_body = .True.
         moving_z_flag = .False.
 
         ub = 0d0
+        y_ref_index = 1 ! automatically rounds down
 
         ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
         ! (i.e., fall between an nb_start and nb_end)
@@ -455,6 +451,7 @@ Contains
           Do i = 1, nxb
             k = i + (j-1) * nxb
             xb(k) = (real(i,8) - 0.5d0) * dxb
+            !yb(k) = 0.d0
             zb(k) = (real(j,8) - 0.5d0) * dzb
           End Do
           If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
@@ -474,11 +471,11 @@ Contains
             ! Bottom wall
             k = i + (j-1) * nxb
             If (i .eq. 1) Then
-              a1 = sqrt((xb(k) - (xb(nxb + 2 * nxb * (j - 1)) - Lxp)) ** 2 + (yb(k) - yb(nxb + 2 * nxb * (j - 1))) ** 2)
+              a1 = sqrt((xb(k) - (xb(nxb + nxb * (j - 1)) - Lxp)) ** 2 + (yb(k) - yb(nxb + nxb * (j - 1))) ** 2)
               a2 = sqrt((xb(k) - (xb(k + 1))                        ) ** 2 + (yb(k) - yb(k + 1)                  ) ** 2)
             Else If (i .eq. nxb) Then
               a1 = sqrt((xb(k) - (xb(k - 1))                      ) ** 2   + (yb(k) - yb(k - 1)                  ) ** 2)
-              a2 = sqrt((xb(k) - (xb(1 + 2 * nxb * (j - 1)) + Lxp)) ** 2   + (yb(k) - yb(1 + 2 * nxb * (j - 1))) ** 2)
+              a2 = sqrt((xb(k) - (xb(1 + nxb * (j - 1)) + Lxp)) ** 2   + (yb(k) - yb(1 + nxb * (j - 1))) ** 2)
             Else
               a1 = sqrt((xb(k) - (xb(k - 1))) ** 2                     + (yb(k) - yb(k - 1)) ** 2)
               a2 = sqrt((xb(k) - (xb(k + 1))) ** 2                     + (yb(k) - yb(k + 1)) ** 2)
@@ -486,6 +483,13 @@ Contains
             sb(k) = dzb * (0.5d0 * a1 + 0.5d0 * a2)
           End Do
         End Do
+        !sb = dxb * dzb
+        ! Vector arrays
+        ! Do k=1,nb
+        !   tangents_1(k) = 1d0
+        !   tangents_2(2*nb + k) = -1d0
+        !   normals(nb + k) = -1d0
+        ! End Do
 
         ! Vector arrays
         Call normalize_vector(tangents_1)
@@ -508,7 +512,7 @@ Contains
 
     Select Case (trim(body_type))
 
-      Case ('center_wall','bottom_ib_wall')
+      Case ('center_wall','bottom_ib_wall','moving_bottom_wall')
         f_ = f_ - sum(f_) / size(f_)
 
       Case ('double_cylinders_z')
@@ -579,7 +583,7 @@ Contains
 Subroutine normalize_vector(vec)
 
   Implicit None
-  Real(Int64), Contiguous, Intent(In) :: vec(:)
+  Real(Int64), Contiguous, Intent(InOut) :: vec(:)
 
   Integer :: k
   Real(Int64) :: mag

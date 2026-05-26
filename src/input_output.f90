@@ -9,6 +9,7 @@ Module input_output
   Use mpi
   Use ifport
   Use pressure
+  Use controls
 
   ! prevent implicit typing
   Implicit None
@@ -31,9 +32,9 @@ Contains
       CFL, &
       nu, &
       dPdx, dPdz, &
-      x_mass_cte, y_mass_cte, z_mass_cte, &
+      x_mass_cte, y_mass_cte, z_mass_cte, read_dPdx_flag,&
       nsteps, nsave, nstats, nmonitor, &
-      filein, fileout, &
+      filein, fileout,logs_in,&
       nstep_init, t_init, &
       init_type, grid_type, body_type, exterior_pressure_gradient, &
       body_param_3, body_param_1, body_param_2, body_ramp_up_time, &
@@ -58,6 +59,9 @@ Contains
     dPdz = 0
     body_ramp_up_time = 0
     perturb_scale = 0.5d0
+    logs_in=''
+    read_dPdx_flag=0
+    store_index = 1
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
@@ -114,6 +118,7 @@ Contains
     Call Mpi_bcast (  x_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  y_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  z_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (  read_dPdx_flag,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
 
     Call Mpi_bcast ( min_buffer_width,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( cg_max_iter,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
@@ -332,7 +337,7 @@ Contains
 
     Integer(Int32) ::  nx_global_f,  ny_global_f,  nz_global_f, iproc, nze, nzge
     Integer(Int32) :: nxm_global_f, nym_global_f, nzm_global_f, nn(3), ndum
-    Integer(Int64) :: pos_header, nsize_U, nsize_V, ii, jj, kk
+    Integer(Int64) :: pos_header, nsize_U, nsize_V,nsize_W, ii, jj, kk
 
     ! processor 0 Reads the all the data
     If ( myid==0 ) Then
@@ -370,6 +375,7 @@ Contains
       pos_header = pos_header - 1
       nsize_U    = nx_global*nyg_global*nzg_global*8
       nsize_V    = nxg_global*ny_global*nzg_global*8
+      nsize_W    = nxg_global*nyg_global*nz_global*8
 
     End If
 
@@ -460,6 +466,18 @@ Contains
     Else
       Call Mpi_recv(W,nxg*nyg*nz,Mpi_real8,0,myid,MPI_COMM_WORLD,istat,ierr)
     Endif
+
+    If (read_dPdx_flag ==1) Then
+      If ( myid==0 ) Then
+         ! go to correct position. I dont know, if I dont do this it gets lost sometimes
+         ndum = fseek(1,pos_header+3*4+nsize_U+3*4+nsize_V+3*4+nsize_W,seek_set)
+         READ(1) dPdx, dPdz, dPdx_ref
+         WRITE(*,*) 'Adopted from snapshots: dPdx, dPdz, dPdx_ref=', dPdx, dPdz, dPdx_ref
+       END IF
+      Call Mpi_bcast (     dPdx,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+      Call Mpi_bcast (     dPdz,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+      Call Mpi_bcast ( dPdx_ref,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    END IF
 
     ! close file
     If (myid==0) Then
@@ -595,6 +613,8 @@ Contains
         ! data from processor n>0    
         Call Mpi_send(P,nxg*nyg*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
       Else
+        ! write dpdx
+        Write(1) dPdx, dPdz, dPdx_ref
         ! write P size
         Write(1) nxg_global,nyg_global,nzg_global
         ! processor 0 writes its data
@@ -797,5 +817,79 @@ Contains
     End If
 
   End Subroutine output_response
+
+!----------------------------------------------!
+!   Write 1d data in a single txt file         !
+!----------------------------------------------!
+Subroutine output_controls(i_ctrl)
+  INTEGER, INTENT(in) :: i_ctrl
+  Character(200) :: fname
+  Character(8)   :: ext
+  CHARACTER(3) :: file_num
+  Integer(Int32) :: i,j
+
+  If ( myid==0 ) Then
+
+     Write(ext,'(I8)') istep + nstep_init
+     
+     WRITE(file_num,"(I3.3)") i_ctrl
+     fname = Trim(Adjustl(fileout))//'_controls.'//file_num//'.dat'
+
+     if (istep + nstep_init .eq. 1) then
+        Open(34,file=fname,form="formatted",status="replace") 
+     Else
+        Open(34,file=fname,form="formatted",status="unknown",position="append") 
+     end if
+     Select case (trim(ctrl(i_ctrl)%ctrl_type))
+      case ('spanwise_const_gauss_x')
+        !WRITE(*,*) 'count_e',ctrl(i_ctrl)%count_e,'num_act',ctrl(i_ctrl)%num_act
+        Do i=1,ctrl(i_ctrl)%count_e-1
+          
+          Write(34,'(999F15.8)') ctrl(i_ctrl)%t_i(i), &
+            (ctrl(i_ctrl)%e_i_2D(i,j), j=1,ctrl(i_ctrl)%num_act), &
+            (ctrl(i_ctrl)%u_i_2D(i,j), j=1,ctrl(i_ctrl)%num_act), &
+            (ctrl(i_ctrl)%y_i_2D(i,j), j=1,ctrl(i_ctrl)%num_act)
+        End do
+     END select
+
+     Close(34)
+  End If
+
+End Subroutine output_controls
+
+Subroutine output_controls_logs(i_ctrl)
+  INTEGER, INTENT(in) :: i_ctrl
+  Character(200) :: fname
+  Character(8)   :: ext
+  CHARACTER(3) :: file_num
+  Integer(Int32) :: i,j
+
+  If ( myid==0 ) Then
+
+     If ( istep .eq. nsteps ) then
+
+        Write(ext,"(I8)") istep + nstep_init
+     
+        WRITE(file_num,"(I3.3)") i_ctrl
+        fname = Trim(Adjustl(fileout))//'_controls_log.'//Trim(Adjustl(ext))//'.dat'
+
+        Open(35,file=fname,form="formatted",status="replace")
+        Write(35,'(1F15.8)') dPdx
+
+        if ( TRIM(ctrl(i_ctrl)%ctrl_type) .eq. 'spanwise_const_gauss_x' ) then
+           Write(35,'(999F15.8)') (ctrl(i_ctrl)%u_i_2D(1000,j), j=1,ctrl(i_ctrl)%num_act)
+           Write(35,'(999F15.8)') (ctrl(i_ctrl)%y_i_2D(1000,j), j=1,ctrl(i_ctrl)%num_act)
+           Do i=1, ctrl(i_ctrl)%num_act
+              Write(35,'(999F15.8)') (ctrl(i_ctrl)%tmp_xn(j,i), j=1,ctrl(i_ctrl)%ord_ctrl)
+           End do
+        end if
+
+        Close(35)
+
+     end if
+
+  End If
+
+End Subroutine output_controls_logs
 
 End Module input_output

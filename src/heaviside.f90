@@ -26,7 +26,7 @@ Contains
     U_reg = 0d0
     V_reg = 0d0
     W_reg = 0d0
-
+    !WRITE(*,*) 'myid',myid,'normals(1):',normals(1), normals(1+nb), normals(2*nb+1)
     Call regu(U_reg, normals(1 : nb))             
     Call regv(V_reg, normals(nb + 1 : 2 * nb))    
     Call regw(W_reg, normals(2 * nb + 1 : 3 * nb))

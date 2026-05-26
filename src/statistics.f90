@@ -22,7 +22,7 @@ Contains
   !------------------------------------------!
   Subroutine compute_statistics    
 
-    Integer(Int32) :: jj
+    Integer(Int32) :: jj,i
     Real   (Int64) :: dUdy_wall_b, dUdy_wall_t
     Real   (Int64) :: dWdy_wall_b, dWdy_wall_t
     Real   (Int64) ::   UV_wall_b,   UV_wall_t
@@ -159,6 +159,28 @@ Contains
          else
            store_index=store_index+1
          end if
+         Select case(trim(body_type))
+         Case('moving_bottom_wall')
+          Do i=1,n_control
+            ctrl(i)%t_i(ctrl(i)%count_e-1) = t + REAL(nstep_init)*dt         
+                if ( ctrl(i)%count_e .eq. 1001 .or. istep .eq. nsteps ) then         
+                  Call output_controls(i)        
+                  ctrl(i)%count_e = 1
+                  ctrl(i)%count_u = 1        
+                elseif ( istep .eq. 1 ) then         
+                  Call output_controls(i)         
+                  ctrl(i)%count_e = 1
+                  ctrl(i)%count_u = 1        
+                elseif ( Any(Isnan(U)) .or. Any(Isnan(V)) .or. Any(Isnan(W)) ) then         
+                  Call output_controls(i)          
+                end if
+            
+           end do
+           ! write a control logs every nsave steps
+           Do i=1,n_control
+              Call output_controls_logs(i)
+           end do
+         END SELECT
 
        end if
 
@@ -172,36 +194,42 @@ Contains
   End Subroutine compute_statistics
 
 
- Subroutine compute_global_mean(fbt_, mean_)
+  Subroutine compute_global_mean(fbt_, mean_)
 
-   Use mpi
-   Implicit None
- 
-   Real(Int64), Contiguous, Intent(In)  :: fbt_(:)
-   Real(Int64),               Intent(Out) :: mean_
- 
-   Integer :: n_global
- 
-   Real(Int64) :: global_sum
- 
-   global_sum = Sum(fbt_)
- 
-   ! Reduce force sum
-   If ( myid == 0 ) Then
- 
-      Call MPI_Reduce(MPI_IN_PLACE, global_sum, 1, MPI_real8, &
-                      MPI_sum, 0, MPI_COMM_WORLD, ierr)
-   Else 
-      Call MPI_Reduce(global_sum, 0, 1, MPI_real8, &
-                      MPI_sum, 0, MPI_COMM_WORLD, ierr)
- 
-   End If
- 
-   ! Root computes mean
-   If ( myid == 0 ) Then
-      mean_ = global_sum / Real(nb, Int64)
-   End If
- 
- End Subroutine compute_global_mean
+    Use mpi
+    Implicit None
+  
+    Real(Int64), Contiguous, Intent(In)  :: fbt_(:)
+    Real(Int64),               Intent(Out) :: mean_
+  
+    Real(Int64), Allocatable :: total_fbt(:)
+  
+    ! ----------------------------------------------------------
+    ! allocate receive buffer on root
+    ! ----------------------------------------------------------
+    If ( myid == 0 ) Then
+      Allocate(total_fbt(nb))
+    End If
+  
+    ! ----------------------------------------------------------
+    ! gather distributed vector onto root
+    ! ----------------------------------------------------------
+    Call MPI_Gatherv( fbt_(nb_start:nb_end), local_size_nb, MPI_REAL8, &
+                      total_fbt, send_counts_nb, displs_nb, MPI_REAL8, &
+                      0, MPI_COMM_WORLD, ierr )
+    Call Mpi_barrier(MPI_COMM_WORLD, ierr)
+  
+    ! ----------------------------------------------------------
+    ! compute mean on root
+    ! ----------------------------------------------------------
+    If ( myid == 0 ) Then
+  
+      mean_ = Sum(total_fbt) / Real(nb, Int64)
+  
+      Deallocate(total_fbt)
+  
+    End If
+  
+  End Subroutine compute_global_mean
 
 End Module statistics

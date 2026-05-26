@@ -37,6 +37,7 @@ Contains
 
     ! time
     t = t_init
+    istep =0
     
     !-------------------grid definitions-------------------------!
     Allocate (  k1_global(0:nprocs-1),  k2_global(0:nprocs-1) )

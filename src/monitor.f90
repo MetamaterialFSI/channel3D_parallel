@@ -24,7 +24,7 @@ Contains
     Real(Int64) :: meanU, meanV, meanW
     Real(Int64) :: max_divergence, max_slip
 
-    If ( Mod(istep,nmonitor)==0 ) Then
+    If ( Mod(istep,nmonitor)==0 .or. istep .eq. 1) Then
 
       ! compute mean values
       local_sum = Sum ( U(2:nx-1,2:nyg-1,2:nzg-1) )

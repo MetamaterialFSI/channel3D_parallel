@@ -9,6 +9,7 @@ set(SOURCES
   equations.f90
   boundary_conditions.f90
   pressure.f90
+  controls.f90
   input_output.f90
   statistics.f90
   initialization.f90

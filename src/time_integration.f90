@@ -13,6 +13,7 @@ Module time_integration
   Use immersed_boundary_geometry
   Use immersed_boundary_operators
   Use heaviside
+  Use controls
 
   ! prevent implicit typing
   Implicit None
@@ -137,11 +138,11 @@ Contains
     t = to + rk_t(rk_step)*dt
 
     ! update body point positions and velocities if body is moving
-    If ( moving_body ) Then
-      call setup_IB_geometry
-      call setup_IB_operators
-      call compute_heaviside
-    End If
+    ! If ( moving_body ) Then
+    !   call setup_IB_geometry
+    !   call setup_IB_operators
+    !   call compute_heaviside
+    ! End If
 
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
@@ -169,11 +170,11 @@ Contains
     t = to + rk_t(rk_step)*dt
 
     ! update body point positions and velocities if body is moving
-    If ( moving_body ) Then
-      call setup_IB_geometry
-      call setup_IB_operators
-      call compute_heaviside
-    End If
+    ! If ( moving_body ) Then
+    !   call setup_IB_geometry
+    !   call setup_IB_operators
+    !   call compute_heaviside
+    ! End If
 
     Call apply_boundary_conditions(U, V, W)
     Call compute_non_IB_projection
@@ -206,6 +207,12 @@ Contains
        dPdz = dPdz/dt ! to be used later by rhs_*
        Call apply_boundary_conditions(U, V, W)
     End If
+
+    Select case (trim(body_type))
+      case('moving_bottom_wall')
+         !WRITE(*,*) 'myid',myid,'compute control' 
+        Call controls_sensing_and_compute_control
+    END SELECT 
 
   End Subroutine compute_time_step_RK3
 

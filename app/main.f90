@@ -44,6 +44,7 @@ Program channel_FD
   Use immersed_boundary_operators
   Use heaviside
   Use mpi
+  Use controls
   
   ! prevent implicit typing
   Implicit None
@@ -64,6 +65,9 @@ Program channel_FD
 
   ! initialize IB variables
   Call initialize_ib_arrays
+
+  ! initialize control setup
+  Call controls_setup_control
 
   ! initialize IB geometry
   Call setup_IB_geometry 
@@ -95,7 +99,7 @@ Program channel_FD
   
   ! write snapshot if needed
   Call output_data
-  Call compute_statistics 
+  !Call compute_statistics 
   Call output_monitor
 
   ! temporal loop

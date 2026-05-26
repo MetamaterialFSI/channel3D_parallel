@@ -1,10 +1,17 @@
 module load fftw
 module load intel-oneapi-compilers
 module load openmpi
-
+#rm -rf ../output/channel_gaus_x/channelIB*
 rm -rf ./build
-cmake -B build 
+# cmake -B build -DCMAKE_BUILD_TYPE=Debug
+# cmake --build build -DCMAKE_BUILD_TYPE=Debug
+cmake -B build
 cmake --build build
+# FC=ifort cmake -B build \
+# -DCMAKE_BUILD_TYPE=Debug \
+# -DCMAKE_Fortran_FLAGS_DEBUG="-O0 -g -traceback -check all -check bounds -warn all -fpe0"
+#cmake --build build -j
 
 cd ./examples
-sbatch jobscript_ib_bottom_wall.slurm
+#sbatch jobscript_ib_bottom_wall.slurm
+sbatch jobscript_ib_moving_bottom_wall.slurm
