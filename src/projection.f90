@@ -154,6 +154,10 @@ do while ( (err_FSI .ge. tol_FSI) .and. (iter_FSI .le. 1000) )
 
 
       call bicgstab_fsi_testcase( fb, rhsib)
+
+           
+
+
       dchi_1=KhatinvQItildeprimeW(fb)
       dchi= (matmul(sol_mat,r_zeta))+dchi_1
       chi_k = chi_k + dchi
@@ -185,7 +189,7 @@ subroutine IB_FSI_loop_subsurface
     real(kind(0.d0)), dimension(3*nb) :: r_chirhs, r_zetarhs, r_c_rhs,  zeta_k2,chi_k2,v_tp,r_crhs1
     REAL(KIND(0.D0)), Dimension(:), Allocatable ::v_y
     real(kind(0.d0)), dimension(nblocks) ::r_chi,r_zeta,dchi,dchi_1,v_trunc,v_bg, Fint
-    integer :: i
+    integer :: i,j
     real(kind(0.d0))::sum
 
     Allocate(v_y(nb))
@@ -217,9 +221,11 @@ subroutine IB_FSI_loop_subsurface
               r_crhs1= (ItildeGprime_subsurface(zeta_k))
               r_c_rhs=r_crhs1
               rhsib=rhsib+r_c_rhs+r_zetarhs+r_chirhs
-
+             
               call bicgstab_fsi_subsurface( fb, rhsib)
+              
               dchi_1=KhatinvQItildeprimeW_subsurface(fb)
+          
               dchi= (matmul(sol_mat,r_zeta))+dchi_1
               chi_k = chi_k + dchi
               zeta_k = -zeta + ((2.0/dt_fsi) * (chi_k - chi))
@@ -307,6 +313,7 @@ subroutine IB_FSI_loop_subsurface
       bcg_p = bcg_r + bta * (bcg_p - om * bcg_nu)
       bcg_nu = schur(bcg_p)
       alpha = rho_n / dot_product(bcg_rhat, bcg_nu)
+      
       bcg_h = bcg_x + alpha * bcg_p
       bcg_sv = bcg_r - alpha * bcg_nu
       bcg_tv = schur(bcg_sv )
@@ -348,7 +355,7 @@ Subroutine bicgstab_fsi_testcase( bcg_x, bcg_b)
       bta = (rho_n / rho_o) * (alpha / om)
       rho_o = rho_n
       bcg_p = bcg_r + bta * (bcg_p - om * bcg_nu)
-      bcg_nu = schur(bcg_p)
+      bcg_nu = schur(bcg_p)+b_times_testcase(bcg_p)
       alpha = rho_n / dot_product(bcg_rhat, bcg_nu)
       bcg_h = bcg_x + alpha * bcg_p
       bcg_sv = bcg_r - alpha * bcg_nu
@@ -364,9 +371,7 @@ Subroutine bicgstab_fsi_testcase( bcg_x, bcg_b)
       Write(*,*)  "......WARNING, bicgstab used maximum number of iterations (", cg_max_iter, ")"
       Write(*,*)  "......max |residual| = ", Maxval(Abs(bcg_r))
     End If
-     If (myid == 0) Then
-     print*, iter
-    End If
+    
   End Subroutine
 
 Subroutine bicgstab_fsi_subsurface( bcg_x, bcg_b)
@@ -382,6 +387,8 @@ Subroutine bicgstab_fsi_subsurface( bcg_x, bcg_b)
     eps = cg_tol * cg_tol
     iter = 0
     bcg_r = bcg_b - schur(bcg_x)-b_times_subsurface(bcg_x)
+    
+  
     bcg_rhat = bcg_r
     rho_o = 1.d0
     alpha = 1.d0
@@ -393,7 +400,7 @@ Subroutine bicgstab_fsi_subsurface( bcg_x, bcg_b)
       bta = (rho_n / rho_o) * (alpha / om)
       rho_o = rho_n
       bcg_p = bcg_r + bta * (bcg_p - om * bcg_nu)
-      bcg_nu = schur(bcg_p)
+      bcg_nu = schur(bcg_p)+b_times_subsurface(bcg_p)
       alpha = rho_n / dot_product(bcg_rhat, bcg_nu)
       bcg_h = bcg_x + alpha * bcg_p
       bcg_sv = bcg_r - alpha * bcg_nu
@@ -409,9 +416,7 @@ Subroutine bicgstab_fsi_subsurface( bcg_x, bcg_b)
       Write(*,*)  "......WARNING, bicgstab used maximum number of iterations (", cg_max_iter, ")"
       Write(*,*)  "......max |residual| = ", Maxval(Abs(bcg_r))
     End If
-     If (myid == 0) Then
-     print*, iter
-    End If
+    
   End Subroutine
 
 
