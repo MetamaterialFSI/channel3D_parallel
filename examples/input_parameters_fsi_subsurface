@@ -1,0 +1,48 @@
+&params
+	! domain size
+	nx_global = 34
+	ny_global = 131
+	nz_global = 34
+	nxb = 16
+	nzb = 16
+	! (positive->CFL, negative->timestep size)
+	CFL = -0.0001
+	! viscosity
+	nu = 3.076923076923077e-04 
+	! Pressure gradient
+	dPdx = 0.00000000
+	dPdz = 0.000000000000
+	x_mass_cte = 0 ! (0->use dPdx, 1->constant mass flow)
+	y_mass_cte = 0
+	! nsteps, nsave, nstats, nmonitor
+	nsteps = 200000
+	nsave = 200000
+	nstats = 10000
+	nmonitor = 1
+	filein ='.350000'
+	fileout = ''
+	! first number for output flow field
+	nstep_init = 0
+	init_type = 1 ! (0->reads previous file, 1->zero, 2->random, 3-> exact laminar)
+	grid_type = 0 ! (0->uniform, 1->stretched, 2->stretched with uniform buffers)
+	body_type = 'center_wall_deforming_subsurface'
+	alpha_stretch = 2.6
+	body_param_1 = 0.0
+	body_param_2 = 0.0
+	body_param_3 = 0.0
+    functionality=1! (0->no FSI, 1->FSI)
+    nblocks=1      !number of unit cells in subsurface stricture
+    m_parm=0.01   !mass coeff for a single subsurface unit cell 
+    k_parm=100   !stiffness coeff for a single subsurface unit cell 
+    c_parm=0       !damping coeff for a single subsurface unit cell 
+    xtopmass=0.9   !x-position of topmost subsurface unit cell
+    ytopmass=2.00  !y-position of topmost subsurface unit cell 
+    ztopmass=0.45  !z-position of topmost subsurface unit cell 
+    sigma=0.3 !gaussian function parameter
+	m_parm_testcase=0.02  ! mass of the compliant wall in 2014 kim et al.
+	k_parm_testcase=10 ! stiffness of compliant wall in 2014 kim et al.
+	c_parm_testcase=0.0 !damping coefficient of compliant wall in 2014 kim et al. paper
+	Tx=0 !tension coefficient in x direction
+	Tz=0 !tension coefficient in y direction
+	A=1  !projected area
+/
