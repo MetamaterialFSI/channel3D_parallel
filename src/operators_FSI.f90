@@ -33,7 +33,8 @@ function KhatinvQItildeprimeW(x)
   real(kind(0.d0)), dimension(3*nb) :: v_tp
   real(kind(0.d0)), dimension(nb) :: v_y, v_trunc, v_bg
 
-  v_tp = redistribute(x)
+  v_tp = redistribute(dt*x)
+  !v_tp=x
   v_y  = v_tp(nb+1:2*nb)
 
   v_trunc = v_y
@@ -54,7 +55,8 @@ function KhatinvQItildeprimeW_subsurface(x)
   integer :: i
   real(kind(0.d0)) :: sum
 
-  v_tp = redistribute(x)
+  v_tp = redistribute(dt*x)
+  !v_tp=x
   v_y  = v_tp(nb+1:2*nb)
 
   v_trunc = 0.d0
@@ -135,7 +137,8 @@ function b_times_testcase(x)
   real(kind(0.d0)), dimension(nb) :: v_y, v_patch, v_trunc, v_bg
   integer :: i
 
-  v_tp = redistribute(x)
+  v_tp = redistribute(dt*x)
+  !v_tp=x
   v_y = 0.d0
 
   do i = 1, nb
@@ -170,7 +173,8 @@ function b_times_subsurface(x)
   integer :: i
   real(kind(0.d0)) :: sum
 
-  v_tp = redistribute(x)
+  v_tp = redistribute(dt*x)
+  !v_tp=dt*x
   v_y = 0.d0
 
   do i = 1, nb
@@ -297,7 +301,15 @@ subroutine check_slip_FSI
   real(kind(0.d0)), dimension(3*nb) :: slip_fsi
 
   slip_fsi = regT(U, V, W)
+
+
+  If ( trim(body_type) ==  'center_wall_deforming_testcase') then
   slip_fsi = slip_fsi - Itilde(zeta)
+  end if
+  
+   If ( trim(body_type) ==  'center_wall_deforming_subsurface') then
+  slip_fsi = slip_fsi - ItildeGprime_subsurface(zeta)
+  end if 
 
   max_slip = Maxval(Abs(slip_fsi))
   Write(*,*) 'Maximum slip for fsi         : ', max_slip
@@ -317,6 +329,19 @@ subroutine writechimax(disp)
   close(10001)
 
 end subroutine writechimax
+
+subroutine writechimax_subsurface(disp)
+
+  real(kind(0.d0)), dimension(nblocks), intent(in) :: disp
+
+  open(unit=10001, file="chi_top.dat", form="formatted", &
+       status="unknown", position="append")
+
+  write(10001,*) (disp(1))
+
+  close(10001)
+
+end subroutine writechimax_subsurface
 
 
 subroutine writestuffchi(disp)
