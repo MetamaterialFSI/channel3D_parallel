@@ -311,7 +311,7 @@ Subroutine compute_initial_acceleration_subsurface
             deallocate( work )
              Fint=0.0
              F_bf=0.0
-             F_bf(1)=0.0
+             F_bf(1)=0.1
              Fint=matmul(Kmat,chi_k)
             zetadot_k = matmul( Mmat, -Fint +F_bf )
             Call mass_matrix(Mmat)
