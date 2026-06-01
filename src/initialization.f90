@@ -134,7 +134,7 @@ Contains
     Allocate (U_interim  (    nx,  nym+2, nzm+2) )
     Allocate (V_interim  ( nxm+2,     ny, nzm+2) )
     Allocate (W_interim  ( nxm+2,  nym+2,    nz) )
-    Allocate (P_interim  ( nxm+2,  nym+2, nzm+2) )
+    Allocate (P_interim  ( 2:nxg-1, 2:nyg-1, 2:nzg ) ) ! Same as rhs_p
 
     ! arrays for support cell for immersed boundary part: first half for left boundary; second half for right boundary
     Allocate (U_supp  (    nx,  nym+2, suppz*2+1) )
