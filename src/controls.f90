@@ -116,10 +116,12 @@ CONTAINS
                 WRITE(*,*)'K_A',ctrl(n_control)%K_A(i,:)
               end do
               READ(80,*) ctrl(n_control)%K_B(1:ctrl(n_control)%ord_ctrl,1)
-              READ(80,*) ctrl(n_control)%K_C(:,1:ctrl(n_control)%ord_ctrl)
+              do i = 1, 2
+                READ(80,*) ctrl(n_control)%K_C(i,:)
+                WRITE(*,*)'K_C',ctrl(n_control)%K_C(i,:)
+              end do
               READ(80,*) ctrl(n_control)%K_D(:,1)
               WRITE(*,*)'K_B',ctrl(n_control)%K_B(:,:)
-              WRITE(*,*)'K_C',ctrl(n_control)%K_C(:,:)
               WRITE(*,*)'K_D',ctrl(n_control)%K_D(:,:)
               ! allocate history arrays: various columns = various actuators
               ALLOCATE(ctrl(n_control)%y_i_2D(1000,ctrl(n_control)%num_act))
