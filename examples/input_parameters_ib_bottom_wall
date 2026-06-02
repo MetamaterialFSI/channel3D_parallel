@@ -1,7 +1,7 @@
 &params
 	! domain size
 	nx_global = 386
-	ny_global = 285
+	ny_global = 165
 	nz_global = 194
 	nxb = 384
 	nzb = 192
@@ -15,19 +15,19 @@
 	x_mass_cte = 1 ! (0->use dPdx, 1->constant mass flow)
 	y_mass_cte = 0
 	! nsteps, nsave, nstats, nmonitor
-	nsteps = 20000
-	nsave = 2000
+	nsteps = 40000
+	nsave = 10000
 	nstats = 1
 	nmonitor = 1000
-	filein = '/resnick/groups/bae-group/ctlin/channel_IBPM_WFMI/output/channel_bottom_IB/channelIB.20000'
-	fileout = '/resnick/groups/bae-group/ctlin/channel_IBPM_WFMI/output/channel_bottom_IB/channelIB'
+	filein = '/resnick/groups/bae-group/ctlin/channel_IBPM_WFMI/output/uncontrol_4pi_2pi/channelIB_386_165_194.100000'
+	fileout = '/resnick/groups/bae-group/ctlin/channel_IBPM_WFMI/output/channel_bottom_IB_y+5_coarse/channelIB'
 	! first number for output flow field
-	nstep_init = 20000
+	nstep_init = 0
 	init_type = 0 ! (0->reads previous file, 1->zero, 2->random)
 	grid_type = 0 ! (0->uniform, 1->stretched, 2->stretched with uniform buffers)
 	body_type = 'bottom_ib_wall'
 	exterior_pressure_gradient= .False.
 	cg_tol = 1e-2
     cg_max_iter = 20
-	read_dpdx_flag=1
+	read_dpdx_flag=0
 /

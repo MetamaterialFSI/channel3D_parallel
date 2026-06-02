@@ -4,7 +4,7 @@
 #SBATCH --ntasks=64
 #SBATCH -q normal
 #SBATCH --cpus-per-task=1
-#SBATCH --time=00:30:00
+#SBATCH --time=30:00:00
 #SBATCH --mail-type=END
 #SBATCH --mail-type=BEGIN
 #SBATCH --mail-user=ctlin@caltech.edu
