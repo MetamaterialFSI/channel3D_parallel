@@ -234,36 +234,16 @@ CONTAINS
     Real(Kind(0.d0)), Allocatable :: total_fb_n(:)
     Real(Kind(0.d0)), Allocatable :: fbn_2D(:,:)
   
-    ! local projection vector
-    Real(Kind(0.d0)), Allocatable :: fb_n_local(:)
     Select case (trim(ctrl(i_ctrl)%ctrl_type))
       case ('spanwise_const_gauss_x')
       !WRITE(*,*) 'myid',myid, 'sensing...'
       
       ! ----------------------------------------------------------
-      ! Compute pressure first (kept if needed elsewhere)
+      ! Compute pressure first 
       ! ----------------------------------------------------------
       !Call compute_pressure
   
-      ! ----------------------------------------------------------
-      ! Project body force onto normal direction
-      ! ----------------------------------------------------------
-      Allocate(fb_n_local(nb))
-      fb_n_local=0.d0
-  
-      Call project_force_to_normal(fb, normals, fb_n_local)
-  
-      ! ----------------------------------------------------------
-      ! Gather distributed vector onto root
-      ! ----------------------------------------------------------
-      If ( myid == 0 ) Then
-         Allocate(total_fb_n(nb))
-         total_fb_n=fb_n_local
-      End If
-      Call MPI_Gatherv(fb_n_local(nb_start:nb_end), local_size_nb, MPI_REAL8, &
-                       total_fb_n, send_counts_nb, displs_nb, MPI_REAL8, &
-                       0, MPI_COMM_WORLD, ierr)
-      Call Mpi_barrier(MPI_COMM_WORLD, ierr)
+      call compute_interior_pressure(p_interior,rhs_p,fb, normals)
       ! ----------------------------------------------------------
       ! Root rank computes actuator sensing
       ! ----------------------------------------------------------
@@ -273,7 +253,7 @@ CONTAINS
          Allocate(fbn_2D(nxb,nzb))
   
          P_avg_2D = 0.d0
-         total_fb_n=total_fb_n*sb
+         total_fb_n=p_interior*sb
          !write(*,*) 'total_fb(nb)=',total_fb_n(nb)
   
          ! reshape global vector into 2D field
@@ -298,14 +278,7 @@ CONTAINS
   
          ctrl(i_ctrl)%count_e = ctrl(i_ctrl)%count_e + 1
          !WRITE(*,*) 'sensing: count_e',ctrl(i_ctrl)%count_e
-         Deallocate(P_avg_2D,fbn_2D)
-  
-      End If
-  
-      Deallocate(fb_n_local)
-  
-      If ( myid == 0 ) Then
-         Deallocate(total_fb_n)
+         Deallocate(P_avg_2D,fbn_2D,total_fb_n)
       End If
     end select
   

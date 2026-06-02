@@ -139,8 +139,9 @@ Contains
        ! write statistics
        !Call output_statistics
        !Calculat mean shear stress of IB points
-       CALL project_force_to_tangent(fb, tangents_1, fb_t1)
+       CALL IB_opr_project_force(fb, tangents_1, fb_t1)
        Call compute_global_mean(fb_t1,tau_w)
+       call compute_interior_pressure(p_interior,rhs_p,fb, normals)
        if (myid .eq. 0) Then
          !WRITE(*,*) 'write output stats'
          tau_w_log(store_index,1)=t+REAL(nstep_init)*dt

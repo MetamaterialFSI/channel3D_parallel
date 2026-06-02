@@ -322,6 +322,11 @@ Contains
       Write(*,*) 'Mean U',sum(U)/Real(nx_global*nyg_global*nzg_global,8)
       Write(*,*) 'Mean V',sum(V)/Real(nxg_global*ny_global*nzg_global,8)
       Write(*,*) 'Mean W',sum(W)/Real(nxg_global*nyg_global*nz_global,8)
+
+      ! Sanity check 
+      If ( Any( Isnan(U) ) ) Stop 'Input Error: NaNs!'
+      If ( Any( Isnan(V) ) ) Stop 'Input Error: NaNs!'
+      If ( Any( Isnan(W) ) ) Stop 'Input Error: NaNs!'
     End If
 
   End Subroutine init_flow
@@ -733,7 +738,8 @@ Contains
         Write(1) Shape(tangents_2, Int32), tangents_2
 
         ! array output for debugging
-        Write(1) Shape(debug_surface_scalar, Int32), debug_surface_scalar
+        Write(1) Shape(p_interior, Int32), p_interior
+        !Write(1) Shape(EHc_exterior, Int32), EHc_exterior
 
       End If
          

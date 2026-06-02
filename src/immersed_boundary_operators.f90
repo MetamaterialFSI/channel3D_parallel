@@ -355,6 +355,20 @@ Contains
                  E1np_, send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
 
   End Subroutine regTc_1n
+  Subroutine regTc(E1np_, P_)
+    Implicit None
+    Real(Int64), Contiguous, Intent(In) :: P_(2:, 2:, 2:)
+    Real(Int64), Contiguous, Intent(Out) :: E1np_(:)
+
+    ! update support cells from interior points
+    Call interior_planes_update_support_pressure(P_, P_supp)
+    ! compute local_regT
+    Call local_regTc(regT_buffer_scalar, P_, P_supp)
+    ! Gather regT values from all partitions
+    Call MPI_Allgatherv(regT_buffer_scalar(nb_start : nb_end), local_size_nb, MPI_REAL8, &
+                 E1np_, send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+
+  End Subroutine regTc
 
   Subroutine regu(U_, f_)
     Implicit None
@@ -524,6 +538,30 @@ Contains
       End Do
     End Do
   End Subroutine local_regTc_1n
+  Subroutine local_regTc(E1np_, P_, P_supp_)
+    Implicit None
+    Real(Int64), Contiguous, Intent(In) :: P_(2:, 2:, 2:)
+    Real(Int64), Contiguous, Intent(In) :: P_supp_(2:, 2:, :)
+    Real(Int64), Contiguous, Intent(Out) :: E1np_(:)
+    integer :: proc_idx
+
+    Integer(Int32) :: i, j
+    E1np_ = 0.D0
+
+    Do j = nb_start, nb_end
+      Do i = 1, nweights
+        ! get data of P
+        proc_idx = c_proc(i, j)
+        if ( proc_idx .eq. myid ) then
+          E1np_(j) = E1np_(j)+ &
+          c_weights(i, j) * P_(c_x_indices(i, j),c_y_indices(i, j),c_z_local_indices(i, j))
+        else
+          E1np_(j) = E1np_(j)+ &
+          c_weights(i, j) * P_supp_(c_x_indices(i, j),c_y_indices(i, j),c_z_supp_idx(i, j)) 
+        end if
+      End Do
+    End Do
+  End Subroutine local_regTc
 
   !-----------------------------------------------------------------------
   !  Generalized “subset_regu” for U, V, or W:
@@ -765,58 +803,67 @@ Contains
   end subroutine global_to_local_center
 
   ! project ib force
-
-  Subroutine project_force_to_tangent(f_, tangents_, fbt_)
-
-    Implicit None
-    Real(Int64), Contiguous,Intent(In)  :: f_(:)
-    Real(Int64), Contiguous,Intent(In)  :: tangents_(:)
-  
-    ! Scalar projection at each IB point
-    Real(Int64), Contiguous,Intent(Out) :: fbt_(:)
-  
-    Integer :: i, ix, iy, iz
-  
-    Do i = 1, nb
-  
-       ix = 3*(i-1) + 1
-       iy = 3*(i-1) + 2
-       iz = 3*(i-1) + 3
-  
-       ! Dot product: fb · tangents_1
-       fbt_(i) = f_(ix) * tangents_(ix) &
-                + f_(iy) * tangents_(iy) &
-                + f_(iz) * tangents_(iz)
-  
-    End Do
-  
-  End Subroutine project_force_to_tangent
-
-  Subroutine project_force_to_normal(f_, normals_, fbn_)
+  Subroutine IB_opr_project_force(f_, vec_, fb_)
 
     Implicit None
   
     Real(Int64), Contiguous, Intent(In)  :: f_(:)
-    Real(Int64), Contiguous, Intent(In)  :: normals_(:)
+    Real(Int64), Contiguous, Intent(In)  :: vec_(:)
   
     ! Scalar projection at each IB point
-    Real(Int64), Contiguous, Intent(Out) :: fbn_(:)
+    Real(Int64), Contiguous, Intent(Out) :: fb_(:)
   
-    Integer :: i, ix, iy, iz
+    Integer :: i, nb
+    Integer :: ix, iy, iz
   
-    nb = Size(fbn_)
+    nb = Size(fb_)
   
     Do i = 1, nb
   
-       ix = 3*(i-1) + 1
-       iy = 3*(i-1) + 2
-       iz = 3*(i-1) + 3
-       ! Dot product: f · normal
-       fbn_(i) = f_(ix) * normals_(ix) &
-               + f_(iy) * normals_(iy) &
-               + f_(iz) * normals_(iz)
+      ix = i
+      iy = nb + i
+      iz = 2*nb + i
+  
+      fb_(i) = f_(ix) * vec_(ix) &
+             + f_(iy) * vec_(iy) &
+             + f_(iz) * vec_(iz)
+  
     End Do
   
-  End Subroutine project_force_to_normal
+  End Subroutine IB_opr_project_force
+
+  Subroutine compute_interior_pressure(pint_,rhsp_,f_, normals_)
+    Real(Int64), Contiguous, Intent(In)  :: f_(:)
+    Real(Int64), Contiguous, Intent(In)  :: normals_(:)
+    Real(Int64), Contiguous, Intent(InOut) :: rhsp_(2:,2:,2:)
+    Real(Int64), Contiguous, Intent(InOut) :: pint_(:)
+    Real(Int64), Dimension(:),allocatable :: EcHcnf
+
+    ! allocate vector
+    !WRITE(*,*) 'myid',myid,'compute interior pressure...'
+    pint_=0.d0
+    Allocate (EcHcnf(nb))
+    EcHcnf=0.d0
+    ! compute Ec(rhs_p)
+    !WRITE(*,*) 'myid',myid,'compute Ec(rhs_p)...'
+    rhsp_=rhsp_ / dt
+    Call regTc(pint_, rhsp_)
+    ! compute normal projection of f
+    regT_buffer_scalar=0.d0
+    !WRITE(*,*) 'myid',myid,'project f...'
+    Call IB_opr_project_force(f_, normals_, regT_buffer_scalar)
+    aux_surface_scalar=0.d0
+    !WRITE(*,*) 'myid',myid,'gather f...'
+   Call MPI_Allgatherv(regT_buffer_scalar(nb_start : nb_end), local_size_nb, MPI_REAL8, &
+                      aux_surface_scalar, send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+   Call Mpi_barrier(MPI_COMM_WORLD, ierr)
+   Call regTc(EHc_exterior, Hc_exterior)
+    EcHcnf=EHc_exterior*aux_surface_scalar
+    pint_=pint_+EcHcnf
+    !pint_=EcHcnf
+    !WRITE(*,*) 'myid',myid,'finish compute interior pressure'
+    Deallocate (EcHcnf)
+
+  end
 
 End Module immersed_boundary_operators

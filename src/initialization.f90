@@ -135,7 +135,7 @@ Contains
     Allocate (U_interim  (    nx,  nym+2, nzm+2) )
     Allocate (V_interim  ( nxm+2,     ny, nzm+2) )
     Allocate (W_interim  ( nxm+2,  nym+2,    nz) )
-    Allocate (P_interim  ( nxm+2,  nym+2, nzm+2) )
+    Allocate (P_interim  ( 2:nxg-1, 2:nyg-1, 2:nzg  ) )
 
     ! arrays for support cell for immersed boundary part: first half for left boundary; second half for right boundary
     Allocate (U_supp  (    nx,  nym+2, suppz*2+1) )
@@ -494,8 +494,10 @@ Contains
     ! Body forcing
     Allocate (fb(3 * nb) )
     Allocate (fb_t1(nb) )
+    Allocate (p_interior(nb) )
     fb = 0d0
     fb_t1 = 0d0
+    p_interior=0d0
 
     ! Body velocity
     Allocate (ub (3 * nb) )
@@ -513,6 +515,7 @@ Contains
     debug_surface_scalar = 0d0
 
     Allocate (E1nHc_exterior (nb) )
+    Allocate (EHc_exterior (nb) )
     Allocate (E1nH_exterior  (3 * nb) )
 
     ! Auxiliary surface arrays
