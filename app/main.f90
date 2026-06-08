@@ -65,6 +65,11 @@ Program channel_FD
   ! initialize IB variables
   Call initialize_ib_arrays
 
+  ! read additional input data
+  If (init_type == 0) Then
+    Call read_additional_input_data
+  End If
+
   ! initialize IB geometry
   Call setup_IB_geometry 
 
