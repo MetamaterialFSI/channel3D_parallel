@@ -13,5 +13,5 @@ cmake --build build
 #cmake --build build -j
 
 cd ./examples
-sbatch jobscript_ib_bottom_wall.slurm
-#sbatch jobscript_ib_moving_bottom_wall.slurm
+#sbatch jobscript_ib_bottom_wall.slurm
+sbatch jobscript_ib_moving_bottom_wall.slurm

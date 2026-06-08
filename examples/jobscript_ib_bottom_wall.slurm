@@ -4,12 +4,12 @@
 #SBATCH --ntasks=64
 #SBATCH -q normal
 #SBATCH --cpus-per-task=1
-#SBATCH --time=20:00:00
+#SBATCH --time=48:00:00
 #SBATCH --mail-type=END
 #SBATCH --mail-type=BEGIN
 #SBATCH --mail-user=ctlin@caltech.edu
 #SBATCH --job-name=channel_IB_botom_wall
-#SBATCH --output=status_ib_bottom_wall_test.out
+#SBATCH --output=status_ib_bottom_wall_y+15.out
 
 module load openmpi
 
