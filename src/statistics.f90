@@ -141,12 +141,13 @@ Contains
        !Calculat mean shear stress of IB points
        CALL IB_opr_project_force(fb, tangents_1, fb_t1)
        Call compute_global_mean(fb_t1,tau_w)
-       call compute_interior_pressure(p_interior,rhs_p,fb, normals)
+       !call compute_interior_pressure(p_interior,rhs_p,fb, normals)
        if (myid .eq. 0) Then
          !WRITE(*,*) 'write output stats'
          tau_w_log(store_index,1)=t+REAL(nstep_init)*dt
          tau_w_log(store_index,2)=tau_w 
          dPdx_log(store_index,1)=dPdx
+         meanP_log(store_index,1)=ctrl(1)%mean_p
          !WRITE(*,*) 't,tau_w=',tau_w_log(store_index,1),tau_w_log(store_index,2)
          if (store_index .eq. 1000 .or. istep .eq. nsteps) then
            Call output_response
@@ -157,12 +158,16 @@ Contains
           store_index=1
          elseif (Any( Isnan(U)) .or. Any( Isnan(V)) .or. Any( Isnan(W))) then
             Call output_response
+         elseif (ctrl(1)%out_bound_flag) then
+            Call output_response
          else
            store_index=store_index+1
          end if
          Select case(trim(body_type))
          Case('moving_bottom_wall')
           Do i=1,n_control
+             ! write a control logs every nsave steps
+            Call output_controls_logs(i)
             ctrl(i)%t_i(ctrl(i)%count_e-1) = t + REAL(nstep_init)*dt         
                 if ( ctrl(i)%count_e .eq. 1001 .or. istep .eq. nsteps ) then         
                   Call output_controls(i)        
@@ -172,15 +177,15 @@ Contains
                   Call output_controls(i)         
                   ctrl(i)%count_e = 1
                   ctrl(i)%count_u = 1        
-                elseif ( Any(Isnan(U)) .or. Any(Isnan(V)) .or. Any(Isnan(W)) ) then         
-                  Call output_controls(i)          
+                elseif ( Any(Isnan(U)) .or. Any(Isnan(V)) .or. Any(Isnan(W))) then         
+                  Call output_controls(i)
+                elseif (ctrl(i)%out_bound_flag) then
+                  Call output_controls(i)
+                  Stop 'Error: IB points is out of domain'         
                 end if
             
            end do
-           ! write a control logs every nsave steps
-           Do i=1,n_control
-              Call output_controls_logs(i)
-           end do
+           
          END SELECT
 
        end if

@@ -35,6 +35,7 @@ Module global
 
   ! files
   Character(200) :: filein, fileout, fileparams, logs_in
+  Logical(Int32) :: read_IB_data
   Integer(Int32) :: nsave, nmonitor
 
   ! initial condition
@@ -289,7 +290,7 @@ Module global
   ! saving tau_w every 1000 time step
   Integer(Int32) :: store_index
   REAL(Int64), Dimension(1000,2) :: tau_w_log
-  REAL(Int64), Dimension(1000,1) :: dPdx_log
+  REAL(Int64), Dimension(1000,1) :: dPdx_log, meanP_log
 
   ! no controller
   INTEGER :: n_control       ! number of controls (value assigned in control.f90)
@@ -308,11 +309,12 @@ Module global
     ! type of control
     ! spanwise_const_gauss_x
     INTEGER :: num_act,ord_ctrl,sample_interval,count_e,count_u! order of controller
-    REAL(KIND(0.D0)) :: xbs, zbs, width
+    REAL(KIND(0.D0)) :: xbs, zbs, width, mean_p
     REAL(KIND(0.D0)), ALLOCATABLE :: values(:) ! control(nh)
     REAL(KIND(0.D0)), ALLOCATABLE :: K_A(:,:),K_B(:,:),K_C(:,:),K_D(:,:), tmp_xn(:,:),tmp_xn1(:,:)
     REAL(KIND(0.D0)), ALLOCATABLE :: zero_func_local(:), dfdx_local(:)
     REAL(KIND(0.D0)), ALLOCATABLE :: u_i_2D(:,:),e_i_2D(:,:), y_i_2D(:,:),t_i(:)
+    Logical(Int32) :: out_bound_flag
     ! for open-loop control
     REAL(KIND(0.D0)), ALLOCATABLE :: u_values(:,:)
   END TYPE control_t

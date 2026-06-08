@@ -38,7 +38,7 @@ CONTAINS
     CHARACTER(3) :: file_num
     Character(8)   :: ext
     REAL(KIND(0.D0)), ALLOCATABLE :: xm_local(:)
-    REAL(KIND(0.D0)) :: lambda
+    REAL(KIND(0.D0)) :: lambda,dump
 
     ! look for controls in input directory
     readinput = .TRUE.
@@ -141,7 +141,7 @@ CONTAINS
               INQUIRE(file=logs_in,exist=readlogs)
               IF (readlogs) then
                 OPEN(unit=81,file=logs_in,form='formatted',status='old')
-                READ(81,*) dPdx
+                READ(81,*) dump
                 READ(81,*) ctrl(n_control)%u_i_2D(1,:)
                 READ(81,*) ctrl(n_control)%y_i_2D(1,:)
                 WRITE(*,*) 'initial u_i', ctrl(n_control)%u_i_2D(1,:)
@@ -151,6 +151,8 @@ CONTAINS
                   WRITE(*,*)'tmp_Xn (:,i)',ctrl(n_control)%tmp_xn(:,i)
                 end do
               end if
+              ctrl(n_control)%mean_p=0.d0
+              ctrl(n_control)%out_bound_flag=.False.
             ELSE
               WRITE(*,*) '=> Unknown ctrl_type: ', TRIM(ctrl(n_control)%ctrl_type), '. Skipping.'
               n_control = n_control - 1
@@ -235,6 +237,7 @@ CONTAINS
     Real(Kind(0.d0)), Allocatable :: P_avg_2D(:)
     Real(Kind(0.d0)), Allocatable :: total_fb_n(:)
     Real(Kind(0.d0)), Allocatable :: fbn_2D(:,:)
+    Real(Kind(0.d0)), Allocatable :: normal_y(:)
   
     Select case (trim(ctrl(i_ctrl)%ctrl_type))
       case ('spanwise_const_gauss_x')
@@ -244,6 +247,9 @@ CONTAINS
       ! Compute pressure first 
       ! ----------------------------------------------------------
       !Call compute_pressure
+      Allocate(normal_y(3*nb))
+      ! normal_y=0.d0
+      ! normal_y(nb+1:2*nb)=-1.d0
   
       call compute_interior_pressure(p_interior,rhs_p,fb, normals)
       ! ----------------------------------------------------------
@@ -253,9 +259,17 @@ CONTAINS
   
          Allocate(P_avg_2D(ctrl(i_ctrl)%num_act))
          Allocate(fbn_2D(nxb,nzb))
+         Allocate(total_fb_n(nb))
   
          P_avg_2D = 0.d0
          total_fb_n=p_interior*sb
+         ctrl(i_ctrl)%values(istep)=sum(total_fb_n)/nb
+         if ( istep .gt. 500 ) then
+          ctrl(i_ctrl)%mean_p=sum(ctrl(i_ctrl)%values(istep-499:istep))/500
+         ELSE
+          ctrl(i_ctrl)%mean_p=sum(ctrl(i_ctrl)%values(1:istep))/istep
+         end if 
+         !total_fb_n=total_fb_n-ctrl(i_ctrl)%mean_p
          !write(*,*) 'total_fb(nb)=',total_fb_n(nb)
   
          ! reshape global vector into 2D field
@@ -276,11 +290,11 @@ CONTAINS
           WRITE(*,*) 'size=', SIZE(ctrl(i_ctrl)%e_i_2D,1)
           STOP
          END IF
-         ctrl(i_ctrl)%e_i_2D(ctrl(i_ctrl)%count_e,:) = P_avg_2D
+         ctrl(i_ctrl)%e_i_2D(ctrl(i_ctrl)%count_e,:) = -P_avg_2D
   
          ctrl(i_ctrl)%count_e = ctrl(i_ctrl)%count_e + 1
          !WRITE(*,*) 'sensing: count_e',ctrl(i_ctrl)%count_e
-         Deallocate(P_avg_2D,fbn_2D,total_fb_n)
+         Deallocate(P_avg_2D,fbn_2D,total_fb_n,normal_y)
       End If
     end select
   
@@ -296,6 +310,7 @@ SUBROUTINE controls_controller(i_ctrl)
   REAL(KIND(0.D0)), ALLOCATABLE :: tmp_xn(:,:),tmp_xn1(:,:)
   INTEGER, INTENT(in) :: i_ctrl
   INTEGER:: i
+  REAL(KIND(0.D0)):: T_ramp
 
   IF (TRIM(ctrl(i_ctrl)%ctrl_type) .eq. 'spanwise_const_gauss_x') THEN
     ! one SISO state-space controller per actuator patch
@@ -312,6 +327,15 @@ SUBROUTINE controls_controller(i_ctrl)
         ctrl(i_ctrl)%u_i_2D(ctrl(i_ctrl)%count_u,i)=tmp_un(1,1)+ctrl(i_ctrl)%K_D(1,1)*tmp_e_2D(1,1)
         ctrl(i_ctrl)%y_i_2D(ctrl(i_ctrl)%count_u,i)=tmp_un(2,1)+ctrl(i_ctrl)%K_D(2,1)*tmp_e_2D(1,1)
         ctrl(i_ctrl)%tmp_xn(:,i)=tmp_xn1(:,1)
+        ! ramp satrting for U and y
+        ! T_ramp=10
+        ! ctrl(i_ctrl)%u_i_2D(ctrl(i_ctrl)%count_u,i)=(1-EXP(-REAL(istep + nstep_init)*dt/T))*ctrl(i_ctrl)%u_i_2D(ctrl(i_ctrl)%count_u,i)
+        ! ctrl(i_ctrl)%y_i_2D(ctrl(i_ctrl)%count_u,i)=(1-EXP(-REAL(istep + nstep_init)*dt/T))*ctrl(i_ctrl)%y_i_2D(ctrl(i_ctrl)%count_u,i)
+        ! error output for displacement out of the uniform region
+        if ( abs(ctrl(i_ctrl)%y_i_2D(ctrl(i_ctrl)%count_u,i) .gt. abs(y_global(1))) ) then
+          ctrl(i_ctrl)%out_bound_flag=.True.
+          WRITE(*,*) 'Warning at t=',t, 'Actuator No.',i,'is out of the uniform buffer region'
+        end if
       end do
       ctrl(i_ctrl)%count_u=ctrl(i_ctrl)%count_u+1
       DEALLOCATE(tmp_xn1,tmp_xn)

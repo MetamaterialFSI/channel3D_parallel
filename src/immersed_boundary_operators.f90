@@ -859,7 +859,10 @@ Contains
    Call Mpi_barrier(MPI_COMM_WORLD, ierr)
    Call regTc(EHc_exterior, Hc_exterior)
     EcHcnf=EHc_exterior*aux_surface_scalar
-    pint_=pint_+EcHcnf
+    !pint_=pint_+EcHcnf
+    ! test on only f dot n
+    pint_=aux_surface_scalar
+    !pint_=pint_-SUM(pint_)/nb
     !pint_=EcHcnf
     !WRITE(*,*) 'myid',myid,'finish compute interior pressure'
     Deallocate (EcHcnf)
