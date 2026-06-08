@@ -39,6 +39,7 @@ Module global
 
   ! initial condition
   Integer(Int32) :: init_type
+  Logical(Int32) :: new_binary_version, read_input_IB_data, read_input_time, read_input_dpdx
 
   ! grid type
   Integer(Int32) :: grid_type, n_uniform
@@ -236,7 +237,7 @@ Module global
   Real(Int64), Dimension(:), Allocatable :: normals, tangents_1, tangents_2
 
   ! immersed body forcing
-  Real(Int64), Dimension(:), Allocatable :: fb!, input_fb
+  Real(Int64), Dimension(:), Allocatable :: fb
 
   ! body array for accepting interpolated fields
   Real(Int64), Dimension(:), Allocatable :: Eu
