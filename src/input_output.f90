@@ -36,6 +36,7 @@ Contains
       filein, fileout, &
       nstep_init, t_init, &
       init_type, grid_type, body_type, exterior_pressure_gradient, &
+      read_input_IB_data, read_input_time, read_input_dpdx, &
       body_param_3, body_param_1, body_param_2, body_ramp_up_time, &
       min_buffer_width, cg_tol, cg_max_iter, perturb_scale
 
@@ -60,6 +61,9 @@ Contains
     perturb_scale = 0.5d0
     Qflow_x_0 = -999999.0
     Qflow_z_0 = -999999.0 
+    read_input_IB_data = .False.
+    read_input_time = .False.
+    read_input_dpdx = .False.
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
@@ -81,6 +85,12 @@ Contains
       Call to_lower(body_type)
 
       Print params
+
+      ! If any of the special read booleans are true, we assume the binary is the new version that contains this extra info
+      If (read_input_IB_data .or. read_input_time .or. read_input_dpdx) Then
+      Write(*,*) "Input parameters specify additional variables to be read from input file. Assuming new binary version..."
+        new_binary_version = .true.
+      End If
        
     End If
 
@@ -129,6 +139,11 @@ Contains
     Call Mpi_bcast (   body_param_3,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_ramp_up_time,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
+    Call Mpi_bcast (   read_input_time,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   read_input_IB_data,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   read_input_dpdx,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   new_binary_version,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
+
   End Subroutine read_input_parameters
 
   !--------------------------------------!
@@ -139,9 +154,9 @@ Contains
   !--------------------------------------!
   Subroutine create_grid
 
-    Integer(Int32) :: i
+    Integer(Int32) :: i, n_uniform_fine
 
-    n_uniform = 1
+    n_uniform_fine = 1
 
     Do i = 1, nx_global
       x_global(i) = Real(i-1,8)
@@ -210,8 +225,7 @@ Contains
 
     Integer(Int32), Intent(In) :: n_total, n_uniform
     Real(Int64), Intent(In) :: L, alpha
-    Real(Int64), Dimension(ny), Intent(Out) :: grid
-
+    Real(Int64), Dimension(:), Intent(Out) :: grid
     Real(Int64), Dimension(:), Allocatable :: grid_unpadded
     Real(Int64) :: ds_min_unscaled, ds_min_scaled
     Integer(Int32) :: i
@@ -488,6 +502,136 @@ Contains
 
   End Subroutine read_input_data
 
+  Subroutine read_additional_input_data
+
+    Integer(Int32) ::  nx_global_f,  ny_global_f,  nz_global_f, iproc, nze, nzge
+    Integer(Int32) :: nxm_global_f, nym_global_f, nzm_global_f, nn(3), ndum
+    Integer(Int64) :: pos_header, nsize_U, nsize_V, nsize_W, nsize_P, ii, jj, kk
+    Integer(Int32) :: xb_shape_f, yb_shape_f, zb_shape_f, fb_shape_f, nxb_f, nzb_f
+    Real(Int64) :: t_f, dt_f, dpdx_f, nu_f
+
+    ! processor 0 Reads the all the data
+    If ( myid==0 ) Then
+
+      Write(*,*) 'reading ',Trim(Adjustl(filein)),'...'
+      Open(1,file=filein,access='stream',form='unformatted',action='Read',convert='big_endian')
+
+      ! mesh
+      Read(1) nx_global_f
+      If ( nx_global_f/=nx_global ) Stop 'nx_f/=nx'
+      Read(1) x_global
+
+      Read(1) ny_global_f
+      If ( ny_global_f/=ny_global ) Stop 'ny_f/=ny'
+      Read(1) y_global
+
+      Read(1) nz_global_f
+      If ( nz_global_f/=nz_global ) Stop 'nz_f/=nz'
+      Read(1) z_global
+
+      Read(1) nxm_global_f
+      If ( nxm_global_f/=nxm_global ) Stop 'nxm_f/=nxm'
+      Read(1) xm_global
+
+      Read(1) nym_global_f
+      If ( nym_global_f/=nym_global ) Stop 'nym_f/=nym'
+      Read(1) ym_global
+
+      Read(1) nzm_global_f
+      If ( nzm_global_f/=nzm_global ) Stop 'nzm_f/=nzm'
+      Read(1) zm_global
+
+      ! get header position and size
+      Inquire(1,pos=pos_header)
+      pos_header = pos_header - 1
+      nsize_U    = nx_global*nyg_global*nzg_global*8
+      nsize_V    = nxg_global*ny_global*nzg_global*8
+      nsize_W    = nxg_global*nyg_global*nz_global*8
+      nsize_P    = nxg_global*nyg_global*nzg_global*8
+
+    End If
+
+    If ( myid==0 .and. new_binary_version) Then
+      ! jj = absolute (0-based) byte position of the time record, just past
+      ! the U/V/W/P (+ Hu/Hv/Hw) field block.
+      jj = pos_header+2*3*4+2*nsize_U+2*3*4+2*nsize_V+2*3*4+2*nsize_W+3*4+nsize_P
+      ndum = fseek(1,jj,seek_set)
+      ! Time
+      Read(1) t_f
+      If ( read_input_time ) Then
+        t = t_f
+        write(*,*) "input t overwritten by ", t_f
+      End If
+
+      ! Timestep
+      Read(1) dt_f
+
+      ! Pressure gradient
+      Read(1) dpdx_f
+      If ( read_input_dpdx ) Then
+        dpdx = dpdx_f
+        write(*,*) "input dpdx overwritten by ", dpdx_f
+      End If
+
+      ! Viscosity
+      Read(1) nu_f
+
+      If ( read_input_IB_data ) Then
+        ! NOTE: on a convert='big_endian' stream unit, the code loses the file
+        ! position after a large array Read (see the "it gets lost sometimes"
+        ! re-seeks in read_input_data for U/V/W/P). The body arrays are large,
+        ! so we re-seek to a computed absolute position before every record
+        ! rather than relying on the position left by the previous Read.
+        ! ii tracks the 0-based byte offset of the next record; each shape
+        ! count is a 4-byte Int32 and each value is an 8-byte real.
+        ii = jj + 32_Int64                       ! past t, dt, dpdx, nu (4 reals)
+
+        ndum = fseek(1,ii    ,seek_set); Read(1) xb_shape_f
+        If ( xb_shape_f/=Size(xb) ) Stop 'xb_shape_f/=size(xb)'
+        ndum = fseek(1,ii+4  ,seek_set); Read(1) xb
+        ii = ii + 4_Int64 + Size(xb)*8_Int64
+
+        ndum = fseek(1,ii    ,seek_set); Read(1) yb_shape_f
+        If ( yb_shape_f/=Size(yb) ) Stop 'yb_shape_f/=size(yb)'
+        ndum = fseek(1,ii+4  ,seek_set); Read(1) yb
+        ii = ii + 4_Int64 + Size(yb)*8_Int64
+
+        ndum = fseek(1,ii    ,seek_set); Read(1) zb_shape_f
+        If ( zb_shape_f/=Size(zb) ) Stop 'zb_shape_f/=size(zb)'
+        ndum = fseek(1,ii+4  ,seek_set); Read(1) zb
+        ii = ii + 4_Int64 + Size(zb)*8_Int64
+
+        ndum = fseek(1,ii    ,seek_set); Read(1) nxb_f
+        ndum = fseek(1,ii+4  ,seek_set); Read(1) nzb_f
+        ii = ii + 8_Int64
+
+        ! surface stress
+        ndum = fseek(1,ii    ,seek_set); Read(1) fb_shape_f
+        If ( fb_shape_f/=Size(fb) ) Stop 'fb_shape_f/=size(fb)'
+        ndum = fseek(1,ii+4  ,seek_set); Read(1) fb
+      End If
+    End If
+
+    ! close file
+    If (myid==0) Then
+      Close(1)
+    End If
+
+    If ( read_input_time ) Then
+      Call Mpi_bcast ( t,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    End If
+    If ( read_input_dpdx ) Then
+      Call Mpi_bcast ( dpdx,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    End If
+    If ( read_input_IB_data ) Then
+      Call Mpi_bcast ( xb,nb,MPI_real8,0,MPI_COMM_WORLD,ierr )
+      Call Mpi_bcast ( yb,nb,MPI_real8,0,MPI_COMM_WORLD,ierr )
+      Call Mpi_bcast ( zb,nb,MPI_real8,0,MPI_COMM_WORLD,ierr )
+      Call Mpi_bcast ( fb,3*nb,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    End If
+
+  End Subroutine read_additional_input_data
+
   !--------------------------------------------!
   !    write binary snapshot: mesh, U,V and W  !
   !                                            !
@@ -716,6 +860,7 @@ Contains
         Write(1) Shape(tangents_1, Int32), tangents_1
         Write(1) Shape(tangents_2, Int32), tangents_2
 
+        Write(1) Shape(aux_surface_vector, Int32), aux_surface_vector
       End If
          
       ! close file
