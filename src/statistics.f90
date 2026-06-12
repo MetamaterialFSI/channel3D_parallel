@@ -189,6 +189,11 @@ Contains
          END SELECT
 
        end if
+       do i = 1, n_control
+        Call Mpi_bcast (  ctrl(i)%count_u,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+        Call Mpi_bcast (  ctrl(i)%count_e,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
+       end do
+       
 
        ! Sanity check 
        If ( Any( Isnan(U) ) ) Stop 'Error: NaNs!'

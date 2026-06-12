@@ -35,11 +35,11 @@ Module global
 
   ! files
   Character(200) :: filein, fileout, fileparams, logs_in
-  Logical(Int32) :: read_IB_data
   Integer(Int32) :: nsave, nmonitor
 
   ! initial condition
   Integer(Int32) :: init_type
+  Logical(Int32) :: new_binary_version, read_input_IB_data, read_input_time, read_input_dpdx
 
   ! grid type
   Integer(Int32) :: grid_type, n_uniform

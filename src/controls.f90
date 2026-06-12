@@ -157,6 +157,9 @@ CONTAINS
               WRITE(*,*) '=> Unknown ctrl_type: ', TRIM(ctrl(n_control)%ctrl_type), '. Skipping.'
               n_control = n_control - 1
             End if
+            if ( n_control .eq. 0 ) then
+              STOP 'no control input file for body_type moving_bottom_wall'
+            end if
 
             ! allocate output values array
             IF (n_control .ge. 1) THEN
@@ -175,6 +178,7 @@ CONTAINS
         Call Mpi_bcast (  ctrl(i)%ctrl_type,LEN(ctrl(i)%ctrl_type),MPI_character,0,MPI_COMM_WORLD,ierr )
         Select case(trim(ctrl(i)%ctrl_type))
           case ('spanwise_const_gauss_x')
+            Call Mpi_bcast (  ctrl(i)%count_u,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
             Call Mpi_bcast (  ctrl(i)%num_act,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
             IF (myid /=0) then
               ALLOCATE(ctrl(i)%actuators(1))
@@ -361,13 +365,13 @@ SUBROUTINE controls_actuating(i_ctrl)
   INTEGER, INTENT(in) :: i_ctrl
 
   Integer(Int32) :: i,k
-  REAL(KIND(0.D0)) :: amp
+  REAL(KIND(0.D0)) :: amp_act
 
   REAL(KIND(0.D0)), Allocatable :: yb_2D(:,:), ub_2D(:,:), slope_2D(:,:), slope_1D(:)
 
   IF ( TRIM(ctrl(i_ctrl)%ctrl_type) .eq. 'spanwise_const_gauss_x' ) THEN
 
-    amp = ctrl(i_ctrl)%actuators(1)%amp
+    amp_act = ctrl(i_ctrl)%actuators(1)%amp
     !WRITE(*,*) 'myid',myid,'controls_actuating'
     ! WRITE(*,*) 'myid',myid,'(nxb,nzb)=',nxb,nzb
     ! WRITE(*,*) 'myid',myid,'nb=',nb
@@ -390,44 +394,43 @@ SUBROUTINE controls_actuating(i_ctrl)
 
       Do i = 1, ctrl(i_ctrl)%num_act
 
-        If ( istep .le. 1 .or. ctrl(i_ctrl)%count_u .eq. 1) Then
+        If ( istep .le. 2 .or. ctrl(i_ctrl)%count_u .eq. 1) Then
 
-            If ( istep .le. 1) Then
-
+            If ( istep .le. 2) Then
               ! displacement
               yb_2D( (i-1)*ctrl(i_ctrl)%actuators(1)%nx_local + 1 : &
                         i   *ctrl(i_ctrl)%actuators(1)%nx_local , k ) = &
                         ctrl(i_ctrl)%zero_func_local * &
-                        ctrl(i_ctrl)%y_i_2D(1,i) * amp
+                        ctrl(i_ctrl)%y_i_2D(1,i) * amp_act
 
               ! velocity
               ub_2D( (i-1)*ctrl(i_ctrl)%actuators(1)%nx_local + 1 : &
                         i   *ctrl(i_ctrl)%actuators(1)%nx_local , k ) = &
                         ctrl(i_ctrl)%zero_func_local * &
-                        ctrl(i_ctrl)%u_i_2D(1,i) * amp
+                        ctrl(i_ctrl)%u_i_2D(1,i) * amp_act
 
               ! slope / normal information
               slope_2D( (i-1)*ctrl(i_ctrl)%actuators(1)%nx_local + 1 : &
                           i   *ctrl(i_ctrl)%actuators(1)%nx_local , k ) = &
                           ctrl(i_ctrl)%dfdx_local * &
-                          ctrl(i_ctrl)%y_i_2D(1,i) * amp
+                          ctrl(i_ctrl)%y_i_2D(1,i) * amp_act
 
             Else
 
               yb_2D( (i-1)*ctrl(i_ctrl)%actuators(1)%nx_local + 1 : &
                         i   *ctrl(i_ctrl)%actuators(1)%nx_local , k ) = &
                         ctrl(i_ctrl)%zero_func_local * &
-                        ctrl(i_ctrl)%y_i_2D(1000,i) * amp
+                        ctrl(i_ctrl)%y_i_2D(1000,i) * amp_act
 
               ub_2D( (i-1)*ctrl(i_ctrl)%actuators(1)%nx_local + 1 : &
                         i   *ctrl(i_ctrl)%actuators(1)%nx_local , k ) = &
                         ctrl(i_ctrl)%zero_func_local * &
-                        ctrl(i_ctrl)%u_i_2D(1000,i) * amp
+                        ctrl(i_ctrl)%u_i_2D(1000,i) * amp_act
 
               slope_2D( (i-1)*ctrl(i_ctrl)%actuators(1)%nx_local + 1 : &
                           i   *ctrl(i_ctrl)%actuators(1)%nx_local , k ) = &
                           ctrl(i_ctrl)%dfdx_local * &
-                          ctrl(i_ctrl)%y_i_2D(1000,i) * amp
+                          ctrl(i_ctrl)%y_i_2D(1000,i) * amp_act
 
             End If
 
@@ -436,17 +439,17 @@ SUBROUTINE controls_actuating(i_ctrl)
             yb_2D( (i-1)*ctrl(i_ctrl)%actuators(1)%nx_local + 1 : &
                     i   *ctrl(i_ctrl)%actuators(1)%nx_local , k ) = &
                     ctrl(i_ctrl)%zero_func_local * &
-                    ctrl(i_ctrl)%y_i_2D(ctrl(i_ctrl)%count_u-1,i) * amp
+                    ctrl(i_ctrl)%y_i_2D(ctrl(i_ctrl)%count_u-1,i) * amp_act
 
             ub_2D( (i-1)*ctrl(i_ctrl)%actuators(1)%nx_local + 1 : &
                     i   *ctrl(i_ctrl)%actuators(1)%nx_local , k ) = &
                     ctrl(i_ctrl)%zero_func_local * &
-                    ctrl(i_ctrl)%u_i_2D(ctrl(i_ctrl)%count_u-1,i) * amp
+                    ctrl(i_ctrl)%u_i_2D(ctrl(i_ctrl)%count_u-1,i) * amp_act
 
             slope_2D( (i-1)*ctrl(i_ctrl)%actuators(1)%nx_local + 1 : &
                         i   *ctrl(i_ctrl)%actuators(1)%nx_local , k ) = &
                         ctrl(i_ctrl)%dfdx_local * &
-                        ctrl(i_ctrl)%y_i_2D(ctrl(i_ctrl)%count_u-1,i) * amp
+                        ctrl(i_ctrl)%y_i_2D(ctrl(i_ctrl)%count_u-1,i) * amp_act
 
         End If
 

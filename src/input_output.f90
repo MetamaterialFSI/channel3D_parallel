@@ -34,9 +34,10 @@ Contains
       dPdx, dPdz, &
       x_mass_cte, y_mass_cte, z_mass_cte, read_dPdx_flag,&
       nsteps, nsave, nstats, nmonitor, &
-      filein, fileout,logs_in,read_IB_data,&
+      filein, fileout,logs_in,&
       nstep_init, t_init, &
       init_type, grid_type, body_type, exterior_pressure_gradient, &
+      read_input_IB_data, read_input_time, read_input_dpdx, &
       body_param_3, body_param_1, body_param_2, body_ramp_up_time, &
       min_buffer_width, cg_tol, cg_max_iter, perturb_scale
 
@@ -51,7 +52,9 @@ Contains
     t_init = 0d0
     body_type = 'none'
     exterior_pressure_gradient = .True.
-    read_IB_data=.False.
+    read_input_IB_data = .False.
+    read_input_time = .False.
+    read_input_dpdx = .False.
     x_mass_cte = 0
     y_mass_cte = 0
     z_mass_cte = 0
@@ -84,6 +87,13 @@ Contains
       Call to_lower(body_type)
 
       Print params
+
+
+      ! If any of the special read booleans are true, we assume the binary is the new version that contains this extra info
+      If (read_input_IB_data .or. read_input_time .or. read_input_dpdx) Then
+        Write(*,*) "Input parameters specify additional variables to be read from input file. Assuming new binary version..."
+          new_binary_version = .true.
+        End If
        
     End If
 
@@ -116,7 +126,11 @@ Contains
     Call Mpi_bcast (   grid_type,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   body_type,len(body_type),MPI_character,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (exterior_pressure_gradient,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
-    Call Mpi_bcast (read_IB_data,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   read_input_time,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   read_input_IB_data,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   read_input_dpdx,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   new_binary_version,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
+
     Call Mpi_bcast (  x_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  y_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (  z_mass_cte,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
@@ -263,11 +277,7 @@ Contains
     Select Case (init_type)
       Case (0) ! read input data from file
         If ( myid==0 ) Write(*,*) 'Reading input data'
-        if ( read_IB_data ) then
-          Call read_input_data_IB
-        else
-          Call read_input_data
-        end if        
+        Call read_input_data        
       
       Case (1) ! create grid and initialize velocity to zero
         If ( myid==0 ) Write(*,*) 'Generating zero initial condition'
@@ -513,364 +523,137 @@ Contains
 
   End Subroutine read_input_data
 
-!--------------------------------------------!
-!    Read binary snapshot: full output data  !
-!                                            !
-! Input:  filein                             !
-! Output: U,V,W,P,Hu/Hv/Hw_interior,        !
-!         x,y,z,xm,ym,zm,                   !
-!         t,dt,dPdx,dPdz,dPdx_ref,nu,       !
-!         xb,yb,zb,fb,ub,sb,                !
-!         normals,tangents_1,tangents_2,     !
-!         p_interior                         !
-!--------------------------------------------!
-  Subroutine read_input_data_IB
+  Subroutine read_additional_input_data
 
     Integer(Int32) ::  nx_global_f,  ny_global_f,  nz_global_f, iproc, nze, nzge
     Integer(Int32) :: nxm_global_f, nym_global_f, nzm_global_f, nn(3), ndum
-    Integer(Int64) :: pos_header, nsize_U, nsize_V, nsize_W, nsize_P
-    Integer(Int64) :: nsize_Hu, nsize_Hv, nsize_Hw
-    Integer(Int32) :: shape_tmp3(3)
-  
-    !--- byte offsets (Int64 to avoid overflow) ---
-    ! Each field block in the file is laid out as:
-    !   [3*Int32 nn-header (12 bytes)] + [nsize_X bytes of data]
-    ! Exception: P block is preceded by 3 Real(8) scalars (24 bytes)
-    Integer(Int64), Parameter :: sz_nn  = 3*4   ! bytes for nn(3) header
-    Integer(Int64), Parameter :: sz_dp  = 3*8   ! bytes for dPdx,dPdz,dPdx_ref
-  
-    ! processor 0 reads all the data
+    Integer(Int64) :: pos_header, nsize_U, nsize_V, nsize_W, nsize_P, ii, jj, kk
+    Integer(Int32) :: xb_shape_f, yb_shape_f, zb_shape_f, fb_shape_f, nxb_f, nzb_f
+    Real(Int64) :: t_f, dt_f, dpdx_f, nu_f
+
+    ! processor 0 Reads the all the data
     If ( myid==0 ) Then
-  
+
       Write(*,*) 'reading ',Trim(Adjustl(filein)),'...'
-      Open(1,file=filein,access='stream',form='unformatted', &
-           action='Read',convert='big_endian')
-  
-      !------------------!
-      !       Mesh       !
-      !------------------!
+      Open(1,file=filein,access='stream',form='unformatted',action='Read',convert='big_endian')
+
+      ! mesh
       Read(1) nx_global_f
       If ( nx_global_f/=nx_global ) Stop 'nx_f/=nx'
       Read(1) x_global
-  
+
       Read(1) ny_global_f
       If ( ny_global_f/=ny_global ) Stop 'ny_f/=ny'
       Read(1) y_global
-  
+
       Read(1) nz_global_f
       If ( nz_global_f/=nz_global ) Stop 'nz_f/=nz'
       Read(1) z_global
-  
+
       Read(1) nxm_global_f
       If ( nxm_global_f/=nxm_global ) Stop 'nxm_f/=nxm'
       Read(1) xm_global
-  
+
       Read(1) nym_global_f
       If ( nym_global_f/=nym_global ) Stop 'nym_f/=nym'
       Read(1) ym_global
-  
+
       Read(1) nzm_global_f
       If ( nzm_global_f/=nzm_global ) Stop 'nzm_f/=nzm'
       Read(1) zm_global
-  
-      ! record position after mesh block and compute all field sizes in bytes
+
+      ! get header position and size
       Inquire(1,pos=pos_header)
-      pos_header = pos_header - 1_Int64
-  
-      nsize_U  = Int(nx_global,  Int64) * Int(nyg_global,Int64) * Int(nzg_global,Int64) * 8_Int64
-      nsize_V  = Int(nxg_global, Int64) * Int(ny_global, Int64) * Int(nzg_global,Int64) * 8_Int64
-      nsize_W  = Int(nxg_global, Int64) * Int(nyg_global,Int64) * Int(nz_global, Int64) * 8_Int64
-      nsize_P  = Int(nxg_global, Int64) * Int(nyg_global,Int64) * Int(nzg_global,Int64) * 8_Int64
-      nsize_Hu = Int(nx_global,  Int64) * Int(nyg_global,Int64) * Int(nzg_global,Int64) * 8_Int64
-      nsize_Hv = Int(nxg_global, Int64) * Int(ny_global, Int64) * Int(nzg_global,Int64) * 8_Int64
-      nsize_Hw = Int(nxg_global, Int64) * Int(nyg_global,Int64) * Int(nz_global, Int64) * 8_Int64
-  
+      pos_header = pos_header - 1
+      nsize_U    = nx_global*nyg_global*nzg_global*8
+      nsize_V    = nxg_global*ny_global*nzg_global*8
+      nsize_W    = nxg_global*nyg_global*nz_global*8
+      nsize_P    = nxg_global*nyg_global*nzg_global*8
+
     End If
-  
-    ! -------------------------------------------------------
-    ! Broadcast mesh FIRST so all ranks have correct extents
-    ! before any MPI_Recv buffer sizes are computed
-    ! -------------------------------------------------------
-    Call Mpi_bcast(  x_global,  nx_global,  MPI_real8, 0, MPI_COMM_WORLD, ierr)
-    Call Mpi_bcast(  y_global,  ny_global,  MPI_real8, 0, MPI_COMM_WORLD, ierr)
-    Call Mpi_bcast(  z_global,  nz_global,  MPI_real8, 0, MPI_COMM_WORLD, ierr)
-    Call Mpi_bcast( xm_global, nxm_global,  MPI_real8, 0, MPI_COMM_WORLD, ierr)
-    Call Mpi_bcast( ym_global, nym_global,  MPI_real8, 0, MPI_COMM_WORLD, ierr)
-    Call Mpi_bcast( zm_global, nzm_global,  MPI_real8, 0, MPI_COMM_WORLD, ierr)
-  
-    !------------------!
-    !        U         !
-    !------------------!
-    ! File layout: [nn(3)] [U data, no ghost in x/y, WITH ghost overlap in z]
-    ! Offset from pos_header: 0
-    If ( myid==0 ) Then
-      ndum = fseek(1, pos_header + sz_nn, seek_set)  ! skip nn header, already there but safe
-      ! re-read from correct position
-      ndum = fseek(1, pos_header, seek_set)
-      Read(1) nn
-      If ( nn(1)/=nx_global .or. nn(2)/=nyg_global .or. nn(3)/=nzg_global ) Then
-        Write(*,*) 'nn(U)',nn
-        Stop 'Error! wrong size in input file (U)'
+
+    If ( myid==0 .and. new_binary_version) Then
+      ! jj = absolute (0-based) byte position of the time record, just past
+      ! the U/V/W/P (+ Hu/Hv/Hw) field block.
+      jj = pos_header+2*3*4+2*nsize_U+2*3*4+2*nsize_V+2*3*4+2*nsize_W+3*4+3*8+nsize_P
+      ndum = fseek(1,jj,seek_set)
+      ! Time
+      Read(1) t_f
+      If ( read_input_time ) Then
+        t = t_f
+        write(*,*) "input t overwritten by ", t_f
       End If
-      nzge = kg2_global(myid) - kg1_global(myid) + 1
-      Read(1) U(:,:,1:nzge)
-      Do iproc = 1, nprocs-1
-        nzge = kg2_global(iproc) - kg1_global(iproc) + 1
-        ndum = fseek(1, -2*Int(nx_global,Int64)*Int(nyg_global,Int64)*8_Int64, seek_cur)
-        If ( iproc<nprocs-1 ) Then
-          Read(1) Uo(:,:,1:nzge)
-          Call Mpi_send(Uo,  nx*nyg*nzge, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        Else
-          Read(1) Uoo(:,:,1:nzge)
-          Call Mpi_send(Uoo, nx*nyg*nzge, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        End If
-      End Do
-    Else
-      Call Mpi_recv(U, nx*nyg*nzg, Mpi_real8, 0, myid, MPI_COMM_WORLD, istat, ierr)
-    End If
-  
-    !------------------!
-    !        V         !
-    !------------------!
-    ! Offset: sz_nn + nsize_U
-    If ( myid==0 ) Then
-      ndum = fseek(1, pos_header + sz_nn + nsize_U, seek_set)
-      Read(1) nn
-      If ( nn(1)/=nxg_global .or. nn(2)/=ny_global .or. nn(3)/=nzg_global ) Then
-        Write(*,*) 'nn(V)',nn
-        Stop 'Error! wrong size in input file (V)'
+
+      ! Timestep
+      Read(1) dt_f
+
+      ! Pressure gradient
+      Read(1) dpdx_f
+      If ( read_input_dpdx ) Then
+        dpdx = dpdx_f
+        write(*,*) "input dpdx overwritten by ", dpdx_f
       End If
-      nzge = kg2_global(myid) - kg1_global(myid) + 1
-      Read(1) V(:,:,1:nzge)
-      Do iproc = 1, nprocs-1
-        nzge = kg2_global(iproc) - kg1_global(iproc) + 1
-        ndum = fseek(1, -2*Int(nxg_global,Int64)*Int(ny_global,Int64)*8_Int64, seek_cur)
-        If ( iproc<nprocs-1 ) Then
-          Read(1) Vo(:,:,1:nzge)
-          Call Mpi_send(Vo,  nxg*ny*nzge, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        Else
-          Read(1) Voo(:,:,1:nzge)
-          Call Mpi_send(Voo, nxg*ny*nzge, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        End If
-      End Do
-    Else
-      Call Mpi_recv(V, nxg*ny*nzg, Mpi_real8, 0, myid, MPI_COMM_WORLD, istat, ierr)
-    End If
-  
-    !------------------!
-    !        W         !
-    !------------------!
-    ! Offset: sz_nn + nsize_U + sz_nn + nsize_V
-    If ( myid==0 ) Then
-      ndum = fseek(1, pos_header + sz_nn + nsize_U + sz_nn + nsize_V, seek_set)
-      Read(1) nn
-      If ( nn(1)/=nxg_global .or. nn(2)/=nyg_global .or. nn(3)/=nz_global ) Then
-        Write(*,*) 'nn(W)',nn
-        Stop 'Error! wrong size in input file (W)'
+
+      ! Viscosity
+      Read(1) nu_f
+
+      If ( read_input_IB_data ) Then
+        ! NOTE: on a convert='big_endian' stream unit, the code loses the file
+        ! position after a large array Read (see the "it gets lost sometimes"
+        ! re-seeks in read_input_data for U/V/W/P). The body arrays are large,
+        ! so we re-seek to a computed absolute position before every record
+        ! rather than relying on the position left by the previous Read.
+        ! ii tracks the 0-based byte offset of the next record; each shape
+        ! count is a 4-byte Int32 and each value is an 8-byte real.
+        ii = jj + 32_Int64                       ! past t, dt, dpdx, nu (4 reals)
+
+        ndum = fseek(1,ii    ,seek_set); Read(1) xb_shape_f
+        write(*,*) 'xb_shape_f', xb_shape_f
+        If ( xb_shape_f/=Size(xb) ) Stop 'xb_shape_f/=size(xb)'
+        ndum = fseek(1,ii+4  ,seek_set); Read(1) xb
+        ii = ii + 4_Int64 + Size(xb)*8_Int64
+
+        ndum = fseek(1,ii    ,seek_set); Read(1) yb_shape_f
+        If ( yb_shape_f/=Size(yb) ) Stop 'yb_shape_f/=size(yb)'
+        ndum = fseek(1,ii+4  ,seek_set); Read(1) yb
+        ii = ii + 4_Int64 + Size(yb)*8_Int64
+
+        ndum = fseek(1,ii    ,seek_set); Read(1) zb_shape_f
+        If ( zb_shape_f/=Size(zb) ) Stop 'zb_shape_f/=size(zb)'
+        ndum = fseek(1,ii+4  ,seek_set); Read(1) zb
+        ii = ii + 4_Int64 + Size(zb)*8_Int64
+
+        ndum = fseek(1,ii    ,seek_set); Read(1) nxb_f
+        ndum = fseek(1,ii+4  ,seek_set); Read(1) nzb_f
+        ii = ii + 8_Int64
+
+        ! surface stress
+        ndum = fseek(1,ii    ,seek_set); Read(1) fb_shape_f
+        If ( fb_shape_f/=Size(fb) ) Stop 'fb_shape_f/=size(fb)'
+        ndum = fseek(1,ii+4  ,seek_set); Read(1) fb
       End If
-      nzge = k2_global(myid) - k1_global(myid) + 1
-      Read(1) W(:,:,1:nzge)
-      Do iproc = 1, nprocs-1
-        nze = k2_global(iproc) - k1_global(iproc) + 1   ! NOTE: nze not nzge for W
-        ndum = fseek(1, -2*Int(nxg_global,Int64)*Int(nyg_global,Int64)*8_Int64, seek_cur)
-        If ( iproc<nprocs-1 ) Then
-          Read(1) Wo(:,:,1:nze)
-          Call Mpi_send(Wo,  nxg*nyg*nze, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        Else
-          Read(1) Woo(:,:,1:nze)
-          Call Mpi_send(Woo, nxg*nyg*nze, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        End If
-      End Do
-    Else
-      Call Mpi_recv(W, nxg*nyg*nz, Mpi_real8, 0, myid, MPI_COMM_WORLD, istat, ierr)
     End If
-  
-    !------------------!
-    !        P         !
-    !------------------!
-    ! Offset: sz_nn+nsize_U + sz_nn+nsize_V + sz_nn+nsize_W
-    ! Then: sz_dp (dPdx,dPdz,dPdx_ref) + sz_nn (P nn-header) + P data
-    If ( myid==0 ) Then
-      ndum = fseek(1, pos_header + sz_nn+nsize_U + sz_nn+nsize_V + sz_nn+nsize_W, seek_set)
-      Read(1) dPdx, dPdz, dPdx_ref
-      Write(*,*) 'Adopted from snapshot: dPdx, dPdz, dPdx_ref=', dPdx, dPdz, dPdx_ref
-      Read(1) nn
-      If ( nn(1)/=nxg_global .or. nn(2)/=nyg_global .or. nn(3)/=nzg_global ) Then
-        Write(*,*) 'nn(P)',nn
-        Stop 'Error! wrong size in input file (P)'
-      End If
-      nzge = kg2_global(myid) - kg1_global(myid) + 1
-      Read(1) P(:,:,1:nzge)
-      Do iproc = 1, nprocs-1
-        nzge = kg2_global(iproc) - kg1_global(iproc) + 1
-        ndum = fseek(1, -2*Int(nxg_global,Int64)*Int(nyg_global,Int64)*8_Int64, seek_cur)
-        If ( iproc<nprocs-1 ) Then
-          Read(1) Po(:,:,1:nzge)
-          Call Mpi_send(Po,  nxg*nyg*nzge, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        Else
-          Read(1) Poo(:,:,1:nzge)
-          Call Mpi_send(Poo, nxg*nyg*nzge, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        End If
-      End Do
-    Else
-      Call Mpi_recv(P, nxg*nyg*nzg, Mpi_real8, 0, myid, MPI_COMM_WORLD, istat, ierr)
-    End If
-  
-    !------------------!
-    !   Hu_interior    !
-    !------------------!
-    ! Offset after P block: + sz_dp + sz_nn + nsize_P
-    If ( myid==0 ) Then
-      ndum = fseek(1, pos_header + sz_nn+nsize_U  &
-                                + sz_nn+nsize_V  &
-                                + sz_nn+nsize_W  &
-                                + sz_dp+sz_nn+nsize_P, seek_set)
-      Read(1) nn
-      If ( nn(1)/=nx_global .or. nn(2)/=nyg_global .or. nn(3)/=nzg_global ) Then
-        Write(*,*) 'nn(Hu)',nn
-        Stop 'Error! wrong size in input file (Hu_interior)'
-      End If
-      nzge = kg2_global(myid) - kg1_global(myid) + 1
-      Read(1) Hu_interior(:,:,1:nzge)
-      Do iproc = 1, nprocs-1
-        nzge = kg2_global(iproc) - kg1_global(iproc) + 1
-        ndum = fseek(1, -2*Int(nx_global,Int64)*Int(nyg_global,Int64)*8_Int64, seek_cur)
-        If ( iproc<nprocs-1 ) Then
-          Read(1) Hu_interior_o(:,:,1:nzge)
-          Call Mpi_send(Hu_interior_o,  nx*nyg*nzge, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        Else
-          Read(1) Hu_interior_oo(:,:,1:nzge)
-          Call Mpi_send(Hu_interior_oo, nx*nyg*nzge, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        End If
-      End Do
-    Else
-      Call Mpi_recv(Hu_interior, nx*nyg*nzg, Mpi_real8, 0, myid, MPI_COMM_WORLD, istat, ierr)
-    End If
-  
-    !------------------!
-    !   Hv_interior    !
-    !------------------!
-    If ( myid==0 ) Then
-      ndum = fseek(1, pos_header + sz_nn+nsize_U  &
-                                + sz_nn+nsize_V  &
-                                + sz_nn+nsize_W  &
-                                + sz_dp+sz_nn+nsize_P  &
-                                + sz_nn+nsize_Hu, seek_set)
-      Read(1) nn
-      If ( nn(1)/=nxg_global .or. nn(2)/=ny_global .or. nn(3)/=nzg_global ) Then
-        Write(*,*) 'nn(Hv)',nn
-        Stop 'Error! wrong size in input file (Hv_interior)'
-      End If
-      nzge = kg2_global(myid) - kg1_global(myid) + 1
-      Read(1) Hv_interior(:,:,1:nzge)
-      Do iproc = 1, nprocs-1
-        nzge = kg2_global(iproc) - kg1_global(iproc) + 1
-        ndum = fseek(1, -2*Int(nxg_global,Int64)*Int(ny_global,Int64)*8_Int64, seek_cur)
-        If ( iproc<nprocs-1 ) Then
-          Read(1) Hv_interior_o(:,:,1:nzge)
-          Call Mpi_send(Hv_interior_o,  nxg*ny*nzge, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        Else
-          Read(1) Hv_interior_oo(:,:,1:nzge)
-          Call Mpi_send(Hv_interior_oo, nxg*ny*nzge, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        End If
-      End Do
-    Else
-      Call Mpi_recv(Hv_interior, nxg*ny*nzg, Mpi_real8, 0, myid, MPI_COMM_WORLD, istat, ierr)
-    End If
-  
-    !------------------!
-    !   Hw_interior    !
-    !------------------!
-    If ( myid==0 ) Then
-      ndum = fseek(1, pos_header + sz_nn+nsize_U  &
-                                + sz_nn+nsize_V  &
-                                + sz_nn+nsize_W  &
-                                + sz_dp+sz_nn+nsize_P  &
-                                + sz_nn+nsize_Hu  &
-                                + sz_nn+nsize_Hv, seek_set)
-      Read(1) nn
-      If ( nn(1)/=nxg_global .or. nn(2)/=nyg_global .or. nn(3)/=nz_global ) Then
-        Write(*,*) 'nn(Hw)',nn
-        Stop 'Error! wrong size in input file (Hw_interior)'
-      End If
-      nzge = k2_global(myid) - k1_global(myid) + 1
-      Read(1) Hw_interior(:,:,1:nzge)
-      Do iproc = 1, nprocs-1
-        nze = k2_global(iproc) - k1_global(iproc) + 1   ! nze not nzge for W-staggered
-        ndum = fseek(1, -2*Int(nxg_global,Int64)*Int(nyg_global,Int64)*8_Int64, seek_cur)
-        If ( iproc<nprocs-1 ) Then
-          Read(1) Hw_interior_o(:,:,1:nze)
-          Call Mpi_send(Hw_interior_o,  nxg*nyg*nze, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        Else
-          Read(1) Hw_interior_oo(:,:,1:nze)
-          Call Mpi_send(Hw_interior_oo, nxg*nyg*nze, Mpi_real8, iproc, iproc, MPI_COMM_WORLD, ierr)
-        End If
-      End Do
-    Else
-      Call Mpi_recv(Hw_interior, nxg*nyg*nz, Mpi_real8, 0, myid, MPI_COMM_WORLD, istat, ierr)
-    End If
-  
-    !----------------------------------------!
-    !   Scalars and body data (myid==0 only) !
-    !----------------------------------------!
-    If ( myid==0 ) Then
-  
-      ! Time, timestep, pressure gradient, viscosity
-      Read(1) t
-      Read(1) dt
-      Read(1) dpdx
-      Read(1) nu
-  
-      ! body coordinates
-      Read(1) shape_tmp3, xb
-      Read(1) shape_tmp3, yb
-      Read(1) shape_tmp3, zb
-      Read(1) nxb
-      Read(1) nzb
-  
-      ! surface stress
-      Read(1) shape_tmp3, fb
-  
-      ! body velocity
-      Read(1) shape_tmp3, ub
-  
-      ! body surface areas
-      Read(1) shape_tmp3, sb
-  
-      ! body normals and tangents
-      Read(1) shape_tmp3, normals
-      Read(1) shape_tmp3, tangents_1
-      Read(1) shape_tmp3, tangents_2
-  
-      ! interior pressure flag array
-      Read(1) shape_tmp3, p_interior
-  
+
+    ! close file
+    If (myid==0) Then
       Close(1)
-  
     End If
-  
-    !-------------------------------------------!
-    !   Broadcast scalars and body arrays       !
-    !-------------------------------------------!
-  
-    Call Mpi_bcast(     dPdx,     1, MPI_real8,   0, MPI_COMM_WORLD, ierr)
-    Call Mpi_bcast(     dPdz,     1, MPI_real8,   0, MPI_COMM_WORLD, ierr)
-    Call Mpi_bcast( dPdx_ref,     1, MPI_real8,   0, MPI_COMM_WORLD, ierr)
-    Call Mpi_bcast(        t,     1, MPI_real8,   0, MPI_COMM_WORLD, ierr)
-    Call Mpi_bcast(       dt,     1, MPI_real8,   0, MPI_COMM_WORLD, ierr)
-    Call Mpi_bcast(     dpdx,     1, MPI_real8,   0, MPI_COMM_WORLD, ierr)
-    Call Mpi_bcast(       nu,     1, MPI_real8,   0, MPI_COMM_WORLD, ierr)
-    Call Mpi_bcast(      nxb,     1, MPI_integer, 0, MPI_COMM_WORLD, ierr)
-    Call Mpi_bcast(      nzb,     1, MPI_integer, 0, MPI_COMM_WORLD, ierr)
-  
-    Call Mpi_bcast(        fb, nxb*nzb*3, MPI_real8, 0, MPI_COMM_WORLD, ierr)
-  
-    ! initialise previous-step arrays
-    Uo = U
-    Vo = V
-    Wo = W
-  
-  End Subroutine read_input_data_IB
+
+    If ( read_input_time ) Then
+      Call Mpi_bcast ( t,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    End If
+    If ( read_input_dpdx ) Then
+      Call Mpi_bcast ( dpdx,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    End If
+    If ( read_input_IB_data ) Then
+      Call Mpi_bcast ( xb,nb,MPI_real8,0,MPI_COMM_WORLD,ierr )
+      Call Mpi_bcast ( yb,nb,MPI_real8,0,MPI_COMM_WORLD,ierr )
+      Call Mpi_bcast ( zb,nb,MPI_real8,0,MPI_COMM_WORLD,ierr )
+      Call Mpi_bcast ( fb,3*nb,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    End If
+
+  End Subroutine read_additional_input_data
+
 
   !--------------------------------------------!
   !    write binary snapshot: mesh, U,V and W  !
@@ -984,7 +767,7 @@ Contains
         Call Mpi_send(P,nxg*nyg*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
       Else
         ! write dpdx
-        Write(1) dPdx, dPdz, dPdx_ref
+        !Write(1) dPdx, dPdz, dPdx_ref
         ! write P size
         Write(1) nxg_global,nyg_global,nzg_global
         ! processor 0 writes its data
@@ -1076,7 +859,7 @@ Contains
         Write(1) dt
 
         ! Pressure gradient
-        Write(1) dpdx
+        Write(1) dPdx
 
         ! Viscosity
         Write(1) nu
