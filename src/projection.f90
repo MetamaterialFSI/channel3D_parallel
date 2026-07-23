@@ -43,6 +43,8 @@ Contains
     V = V_interim - V
     W = W_interim - W
 
+    Call apply_boundary_conditions(U, V, W)
+
   End Subroutine compute_non_IB_projection
 
   Subroutine compute_IB_projection
@@ -63,11 +65,11 @@ Contains
     p_jump    = fb(3 * nb + 1 : 4 * nb)
 
     ! U_reg = R f
-    aux_surface_scalar = dt * nu * dudn_jump(1 : nb)              - dt * p_jump * normals(1 : nb)
+    aux_surface_scalar = kdt * nu * dudn_jump(1 : nb)              - kdt * p_jump * normals(1 : nb)
     Call regu(U_reg, aux_surface_scalar)
-    aux_surface_scalar = dt * nu * dudn_jump(nb + 1 : 2 * nb)     - dt * p_jump * normals(nb + 1 : 2 * nb)
+    aux_surface_scalar = kdt * nu * dudn_jump(nb + 1 : 2 * nb)     - kdt * p_jump * normals(nb + 1 : 2 * nb)
     Call regv(V_reg, aux_surface_scalar)
-    aux_surface_scalar = dt * nu * dudn_jump(2 * nb + 1 : 3 * nb) - dt * p_jump * normals(2 * nb + 1 : 3 * nb)
+    aux_surface_scalar = kdt * nu * dudn_jump(2 * nb + 1 : 3 * nb) - kdt * p_jump * normals(2 * nb + 1 : 3 * nb)
     Call regw(W_reg, aux_surface_scalar)
 
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
@@ -106,11 +108,11 @@ Contains
     p_jump    = f_(3 * nb + 1 : 4 * nb)
 
     ! U_reg = R f
-    aux_surface_scalar = dt * nu * dudn_jump(1 : nb)              - dt * p_jump * normals(1 : nb)
+    aux_surface_scalar = kdt * nu * dudn_jump(1 : nb)              - kdt * p_jump * normals(1 : nb)
     Call regu(U_reg, aux_surface_scalar)
-    aux_surface_scalar = dt * nu * dudn_jump(nb + 1 : 2 * nb)     - dt * p_jump * normals(nb + 1 : 2 * nb)
+    aux_surface_scalar = kdt * nu * dudn_jump(nb + 1 : 2 * nb)     - kdt * p_jump * normals(nb + 1 : 2 * nb)
     Call regv(V_reg, aux_surface_scalar)
-    aux_surface_scalar = dt * nu * dudn_jump(2 * nb + 1 : 3 * nb) - dt * p_jump * normals(2 * nb + 1 : 3 * nb)
+    aux_surface_scalar = kdt * nu * dudn_jump(2 * nb + 1 : 3 * nb) - kdt * p_jump * normals(2 * nb + 1 : 3 * nb)
     Call regw(W_reg, aux_surface_scalar)
 
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
@@ -150,11 +152,15 @@ Contains
     Real(Int64) :: rho_o, rho_n, alpha, om, eps, error, bta
 
     !initialize
-    error = 1.d0
     eps = cg_tol * cg_tol
     iter = 0
     Call schur(bcg_r, bcg_x)
     bcg_r = bcg_b - bcg_r
+    ! Seed error from the true initial residual so an already-converged solve
+    ! (e.g. zero RHS for a stationary body in a quiescent field) is detected
+    ! before the loop, avoiding a 0/0 breakdown in alpha/om.
+    error = dot_product(bcg_r, bcg_r)
+    Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
     bcg_rhat = bcg_r
     rho_o = 1.d0
     alpha = 1.d0

@@ -49,7 +49,9 @@ Module global
 
   ! steps
   Integer(Int32) :: nsteps, nstep_init
-  Real   (Int64) :: dt, t, t_init
+  ! kdt is the effective time increment of the current (sub)step, used to scale
+  ! the IB surface forcing: dt for Euler, rk_t(rk_step)*dt for the RK3 substeps
+  Real   (Int64) :: dt, t, kdt, t_init
 
   ! grid stretching factor
   Real(Int64) :: alpha_stretch
