@@ -144,7 +144,7 @@ Contains
     rhs_u = rhs_u + term_2(2:nx-1,2:nyg-1,2:nzg-1)
 
     !--------------Constant pressure gradient-------------!
-    If (exterior_pressure_gradient == .False.) Then
+    If (exterior_pressure_gradient .eqv. .False.) Then
       rhs_u = rhs_u + dPdx * Hu_interior(2:nx-1,2:nyg-1,2:nzg-1)
     Else
       rhs_u = rhs_u + dPdx
@@ -279,7 +279,7 @@ Contains
     rhs_v = rhs_v + term_2(2:nxg-1,2:ny-1,2:nzg-1)
 
     !--------------Constant pressure gradient-------------!
-    If (exterior_pressure_gradient == .False.) Then
+    If (exterior_pressure_gradient .eqv. .False.) Then
       rhs_v = rhs_v + dPdy * Hv_interior(2:nxg-1,2:ny-1,2:nzg-1)
     Else
       rhs_v = rhs_v + dPdy
@@ -414,7 +414,7 @@ Contains
     rhs_w = rhs_w + term_2(2:nxg-1,2:nyg-1,2:nz-1)
 
     !--------------Constant pressure gradient-------------!
-    If (exterior_pressure_gradient == .False.) Then
+    If (exterior_pressure_gradient .eqv. .False.) Then
       rhs_w = rhs_w + dPdz * Hw_interior(2:nxg-1,2:nyg-1,2:nz-1)
     Else
       rhs_w = rhs_w + dPdz
