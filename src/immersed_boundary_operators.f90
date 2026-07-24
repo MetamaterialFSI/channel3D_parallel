@@ -399,6 +399,49 @@ Contains
 
   End Subroutine regw
 
+  Subroutine regu_1n(U_, f_)
+    Implicit None
+    Real(Int64), Contiguous, Intent(In) :: f_(:)
+    Real(Int64), Contiguous, Intent(Out) :: U_(:, :, :)
+
+    U_ = 0d0
+
+    ! compute local_reg for each partition
+    Call local_reg_1n(U_, U_supp, f_, 1)
+    ! update the interior points from other partitions
+    Call support_update_interior_planes(U_, U_supp, 1)
+
+  End Subroutine regu_1n
+
+  Subroutine regv_1n(V_, f_)
+    Implicit None
+    Real(Int64), Contiguous, Intent(In) :: f_(:)
+    Real(Int64), Contiguous, Intent(Out) :: V_(:, :, :)
+
+    V_ = 0d0
+    
+    ! compute local_reg for each partition
+    Call local_reg_1n(V_, V_supp, f_, 2)
+    ! update the interior points from other partitions
+    Call support_update_interior_planes(V_, V_supp, 2)
+
+  End Subroutine regv_1n
+
+  Subroutine regw_1n(W_, f_)
+    Implicit None
+    Real(Int64), Contiguous, Intent(In) :: f_(:)
+    Real(Int64), Contiguous, Intent(Out) :: W_(:, :, :)
+    Integer(Int32) :: i, j
+
+    W_ = 0d0
+
+    ! compute local_reg for each partition
+    Call local_reg_1n(W_, W_supp, f_, 3)
+    ! update the interior points from other partitions
+    Call support_update_interior_planes(W_, W_supp, 3)
+
+  End Subroutine regw_1n
+
   !-----------------------------------------------!
   !          Interpolation to body points         !
   !                                               !
@@ -601,6 +644,67 @@ Contains
       end do
     end do
   end subroutine local_reg
+
+  subroutine local_reg_1n(F, F_supp, f_, id)
+    implicit none
+    integer, intent(in)  :: id
+    Real(Int64), Contiguous, Intent(In) :: f_(:)
+    Real(Int64), Contiguous, Intent(Out) :: F(:,:,:)    
+    Real(Int64), Contiguous, Intent(Out) :: F_supp(:,:,:)   
+    integer :: i, j
+    integer :: proc_idx
+    integer :: xi, yi, zi,zi_supp,zi_loc
+    Real(Int64) :: factor, weight
+
+    ! Initialize output to zero
+    F = 0.0
+    F_supp = 0.0
+
+    ! Determine scaling factor based on id
+    factor = 1.0 / (dx * dymin * dz)
+
+    ! Loop over body points and accumulate using the appropriate weight array
+    do j = nb_start, nb_end
+      do i = 1, nweights
+        select case (id)
+        case (1)
+          proc_idx = u_proc(i, j)
+          xi       = u_x_indices(i, j)
+          yi       = u_y_indices(i, j)
+          zi_loc   = u_z_local_indices(i, j)
+          zi_supp  = u_z_supp_idx(i, j)
+          weight = u_weights(i,j) * dxnu(i,j)
+        case (2)
+          proc_idx = v_proc(i, j)
+          xi       = v_x_indices(i, j)
+          yi       = v_y_indices(i, j)
+          zi_loc   = v_z_local_indices(i, j)
+          zi_supp  = v_z_supp_idx(i, j)
+          weight = v_weights(i,j) * dxnv(i,j)
+        case (3)
+          proc_idx = w_proc(i, j)
+          xi       = w_x_indices(i, j)
+          yi       = w_y_indices(i, j)
+          zi_loc   = w_z_local_indices(i, j)
+          zi_supp  = w_z_supp_idx(i, j)
+          weight = w_weights(i,j) * dxnw(i,j)
+        case default
+          print *, 'Error in scatter_IB_subset: invalid id =', id
+          stop
+        end select
+        if (proc_idx == myid) then
+          ! Write into local F
+          F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
+        else
+          if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+            WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+            stop 'Error: zi_supp out of [1..suppz]'
+          END IF
+          F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
+        end if
+      end do
+    end do
+  end subroutine local_reg_1n
 
   !-------------------------------------------------------------------------------
   !  global_to_local_face

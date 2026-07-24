@@ -51,7 +51,8 @@ Contains
     W(2:nxg-1,2:nyg-1,2:nz-1) = Wo(2:nxg-1,2:nyg-1,2:nz-1) + dt*rhs_wo
 
     ! Advance time
-    t = t + dt
+    kdt = dt
+    t = t + kdt
 
     ! boundary conditions
     Call apply_boundary_conditions(U, V, W)
@@ -105,7 +106,8 @@ Contains
     U(2:nx-1,2:nyg-1,2:nzg-1) = Uo(2:nx-1,2:nyg-1,2:nzg-1) + dt*rk_coef(1,1)*Fu1
     V(2:nxg-1,2:ny-1,2:nzg-1) = Vo(2:nxg-1,2:ny-1,2:nzg-1) + dt*rk_coef(1,1)*Fv1
     W(2:nxg-1,2:nyg-1,2:nz-1) = Wo(2:nxg-1,2:nyg-1,2:nz-1) + dt*rk_coef(1,1)*Fw1
-    t = to + rk_t(rk_step)*dt
+    kdt = rk_t(rk_step) * dt
+    t = to + kdt
 
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
@@ -134,7 +136,8 @@ Contains
     U(2:nx-1,2:nyg-1,2:nzg-1) = Uo(2:nx-1,2:nyg-1,2:nzg-1) + dt*( rk_coef(2,1)*Fu1 + rk_coef(2,2)*Fu2 )
     V(2:nxg-1,2:ny-1,2:nzg-1) = Vo(2:nxg-1,2:ny-1,2:nzg-1) + dt*( rk_coef(2,1)*Fv1 + rk_coef(2,2)*Fv2 )
     W(2:nxg-1,2:nyg-1,2:nz-1) = Wo(2:nxg-1,2:nyg-1,2:nz-1) + dt*( rk_coef(2,1)*Fw1 + rk_coef(2,2)*Fw2 )
-    t = to + rk_t(rk_step)*dt
+    kdt = rk_t(rk_step) * dt
+    t = to + kdt
 
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
@@ -166,7 +169,8 @@ Contains
          dt*( rk_coef(3,1)*Fv1 + rk_coef(3,2)*Fv2 + rk_coef(3,3)*Fv3 )
     W(2:nxg-1,2:nyg-1,2:nz-1) = Wo(2:nxg-1,2:nyg-1,2:nz-1) + &
          dt*( rk_coef(3,1)*Fw1 + rk_coef(3,2)*Fw2 + rk_coef(3,3)*Fw3 )
-    t = to + rk_t(rk_step)*dt
+    kdt = rk_t(rk_step) * dt
+    t = to + kdt
 
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
