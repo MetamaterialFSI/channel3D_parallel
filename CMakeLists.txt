@@ -39,7 +39,12 @@ endif()
 # elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
 # endif()
 
-add_link_options("-fuse-ld=lld") # Necessary to avoid "error adding symbols" error on GitHub runners
+# ifx emits LLVM bitcode into the static library when IPO is enabled, which GNU ld
+# cannot consume ("error adding symbols"); lld can. Other compilers do not need this,
+# and lld is often absent (e.g. a default macOS toolchain), so only ask for it here.
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
+    add_link_options("-fuse-ld=lld")
+endif()
 find_package(LAPACK REQUIRED)
 find_package(FFTW REQUIRED)
 find_package(MPI COMPONENTS Fortran REQUIRED)
