@@ -888,7 +888,7 @@ Contains
        fname = Trim(Adjustl(fileout))//'.'//Trim(Adjustl(ext))//'.stats.txt'
        Write(*,*) 'writing ',Trim(Adjustl(fname))
        Open(3,file=fname,form='formatted',action='write') 
-       Write(3,'(A,4F15.8,4I)') '%',t, Retau_u, utau, nu, nx_global, ny_global, nz_global, istep
+       Write(3,'(A,4F15.8,4I12)') '%',t, Retau_u, utau, nu, nx_global, ny_global, nz_global, istep
        Do jj=1,nyg
           Write(3,'(8F15.8)') yg(jj), Umean(jj), Vmean(jj), Wmean(jj), U2mean(jj), V2mean(jj), W2mean(jj), UVmean(jj)
        End Do
