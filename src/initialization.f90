@@ -45,7 +45,12 @@ Contains
     ! restrictions for FFTW mapping
     If ( Mod( nx_global   , 2     )/=0 ) Stop 'Error: nx must be even'
     If ( Mod( nz_global   , 2     )/=0 ) Stop 'Error: nz must be even'
+    ! nz-2 (real-space z-slices) and nx-2 (transposed spectral extent) are each
+    ! distributed across ranks. An uneven nz-2 split is caught below; an uneven
+    ! nx-2 split passes the other checks but silently corrupts the pressure solve
+    ! (NaNs), so require both to divide the processor count.
     If ( Mod( nz_global-2 , nprocs)/=0 ) Stop 'nz-2 should be divisible by number of processors'
+    If ( Mod( nx_global-2 , nprocs)/=0 ) Stop 'nx-2 should be divisible by number of processors'
 
     ! number of interior z-planes per processor based on fftw decomposition
     nslices_z = Nint( Real((nz_global-2))/Real(nprocs) ) 
