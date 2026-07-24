@@ -18,9 +18,15 @@ This document lists all input parameters for the simulation, including types, de
 
 | Parameter       | Type   | Default Value | Description / Notes    | Possible Values |
 |-----------------|--------|---------------|------------------------|----------------|
-| `nx_global`     | int    | N/A           | Total number of grid points in x | >0 |
+| `nx_global`     | int    | N/A           | Total number of grid points in x | even; `nx_global - 2` divisible by `nprocs` |
 | `ny_global`     | int    | N/A           | Total number of grid points in y | >0 |
-| `nz_global`     | int    | N/A           | Total number of grid points in z | >0 |
+| `nz_global`     | int    | N/A           | Total number of grid points in z | even; `nz_global - 2` divisible by `nprocs` |
+
+!!! note "Grid size and process count"
+    `nx_global` and `nz_global` must be even, and both `nx_global - 2` and
+    `nz_global - 2` must be divisible by the number of MPI processes. See
+    [Running Simulations](running-simulations.md#choosing-the-number-of-processes)
+    for details.
 | `alpha_stretch` | float  | 2.6           | Stretching factor for grid | ≥1 |
 | `grid_type`     | int    | N/A           | Type of grid (uniform, stretched, etc.) | 0 (uniform), 1 (stretched grid wall to wall), 2 (stretched grid with uniform buffers on each end) |
 | `min_buffer_width` | float | 0.0         | Minimum buffer width for grid type 2 | ≥0 |
