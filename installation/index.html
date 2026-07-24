@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -25,7 +25,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
       
 
@@ -289,10 +289,60 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#environment-setup-example-for-caltech-hpc" class="md-nav__link">
+  <a href="#environment-setup" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Environment Setup (Example for Caltech HPC)
+        Environment Setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Environment Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caltech-hpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caltech HPC
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ubuntu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ubuntu
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        macOS
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choosing-a-compiler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing a Compiler
       
     </span>
   </a>
@@ -775,10 +825,60 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#environment-setup-example-for-caltech-hpc" class="md-nav__link">
+  <a href="#environment-setup" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Environment Setup (Example for Caltech HPC)
+        Environment Setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Environment Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caltech-hpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caltech HPC
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ubuntu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ubuntu
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        macOS
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choosing-a-compiler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing a Compiler
       
     </span>
   </a>
@@ -837,10 +937,17 @@
 <li><strong>LAPACK</strong></li>
 <li><strong>MPI</strong> (tested with version 3.1)</li>
 <li><strong>FFTW with MPI support</strong> (tested with version 3.3.10)</li>
-<li><strong>Fortran compiler</strong> (currently, only Intel Fortran compilers are supported)</li>
+<li><strong>Fortran compiler</strong> — Intel (<code>ifx</code>, <code>ifort</code>) or GNU (<code>gfortran</code>)</li>
 </ul>
+<div class="admonition warning">
+<p class="admonition-title">FFTW must have MPI support</p>
+<p>A plain FFTW installation is not sufficient. If the MPI-enabled library is
+missing, CMake stops at configure time with
+<code>Could NOT find FFTW (missing: DOUBLE_MPI_LIB)</code>.</p>
+</div>
 <hr />
-<h2 id="environment-setup-example-for-caltech-hpc">Environment Setup (Example for Caltech HPC)</h2>
+<h2 id="environment-setup">Environment Setup</h2>
+<h3 id="caltech-hpc">Caltech HPC</h3>
 <p>On Caltech HPC, you can load the required modules with:</p>
 <div class="highlight"><pre><span></span><code>module<span class="w"> </span>load<span class="w"> </span>fftw
 module<span class="w"> </span>load<span class="w"> </span>intel-oneapi-compilers
@@ -851,6 +958,26 @@ module<span class="w"> </span>load<span class="w"> </span>openmpi
 module<span class="w"> </span>load<span class="w"> </span>intel-oneapi-compilers
 module<span class="w"> </span>load<span class="w"> </span>intel-oneapi-mpi
 </code></pre></div>
+<h3 id="ubuntu">Ubuntu</h3>
+<div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>gfortran<span class="w"> </span>cmake<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>libopenmpi-dev<span class="w"> </span>openmpi-bin<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>libfftw3-dev<span class="w"> </span>libfftw3-mpi-dev<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>libblas-dev<span class="w"> </span>liblapack-dev
+</code></pre></div>
+<p><code>libfftw3-mpi-dev</code> is the MPI-enabled FFTW, built against Open MPI.</p>
+<h3 id="macos">macOS</h3>
+<div class="highlight"><pre><span></span><code>brew<span class="w"> </span>install<span class="w"> </span>gcc<span class="w"> </span>cmake<span class="w"> </span>open-mpi<span class="w"> </span>fftw
+</code></pre></div>
+<p>LAPACK is provided by the Accelerate framework and needs no package.
+Homebrew's <code>fftw</code> already ships the MPI library, and <code>gcc</code> provides
+<code>gfortran</code>.</p>
+<hr />
+<h2 id="choosing-a-compiler">Choosing a Compiler</h2>
+<p>CMake picks up the compiler from the <code>FC</code> environment variable:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">FC</span><span class="o">=</span>gfortran<span class="w"> </span>cmake<span class="w"> </span>-B<span class="w"> </span>build
+</code></pre></div>
+<p>Both compiler families are exercised by CI: Intel <code>ifx</code> on Linux, and
+<code>gfortran</code> on both Ubuntu and macOS.</p>
 <hr />
 <h2 id="building-the-project">Building the Project</h2>
 <div class="highlight"><pre><span></span><code>cmake<span class="w"> </span>-B<span class="w"> </span>build
@@ -867,7 +994,8 @@ make
 <ul>
 <li><strong>Default build type:</strong> <code>Release</code>  </li>
 <li>
-<p>Applies optimization flags: <code>-ipo -O3</code></p>
+<p>Compiles with <code>-O3</code> and enables interprocedural optimization
+    (<code>-ipo</code> for Intel, <code>-flto</code> for GNU)</p>
 </li>
 <li>
 <p><strong>Debug build:</strong><br />
@@ -928,7 +1056,7 @@ make
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.indexes", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../javascripts/mathjax.js"></script>
       
