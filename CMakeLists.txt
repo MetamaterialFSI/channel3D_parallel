@@ -32,6 +32,13 @@ else()
     message(FATAL_ERROR "Invalid value for CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 endif()
 
+# Some source lines exceed the 132-column free-form limit. Intel compilers accept
+# them, but gfortran truncates at 132 (an error on some gfortran builds), so lift the
+# limit for GNU.
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none")
+endif()
+
 
 # get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
 # if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
@@ -39,9 +46,17 @@ endif()
 # elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
 # endif()
 
-add_link_options("-fuse-ld=lld") # Necessary to avoid "error adding symbols" error on GitHub runners
+# ifx emits LLVM bitcode into the static library when IPO is enabled, which GNU ld
+# cannot consume ("error adding symbols"); lld can. Other compilers do not need this,
+# and lld is often absent (e.g. a default macOS toolchain), so only ask for it here.
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
+    add_link_options("-fuse-ld=lld")
+endif()
 find_package(LAPACK REQUIRED)
-find_package(FFTW REQUIRED)
+# channel_lib links FFTW::Double and FFTW::DoubleMPI, so require both here:
+# without the components an FFTW lacking the MPI library still configures and
+# only fails later, when those targets turn out not to exist.
+find_package(FFTW REQUIRED COMPONENTS DOUBLE_LIB DOUBLE_MPI_LIB)
 find_package(MPI COMPONENTS Fortran REQUIRED)
 
 message(STATUS "CMAKE_Fortran_COMPILER_ID: ${CMAKE_Fortran_COMPILER_ID}")
