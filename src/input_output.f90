@@ -7,7 +7,6 @@ Module input_output
   Use iso_fortran_env, Only : error_unit, Int32, Int64
   Use global
   Use mpi
-  Use ifport
   Use pressure
 
   ! prevent implicit typing
@@ -349,8 +348,8 @@ Contains
   Subroutine read_input_data
 
     Integer(Int32) ::  nx_global_f,  ny_global_f,  nz_global_f, iproc, nze, nzge
-    Integer(Int32) :: nxm_global_f, nym_global_f, nzm_global_f, nn(3), ndum
-    Integer(Int64) :: pos_header, nsize_U, nsize_V, ii, jj, kk
+    Integer(Int32) :: nxm_global_f, nym_global_f, nzm_global_f, nn(3)
+    Integer(Int64) :: pos_header, nsize_U, nsize_V, ii, jj, kk, ipos
 
     ! processor 0 Reads the all the data
     If ( myid==0 ) Then
@@ -406,12 +405,12 @@ Contains
       Do iproc = 1, nprocs-1
         nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
         If ( iproc<nprocs-1 ) Then
-          ndum = fseek(1,-2*nx_global*nyg_global*8,seek_cur) ! ghost cell
-          Read(1) Uo(:,:,1:nzge)
+          Inquire(1,pos=ipos)
+          Read(1,pos=ipos-2_Int64*nx_global*nyg_global*8) Uo(:,:,1:nzge) ! back up over ghost cell
           Call Mpi_send(Uo,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
         Else ! especial case: U has different size for last processor
-          ndum = fseek(1,-2*nx_global*nyg_global*8,seek_cur) ! ghost cell
-          Read(1) Uoo(:,:,1:nzge)
+          Inquire(1,pos=ipos)
+          Read(1,pos=ipos-2_Int64*nx_global*nyg_global*8) Uoo(:,:,1:nzge) ! back up over ghost cell
           Call Mpi_send(Uoo,nx*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
         End If
       Enddo       
@@ -422,9 +421,8 @@ Contains
     ! V
     If ( myid==0 ) Then
       ! go to correct position. I dont know, if I dont do this it gets lost sometimes
-      ndum = fseek(1,pos_header+3*4+nsize_U,seek_set)
-      ! read dummy
-      Read(1) nn
+      ! read dummy (pos_header is a 0-based offset, POS= is 1-based)
+      Read(1,pos=pos_header+3*4+nsize_U+1) nn
       If ( nn(1)/=nxg_global .or. nn(2)/=ny_global .or. nn(3)/=nzg_global ) Then 
          Write(*,*) 'nn',nn
          Stop 'Error! wrong size in input file (V)'
@@ -436,12 +434,12 @@ Contains
       Do iproc = 1, nprocs-1
         nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
         If ( iproc<nprocs-1 ) Then
-          ndum = fseek(1,-2*nxg_global*ny_global*8,seek_cur) ! ghost cell
-          Read(1) Vo(:,:,1:nzge) 
+          Inquire(1,pos=ipos)
+          Read(1,pos=ipos-2_Int64*nxg_global*ny_global*8) Vo(:,:,1:nzge) ! back up over ghost cell 
           Call Mpi_send(Vo,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
         Else ! especial case: V has different size for last processor
-          ndum = fseek(1,-2*nxg_global*ny_global*8,seek_cur) ! ghost cell
-          Read(1) Voo(:,:,1:nzge) 
+          Inquire(1,pos=ipos)
+          Read(1,pos=ipos-2_Int64*nxg_global*ny_global*8) Voo(:,:,1:nzge) ! back up over ghost cell 
           Call Mpi_send(Voo,nxg*ny*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
         End If
       Enddo       
@@ -452,9 +450,8 @@ Contains
     ! W
     If ( myid==0 ) Then
       ! go to correct position. I dont know, if I dont do this it gets lost sometimes
-      ndum = fseek(1,pos_header+3*4+nsize_U+3*4+nsize_V,seek_set)
-      ! read dummy
-      Read(1) nn
+      ! read dummy (pos_header is a 0-based offset, POS= is 1-based)
+      Read(1,pos=pos_header+3*4+nsize_U+3*4+nsize_V+1) nn
       If ( nn(1)/=nxg_global .or. nn(2)/=nyg_global .or. nn(3)/=nz_global ) Then 
         Write(*,*) 'nn',nn
         Stop 'Error! wrong size in input file (W)'
@@ -466,12 +463,12 @@ Contains
       Do iproc = 1, nprocs-1
         nze = k2_global(iproc) - k1_global(iproc) + 1 ! local size in z for processor iproc
         If ( iproc<nprocs-1 ) Then
-          ndum = fseek(1,-2*nxg_global*nyg_global*8,seek_cur) ! ghost cell
-          Read(1) Wo(:,:,1:nzge)
+          Inquire(1,pos=ipos)
+          Read(1,pos=ipos-2_Int64*nxg_global*nyg_global*8) Wo(:,:,1:nzge) ! back up over ghost cell
           Call Mpi_send(Wo,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
         Else ! especial case: W has different size for last processor
-          ndum = fseek(1,-2*nxg_global*nyg_global*8,seek_cur) ! ghost cell
-          Read(1) Woo(:,:,1:nzge)
+          Inquire(1,pos=ipos)
+          Read(1,pos=ipos-2_Int64*nxg_global*nyg_global*8) Woo(:,:,1:nzge) ! back up over ghost cell
           Call Mpi_send(Woo,nxg*nyg*nze,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,ierr)
         End If
       Enddo       
@@ -505,7 +502,7 @@ Contains
   Subroutine read_additional_input_data
 
     Integer(Int32) ::  nx_global_f,  ny_global_f,  nz_global_f, iproc, nze, nzge
-    Integer(Int32) :: nxm_global_f, nym_global_f, nzm_global_f, nn(3), ndum
+    Integer(Int32) :: nxm_global_f, nym_global_f, nzm_global_f, nn(3)
     Integer(Int64) :: pos_header, nsize_U, nsize_V, nsize_W, nsize_P, ii, jj, kk
     Integer(Int32) :: xb_shape_f, yb_shape_f, zb_shape_f, fb_shape_f, nxb_f, nzb_f
     Real(Int64) :: t_f, dt_f, dpdx_f, nu_f
@@ -555,9 +552,8 @@ Contains
       ! jj = absolute (0-based) byte position of the time record, just past
       ! the U/V/W/P (+ Hu/Hv/Hw) field block.
       jj = pos_header+2*3*4+2*nsize_U+2*3*4+2*nsize_V+2*3*4+2*nsize_W+3*4+nsize_P
-      ndum = fseek(1,jj,seek_set)
-      ! Time
-      Read(1) t_f
+      ! Time (jj is a 0-based offset, POS= is 1-based)
+      Read(1,pos=jj+1) t_f
       If ( read_input_time ) Then
         t = t_f
         write(*,*) "input t overwritten by ", t_f
@@ -577,38 +573,36 @@ Contains
       Read(1) nu_f
 
       If ( read_input_IB_data ) Then
-        ! NOTE: on a convert='big_endian' stream unit, the code loses the file
-        ! position after a large array Read (see the "it gets lost sometimes"
-        ! re-seeks in read_input_data for U/V/W/P). The body arrays are large,
-        ! so we re-seek to a computed absolute position before every record
-        ! rather than relying on the position left by the previous Read.
-        ! ii tracks the 0-based byte offset of the next record; each shape
-        ! count is a 4-byte Int32 and each value is an 8-byte real.
+        ! Each record is read from a computed absolute position rather than
+        ! relying on the position left by the previous Read. ii tracks the
+        ! 0-based byte offset of the next record; each shape count is a 4-byte
+        ! Int32 and each value is an 8-byte real. POS= is 1-based, hence the
+        ! +1 (shape count) and +5 (data, i.e. past the 4-byte count).
         ii = jj + 32_Int64                       ! past t, dt, dpdx, nu (4 reals)
 
-        ndum = fseek(1,ii    ,seek_set); Read(1) xb_shape_f
+        Read(1,pos=ii+1) xb_shape_f
         If ( xb_shape_f/=Size(xb) ) Stop 'xb_shape_f/=size(xb)'
-        ndum = fseek(1,ii+4  ,seek_set); Read(1) xb
+        Read(1,pos=ii+5) xb
         ii = ii + 4_Int64 + Size(xb)*8_Int64
 
-        ndum = fseek(1,ii    ,seek_set); Read(1) yb_shape_f
+        Read(1,pos=ii+1) yb_shape_f
         If ( yb_shape_f/=Size(yb) ) Stop 'yb_shape_f/=size(yb)'
-        ndum = fseek(1,ii+4  ,seek_set); Read(1) yb
+        Read(1,pos=ii+5) yb
         ii = ii + 4_Int64 + Size(yb)*8_Int64
 
-        ndum = fseek(1,ii    ,seek_set); Read(1) zb_shape_f
+        Read(1,pos=ii+1) zb_shape_f
         If ( zb_shape_f/=Size(zb) ) Stop 'zb_shape_f/=size(zb)'
-        ndum = fseek(1,ii+4  ,seek_set); Read(1) zb
+        Read(1,pos=ii+5) zb
         ii = ii + 4_Int64 + Size(zb)*8_Int64
 
-        ndum = fseek(1,ii    ,seek_set); Read(1) nxb_f
-        ndum = fseek(1,ii+4  ,seek_set); Read(1) nzb_f
+        Read(1,pos=ii+1) nxb_f
+        Read(1,pos=ii+5) nzb_f
         ii = ii + 8_Int64
 
         ! surface stress
-        ndum = fseek(1,ii    ,seek_set); Read(1) fb_shape_f
+        Read(1,pos=ii+1) fb_shape_f
         If ( fb_shape_f/=Size(fb) ) Stop 'fb_shape_f/=size(fb)'
-        ndum = fseek(1,ii+4  ,seek_set); Read(1) fb
+        Read(1,pos=ii+5) fb
       End If
     End If
 
