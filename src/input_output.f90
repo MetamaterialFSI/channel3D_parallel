@@ -268,7 +268,7 @@ Contains
   Subroutine init_flow
   
     Integer(Int32) :: ii, jj, kk
-    Real(Int64) :: ym_val
+    Real(Int64) :: ym_val, rand_val
 
     Select Case (init_type)
       Case (0) ! read input data from file
@@ -294,7 +294,8 @@ Contains
         Do ii=1,nx_global
           Do jj=1,nyg_global
              Do kk=1,nzg
-               U(ii,jj,kk) = U(ii,jj,kk) + perturb_scale * (rand() - 0.5)
+               Call random_number(rand_val)
+               U(ii,jj,kk) = U(ii,jj,kk) + perturb_scale * (rand_val - 0.5)
              End Do
           End Do
         End Do
@@ -306,7 +307,8 @@ Contains
         Do ii=1,nxg_global
           Do jj=1,ny_global
              Do kk=1,nzg
-               V(ii,jj,kk) = V(ii,jj,kk) + perturb_scale * (rand() - 0.5)
+               Call random_number(rand_val)
+               V(ii,jj,kk) = V(ii,jj,kk) + perturb_scale * (rand_val - 0.5)
              End Do
           End Do
         End Do
@@ -318,7 +320,8 @@ Contains
         Do ii=1,nxg_global
           Do jj=1,ny_global
              Do kk=1,nz
-               W(ii,jj,kk) = W(ii,jj,kk) + perturb_scale * (rand() - 0.5)
+               Call random_number(rand_val)
+               W(ii,jj,kk) = W(ii,jj,kk) + perturb_scale * (rand_val - 0.5)
              End Do
           End Do
         End Do
