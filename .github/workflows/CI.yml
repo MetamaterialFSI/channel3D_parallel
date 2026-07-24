@@ -106,3 +106,59 @@ jobs:
         mpirun -n 2 ../build/channel3D input_parameters_non_ib || exit 1
         mkdir -p channel_output_ib_planar_wall
         mpirun -n 2 ../build/channel3D input_parameters_ib_planar_wall || exit 1
+
+  build_gfortran:
+    name: gfortran (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Report both platforms independently rather than cancelling on first failure
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
+    env:
+      FC: gfortran
+    steps:
+    - uses: actions/checkout@v4
+
+    # Unlike the ifx job, FFTW does not need building from source here: both
+    # package managers ship an MPI-enabled FFTW built against Open MPI.
+    - name: Install dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gfortran cmake \
+          libopenmpi-dev openmpi-bin \
+          libfftw3-dev libfftw3-mpi-dev \
+          libblas-dev liblapack-dev
+
+    # LAPACK comes from the Accelerate framework, so it needs no package.
+    - name: Install dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: brew install gcc open-mpi fftw
+
+    - name: Debug Environment
+      run: |
+        echo "Fortran compiler: $(which gfortran) -> $(gfortran --version | head -1)"
+        echo "MPI: $(which mpirun) -> $(mpirun --version | head -1)"
+        echo "CMake: $(cmake --version | head -1)"
+
+    - name: CMake Configure
+      run: cmake -B build -DBUILD_TESTING=ON
+
+    - name: CMake build
+      run: cmake --build build
+
+    - name: Run Testing Framwork
+      run: ctest --test-dir build --output-on-failure
+
+    - name: Test executable
+      shell: bash
+      run: |
+        cd examples
+        mkdir -p channel_output_non_ib
+        mpirun -n 2 ../build/channel3D input_parameters_non_ib || exit 1
+        mkdir -p channel_output_ib_planar_wall
+        mpirun -n 2 ../build/channel3D input_parameters_ib_planar_wall || exit 1
