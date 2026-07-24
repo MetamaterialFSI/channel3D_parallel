@@ -32,6 +32,13 @@ else()
     message(FATAL_ERROR "Invalid value for CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 endif()
 
+# Some source lines exceed the 132-column free-form limit. Intel compilers accept
+# them, but gfortran truncates at 132 (an error on some gfortran builds), so lift the
+# limit for GNU.
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none")
+endif()
+
 
 # get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
 # if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
