@@ -46,7 +46,10 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
     add_link_options("-fuse-ld=lld")
 endif()
 find_package(LAPACK REQUIRED)
-find_package(FFTW REQUIRED)
+# channel_lib links FFTW::Double and FFTW::DoubleMPI, so require both here:
+# without the components an FFTW lacking the MPI library still configures and
+# only fails later, when those targets turn out not to exist.
+find_package(FFTW REQUIRED COMPONENTS DOUBLE_LIB DOUBLE_MPI_LIB)
 find_package(MPI COMPONENTS Fortran REQUIRED)
 
 message(STATUS "CMAKE_Fortran_COMPILER_ID: ${CMAKE_Fortran_COMPILER_ID}")
