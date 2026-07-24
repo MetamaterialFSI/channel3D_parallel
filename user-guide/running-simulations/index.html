@@ -433,6 +433,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#choosing-the-number-of-processes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing the number of processes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#notes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -779,6 +790,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#choosing-the-number-of-processes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing the number of processes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#notes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -833,11 +855,33 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>output_dir
 mpirun<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>../build/channel3D<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$input_file</span><span class="s2">&quot;</span>
 </code></pre></div>
 <hr />
+<h2 id="choosing-the-number-of-processes">Choosing the number of processes</h2>
+<p>The domain is decomposed across MPI ranks in the z-direction (real space) and,
+after the transposed FFT, in the x-direction (spectral space). The number of
+processes <code>nprocs</code> must therefore satisfy:</p>
+<ul>
+<li><code>nprocs &gt;= 2</code> — running with <code>-np 1</code> fails.</li>
+<li><code>nprocs</code> divides <code>nz_global - 2</code> (the real-space z-slices).</li>
+<li><code>nprocs</code> divides <code>nx_global - 2</code> (the transposed spectral x-extent).</li>
+<li><code>(nz_global - 2) / nprocs &gt;= 3</code>, i.e. at least a few z-slices per rank.</li>
+</ul>
+<p>Both divisibility conditions are checked at startup and stop the run with a
+clear message if violated.</p>
+<div class="admonition warning">
+<p class="admonition-title"><code>nx_global - 2</code> divisibility</p>
+<p>Older versions checked only <code>nz_global - 2</code>. A <code>nprocs</code> that divides
+<code>nz_global - 2</code> but <strong>not</strong> <code>nx_global - 2</code> used to run and produce <code>NaN</code>
+output instead of an error. This is now caught at startup, but keep the
+<code>nx_global - 2</code> rule in mind when choosing grids and process counts.</p>
+</div>
+<p>For example, with <code>nx_global = 34</code> and <code>nz_global = 34</code> (so <code>nx-2 = nz-2 = 32</code>),
+valid choices include <code>-np 2</code>, <code>4</code>, <code>8</code>, or <code>16</code>.</p>
+<hr />
 <h2 id="notes">Notes</h2>
 <ul>
 <li>The <code>output_dir</code> must match the <code>fileout</code> path specified in your input file.</li>
 <li>The number of processes (<code>-np</code>) <strong>must be at least 2</strong> — running with <code>-np 1</code> will cause the simulation to fail.</li>
-<li>Adjust <code>-np</code> to match the number of processes you want to run (≥ 2).</li>
+<li>Adjust <code>-np</code> to match the number of processes you want to run (≥ 2), subject to the divisibility rules above.</li>
 <li>Ensure your MPI environment is properly loaded before executing the command.</li>
 </ul>
 <hr />

@@ -931,7 +931,7 @@
 <td>int</td>
 <td>N/A</td>
 <td>Total number of grid points in x</td>
-<td>&gt;0</td>
+<td>even; <code>nx_global - 2</code> divisible by <code>nprocs</code></td>
 </tr>
 <tr>
 <td><code>ny_global</code></td>
@@ -945,31 +945,20 @@
 <td>int</td>
 <td>N/A</td>
 <td>Total number of grid points in z</td>
-<td>&gt;0</td>
-</tr>
-<tr>
-<td><code>alpha_stretch</code></td>
-<td>float</td>
-<td>2.6</td>
-<td>Stretching factor for grid</td>
-<td>≥1</td>
-</tr>
-<tr>
-<td><code>grid_type</code></td>
-<td>int</td>
-<td>N/A</td>
-<td>Type of grid (uniform, stretched, etc.)</td>
-<td>0 (uniform), 1 (stretched grid wall to wall), 2 (stretched grid with uniform buffers on each end)</td>
-</tr>
-<tr>
-<td><code>min_buffer_width</code></td>
-<td>float</td>
-<td>0.0</td>
-<td>Minimum buffer width for grid type 2</td>
-<td>≥0</td>
+<td>even; <code>nz_global - 2</code> divisible by <code>nprocs</code></td>
 </tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="admonition-title">Grid size and process count</p>
+<p><code>nx_global</code> and <code>nz_global</code> must be even, and both <code>nx_global - 2</code> and
+<code>nz_global - 2</code> must be divisible by the number of MPI processes. See
+<a href="../running-simulations/#choosing-the-number-of-processes">Running Simulations</a>
+for details.</p>
+</div>
+<p>| <code>alpha_stretch</code> | float  | 2.6           | Stretching factor for grid | ≥1 |
+| <code>grid_type</code>     | int    | N/A           | Type of grid (uniform, stretched, etc.) | 0 (uniform), 1 (stretched grid wall to wall), 2 (stretched grid with uniform buffers on each end) |
+| <code>min_buffer_width</code> | float | 0.0         | Minimum buffer width for grid type 2 | ≥0 |</p>
 <hr />
 <h2 id="solver-parameters">Solver Parameters</h2>
 <table>
