@@ -150,11 +150,12 @@ Contains
     Real(Int64) :: rho_o, rho_n, alpha, om, eps, error, bta
 
     !initialize
-    error = 1.d0
     eps = cg_tol * cg_tol
     iter = 0
     Call schur(bcg_r, bcg_x)
     bcg_r = bcg_b - bcg_r
+    error = dot_product( bcg_r, bcg_r)
+    Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
     bcg_rhat = bcg_r
     rho_o = 1.d0
     alpha = 1.d0
