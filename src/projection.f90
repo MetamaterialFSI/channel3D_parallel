@@ -81,6 +81,7 @@ Contains
 
     ! Pnp1 = P* - Linv D R f
     rhs_p = P_interim - rhs_p
+    P_interim = rhs_p
 
     ! U, V, W = G Pnp1
     rhs_p = dt * rhs_p

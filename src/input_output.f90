@@ -547,7 +547,7 @@ Contains
       nsize_U    = nx_global*nyg_global*nzg_global*8
       nsize_V    = nxg_global*ny_global*nzg_global*8
       nsize_W    = nxg_global*nyg_global*nz_global*8
-      nsize_P    = nxg_global*nyg_global*nzg_global*8
+      nsize_P    = (nxg_global-2)*(nyg_global-2)*(nzg_global-1)*8 ! P_interim extent
 
     End If
 
@@ -641,7 +641,8 @@ Contains
     Character(200)   :: fname
     Character(8)     :: ext
     Integer  (Int32) :: iproc, nze, nzge
-    
+    Real(Int64), Allocatable :: P_interim_buf(:,:,:)
+
     If ( Mod(istep,nsave)==0 ) then
 
       ! P
@@ -735,25 +736,27 @@ Contains
         End Do
       Endif
 
-      ! P
+      ! P_interim
       If ( myid/=0 ) Then
-        ! data from processor n>0    
-        Call Mpi_send(P,nxg*nyg*nzg,Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
+        ! data from processor n>0
+        Call Mpi_send(P_interim,(nxg-2)*(nyg-2)*(nzg-1),Mpi_real8,0,myid,MPI_COMM_WORLD,ierr)
       Else
-        ! write P size
-        Write(1) nxg_global,nyg_global,nzg_global
+        ! write P_interim size
+        Write(1) nxg_global-2,nyg_global-2,nzg_global-1
         ! processor 0 writes its data
-        Write(1) P(:,:,1:nzg-1)
+        Write(1) P_interim(:,:,2:nzg-1)
         ! processor 0 receives and write rest data
         Do iproc = 1, nprocs-1
           nzge = kg2_global(iproc) - kg1_global(iproc) + 1 ! local size in z for processor iproc
+          Allocate( P_interim_buf(2:nxg-1, 2:nyg-1, 2:nzge) )
           If ( iproc<nprocs-1 ) Then
-            Call Mpi_recv(Po,nxg*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-            Write(1) Po(:,:,2:nzge-1)
+            Call Mpi_recv(P_interim_buf,(nxg-2)*(nyg-2)*(nzge-1),Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) P_interim_buf(:,:,2:nzge-1)
           Else
-            Call Mpi_recv(Poo,nxg*nyg*nzge,Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
-            Write(1) Poo(:,:,2:nzge)
+            Call Mpi_recv(P_interim_buf,(nxg-2)*(nyg-2)*(nzge-1),Mpi_real8,iproc,iproc,MPI_COMM_WORLD,istat,ierr)
+            Write(1) P_interim_buf(:,:,2:nzge)
           End If
+          Deallocate( P_interim_buf )
         End Do
       Endif
 
