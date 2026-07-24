@@ -9,42 +9,29 @@ project(Channel3D VERSION 0.1
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
-if(NOT CMAKE_BUILD_TYPE) 
-    set(CMAKE_BUILD_TYPE Release)
-endif(NOT CMAKE_BUILD_TYPE)
-string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
-
-if(uppercase_CMAKE_BUILD_TYPE STREQUAL "RELEASE")
-    message(STATUS "Build type: Release")
-    set(CMAKE_Fortran_FLAGS "-O3")
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
-elseif(uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-    message(STATUS "Build type: Debug")
-    set(CMAKE_Fortran_FLAGS "-g -O0")
-    if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-        set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -traceback -check bounds")
-    elseif(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
-        set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -traceback -check bounds")
-    elseif(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
-        set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fbacktrace -fcheck=bounds")
-    endif()
-else()
-    message(FATAL_ERROR "Invalid value for CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+# Default to Release for single-config generators when nothing was requested.
+# Multi-config generators (Ninja Multi-Config, Xcode) leave CMAKE_BUILD_TYPE empty
+# and choose per build instead, so only set a default when neither is present.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
-# Some source lines exceed the 132-column free-form limit. Intel compilers accept
-# them, but gfortran truncates at 132 (an error on some gfortran builds), so lift the
-# limit for GNU.
+# Per-config optimization comes from CMake's own defaults (CMAKE_Fortran_FLAGS_RELEASE
+# is -O3, CMAKE_Fortran_FLAGS_DEBUG is -g); we only add interprocedural optimization
+# to the Release configuration on top of that.
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+
+# Compiler-specific flags. These append to the flag variables rather than replacing
+# them, so anything passed via -DCMAKE_Fortran_FLAGS=... or the FFLAGS environment
+# variable is preserved.
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
-    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none")
+    # Some source lines exceed the 132-column free-form limit; Intel accepts them but
+    # gfortran truncates at 132 (an error on some gfortran builds), so lift the limit.
+    string(APPEND CMAKE_Fortran_FLAGS " -ffree-line-length-none")
+    string(APPEND CMAKE_Fortran_FLAGS_DEBUG " -fbacktrace -fcheck=bounds")
+elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")   # matches Intel and IntelLLVM
+    string(APPEND CMAKE_Fortran_FLAGS_DEBUG " -traceback -check bounds")
 endif()
-
-
-# get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
-# if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
-#   set (CMAKE_Fortran_FLAGS "<gfortran flags go here>")
-# elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
-# endif()
 
 # ifx emits LLVM bitcode into the static library when IPO is enabled, which GNU ld
 # cannot consume ("error adding symbols"); lld can. Other compilers do not need this,
