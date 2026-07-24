@@ -188,11 +188,15 @@ Contains
       Write(*,*) 'dxb / dx :', dxb / dx
       Write(*,*) 'dzb / dz :', dzb / dz
 
-      Write(*,*) ' '
-      Write(*,*) 'xb(1),xb(nb) :',xb(1), xb(nb)
-      Write(*,*) 'yb(1),yb(nb) :',yb(1), yb(nb)
-      Write(*,*) 'zb(1),zb(nb) :',zb(1), zb(nb)
-      
+      ! xb/yb/zb hold the Lagrangian boundary points; there are none (nb = 0)
+      ! when body_type = 'none', so indexing them would be out of bounds.
+      If ( trim(body_type) /= 'none' ) Then
+        Write(*,*) ' '
+        Write(*,*) 'xb(1),xb(nb) :',xb(1), xb(nb)
+        Write(*,*) 'yb(1),yb(nb) :',yb(1), yb(nb)
+        Write(*,*) 'zb(1),zb(nb) :',zb(1), zb(nb)
+      End If
+
       Write(*,*) ' '
       Write(*,*) '------------------------------------------------------------'
     
