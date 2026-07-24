@@ -12,6 +12,7 @@ theme:
     - content.code.copy
 
 markdown_extensions:
+  - admonition
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.superfences
