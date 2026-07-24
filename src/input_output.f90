@@ -212,8 +212,8 @@ Contains
 
           If (2 * n_uniform >= Ny) Stop 'Number of buffer points exceeds the total number of grid points' 
         End Do
-        ! Move entire channel in the positive y-direction to center around y = 1
-        y_global = y_global + 1d0
+        ! Move entire channel in the positive y-direction to center around y = Ly_channel/2
+        y_global = y_global + Ly_channel / 2d0
 
     End Select
 
