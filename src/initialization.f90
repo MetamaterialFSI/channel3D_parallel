@@ -590,6 +590,7 @@ Contains
     Allocate ( bcg_sv( 4 * nb) )
     Allocate ( bcg_tv( 4 * nb) )
     cg_accum_iter = 0
+    cg_nsolves    = 0
 
     !-------------------------Done--------------------------------!
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)

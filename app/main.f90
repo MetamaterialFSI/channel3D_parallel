@@ -99,8 +99,11 @@ Program channel_FD
   dPdy      = 0d0
   
   ! write snapshot if needed
+  ! istep must be set before output_data/compute_statistics/output_monitor,
+  ! which all test it against their output intervals
+  istep = 0
   Call output_data
-  Call compute_statistics 
+  Call compute_statistics
   Call output_monitor
 
   ! temporal loop
