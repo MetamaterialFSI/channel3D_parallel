@@ -69,12 +69,12 @@ Contains
       Write(*,*) 'reading input parameters...'
 
       Open(newunit=iounit, file=fileparams, status="old", action="read", iostat=ioerr, iomsg=msg)
-      If (ierr /= 0) then
+      If (ioerr /= 0) then
           Print *, "Error opening input file. IOSTAT =", ioerr, " IOMSG = ", msg
           Stop 1
       End If
       Read(iounit, Nml=params, IOSTAT=ioerr, IOMSG=msg)
-      If (ierr /= 0) then
+      If (ioerr /= 0) then
           Print *, "Error reading namelist. IOSTAT =", ioerr, " IOMSG = ", msg
           Stop 1
       End If
