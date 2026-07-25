@@ -23,6 +23,7 @@ Contains
     Real(Int64) ::  maxU,  maxV,  maxW, local_sum
     Real(Int64) :: meanU, meanV, meanW
     Real(Int64) :: max_divergence, max_slip
+    Integer(Int32) :: nsolves
 
     If ( Mod(istep,nmonitor)==0 ) Then
 
@@ -52,9 +53,17 @@ Contains
         Call check_slip(max_slip)
       End If
 
-      ! compute average number of bicgstab iterations
-      cg_mean_iter = cg_accum_iter / Real(3 * nmonitor)
+      ! compute average number of bicgstab iterations over the solves that
+      ! actually ran since the last monitor output, rather than assuming a
+      ! fixed number of solves per time step
+      nsolves = cg_nsolves
+      If ( nsolves > 0 ) Then
+        cg_mean_iter = Real(cg_accum_iter, 8) / Real(nsolves, 8)
+      Else
+        cg_mean_iter = 0d0
+      End If
       cg_accum_iter = 0
+      cg_nsolves    = 0
 
       ! end measure time per step
       time2 = MPI_WTIME()
@@ -91,7 +100,9 @@ Contains
         write(*,*) 'Maximum divergence               :', max_divergence
         If ( trim(body_type) /= 'none' ) Then
           write(*,*) 'Maximum IB slip                  :', max_slip
-          write(*,'(A,F10.3)') ' Average BiCGSTAB iteration count :', cg_mean_iter
+          If ( nsolves > 0 ) Then
+            write(*,'(A,F10.3)') ' Average BiCGSTAB iteration count :', cg_mean_iter
+          End If
         End If
         write(*,*) 'Elapsed time (s)                 :', time2-time1
         

@@ -256,7 +256,8 @@ Module global
   Real   (Int64), Dimension(:), Allocatable :: E1nHc_exterior, E1nH_exterior
 
   ! Biconjugate gradient max iterations and tolerance
-  Integer(Int32) :: cg_max_iter, cg_accum_iter
+  ! cg_accum_iter and cg_nsolves accumulate over one monitor interval
+  Integer(Int32) :: cg_max_iter, cg_accum_iter, cg_nsolves
   Real(Int64) :: cg_tol, cg_mean_iter
 
   ! immersed boundary operator variables

@@ -180,6 +180,7 @@ Contains
       Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
     End Do
     cg_accum_iter = cg_accum_iter + iter
+    cg_nsolves    = cg_nsolves + 1
     If ((iter .eq. cg_max_iter) .and. (error .ge. eps) .and. (myid == 0)) Then
       Write(*,'(A,I4,A,ES10.3,A,ES10.3,A)') "WARNING: BiCGSTAB reached max iterations (", &
       iter, ") but residual norm (", sqrt(error), ") exceeds requested tolerance (", cg_tol, ")!"
