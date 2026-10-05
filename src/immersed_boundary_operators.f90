@@ -32,9 +32,24 @@ Contains
       xm_pivot_index(l) = Floor((xb(l) + 0.5 * dx) / dx)
       ! index of largest y value that is smaller than yb(l). The use of reference points is more efficient here than searching
       ! the y array for the closest point, in case there is grid stretching.
-      y_pivot_index(l) = Floor((yb(l) - y(y_ref_index(l))) / dymin) + y_ref_index(l)
-      ! index of largest ym value that is smaller than yb(l), not accounting for ghost cells
-      ym_pivot_index(l) = Floor((yb(l) - (y(y_ref_index(l)) + 0.5 * dymin)) / dymin) + y_ref_index(l)
+      
+      
+      !y_pivot_index(l) = Floor((yb(l) - y(y_ref_index(l))) / dymin) + y_ref_index(l)
+      !! index of largest ym value that is smaller than yb(l), not accounting for ghost cells
+      !ym_pivot_index(l) = Floor((yb(l) - (y(y_ref_index(l)) + 0.5 * dymin)) / dymin) + y_ref_index(l)
+      
+      ! index of the largest y coordinate satisfying y <= yb(l)
+       !y_pivot_index(l) = Maxloc( &
+        !   y_global, Dim=1, Mask=(y_global <= yb(l)) )
+
+  ! index of the largest ym coordinate satisfying ym <= yb(l)
+      ! ym_pivot_index(l) = Maxloc( &
+       !  ym_global, Dim=1, Mask=(ym_global <= yb(l)) )
+       ! Coordinate-correct search for the nonuniform y grid.
+  y_pivot_index(l) = last_index_leq(y_global, yb(l))
+
+  ym_pivot_index(l) = last_index_leq(ym_global, yb(l))
+      
       ! index of largest z value that is smaller than zb(l)
       z_pivot_index(l) = Floor(zb(l) / dz) + 1
       ! index of largest zm value that is smaller than zb(l), not accounting for periodicity. Can be zero
@@ -80,6 +95,9 @@ Contains
             End If 
 
             x_grid = x_global(ii_periodic) + x_periodic_shifts * Lxp
+            
+
+y_grid = ym_global(jj)
             y_grid = ym_global(jj)
             z_grid = zm_global(kk_periodic - 1) + z_periodic_shifts * Lzp
 
@@ -154,6 +172,7 @@ Contains
         Do j = -suppy, suppy
           Do i = -suppx, suppx
             ii = xm_pivot_index(l) + i - 1
+            !ii = xm_pivot_index(l) + i 
             jj = ym_pivot_index(l) + j
             kk = z_pivot_index(l) + k
 
@@ -940,4 +959,44 @@ real(kind(0.d0)), dimension(nblocks, nblocks), intent(inout) :: Kmat
   end do
 
 end subroutine stiffness_matrix
+Pure Integer(Int32) Function last_index_leq(grid, value) Result(idx)
+
+  Real(Int64), Intent(In) :: grid(:)
+  Real(Int64), Intent(In) :: value
+
+  Integer(Int32) :: ilo, ihi, imid
+  Integer(Int32) :: n
+
+  n = Size(grid)
+
+  ! Value lies below the grid.
+  If (value < grid(1)) Then
+    idx = 0
+    Return
+  End If
+
+  ! Value lies at or above the final coordinate.
+  If (value >= grid(n)) Then
+    idx = n
+    Return
+  End If
+
+  ilo = 1
+  ihi = n
+
+  Do While (ihi - ilo > 1)
+
+    imid = (ilo + ihi)/2
+
+    If (grid(imid) <= value) Then
+      ilo = imid
+    Else
+      ihi = imid
+    End If
+
+  End Do
+
+  idx = ilo
+
+End Function last_index_leq
 End Module immersed_boundary_operators

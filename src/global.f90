@@ -65,7 +65,7 @@ Module global
 
   ! global face points
   Integer(Int32) :: nx_global, ny_global, nz_global
-
+Integer(Int32) :: nd
   ! local face points
   Integer(Int32) :: nx, ny, nz
 
@@ -174,7 +174,9 @@ Module global
 
   ! pressure gradients
   Real(Int64) :: dPdx, dPdy, dPdz, dPdx_ref
-
+! Streamwise pressure-gradient component used during the RK3 predictor.
+! Saved because dPdx is overwritten by the end-of-step mass-flow correction.
+ Real(Int64) :: dPdx_RK = 0.d0
   ! constant mass flow
   Real   (Int64) :: Qflow_x_0, Qflow_y_0, Qflow_z_0
   Integer(Int32) :: x_mass_cte, y_mass_cte, z_mass_cte
@@ -235,7 +237,7 @@ Module global
 
   ! immersed body forcing
   Real(Int64), Dimension(:), Allocatable :: fb!, input_fb
-
+Real(Int64), Dimension(:), Allocatable :: fb_redist!, input_fb
   ! scalar array on the immersed boundary for debug purposes
   Real(Int64), Dimension(:), Allocatable :: debug_surface_scalar
 
@@ -278,11 +280,12 @@ Module global
   Logical(Int32) :: moving_z_flag ! True for moving in z direction; False: stationary in z direction (for identifying the partition)
 
   ! BiCGSTAB arrays
-  Real(Int64), Dimension(:), Allocatable :: bcg_r, bcg_rhat, bcg_p, bcg_nu, bcg_h, bcg_sv, bcg_tv
+  Real(Int64), Dimension(:), Allocatable :: bcg_r, bcg_rhat, bcg_p, bcg_nu, bcg_h, bcg_sv, bcg_tv, bcg_nu1
 
   !FSI intializations
 !structural model from 2014 kim paper
 REAL(KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE :: Mmat_testcase,Cmat_testcase,Kmat_testcase
+REAL(KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE :: Mmat_testcase_actual,Cmat_testcase_actual,Kmat_testcase_actual
 REAL(KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE ::  Kmat_testcase1,Kmat_testcase2,Kmat_testcase3
 Real   (kind(0.d0)) :: m_parm_testcase,k_parm_testcase,c_parm_testcase,Tx,Tz,A
 

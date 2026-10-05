@@ -6,8 +6,8 @@ Module equations
   ! Modules
   Use iso_fortran_env, Only : error_unit, Int32, Int64
   Use global,          Only : x, xm, xg, y, ym, yg, z, zm, zg, term_1, & 
-                              term_2, nx, nxg, ny, nyg, nz, nzg,       & 
-                              nu, dPdx, dPdz, yg_m
+                              term_2, nx, nxg, ny, nyg, nz, nzg,Ly_channel,       & 
+                              nu, dPdx, dPdz, yg_m, Hu_interior, Hv_interior, Hw_interior, Hu_exterior, Hv_exterior, Hw_exterior
   Use interpolation
   
   ! prevent implicit typing
@@ -143,8 +143,19 @@ Contains
     rhs_u = rhs_u + term_2(2:nx-1,2:nyg-1,2:nzg-1)
 
     !--------------Constant pressure gradient-------------!
-    rhs_u = rhs_u + dPdx
-
+    !rhs_u = rhs_u + dPdx
+! Apply pressure gradient only to the instantaneous top channel
+rhs_u = rhs_u + dPdx * &
+        Hu_interior(2:nx-1,2:nyg-1,2:nzg-1)
+!Do k = 2,nzg-1
+ ! Do j = 2,nyg-1
+  !  If (yg(j) > 0.5d0*Ly_channel) Then
+   !   Do i = 2,nx-1
+   !    rhs_u(i,j,k) = rhs_u(i,j,k) + dPdx
+    !  End Do
+    !End If
+  !End Do
+!End Do
   End Subroutine compute_rhs_u
 
   !--------------------------------------------------------------------!

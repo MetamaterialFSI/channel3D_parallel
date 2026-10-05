@@ -89,14 +89,20 @@ Contains
         nb_end = -1
 
       Case ('center_wall') ! Static planar wall centered at y = 1
-        If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
+       If ( grid_type /= 0 .and. grid_type /= 2 .and. grid_type /= 3 ) Stop 'Error: body type is incompatible with grid type'
         moving_body = .False.
         moving_z_flag = .False.
 
         ub = 0d0
         ! Reference points are the center of the domain
-        y_ref_index = ny_global / 2 ! automatically rounds down
-
+        !y_ref_index = ny_global / 2 ! automatically rounds down
+        y_ref_index = Minloc( &
+        Abs(y_global - 0.5d0*Ly_channel), &
+        Dim=1 )
+       ! If (myid == 0) Then
+  !Write(*,*) 'IB reference y index = ', y_ref_index
+  !Write(*,*) 'IB reference y       = ', y_global(y_ref_index)
+!End If
         ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
         ! (i.e., fall between an nb_start and nb_end)
         nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
@@ -404,6 +410,45 @@ Contains
         Write(*,*) 'traveling wave in z-direction not yet implemented'
         Stop 
      Case ('center_wall_deforming_testcase') ! Deforming planar wall centered at y = 1 (testcase)
+        If ( grid_type /= 0 .and. grid_type /= 2 .and. grid_type /= 3) Stop 'Error: body type is incompatible with grid type'
+        moving_body = .False.
+        moving_z_flag = .False.
+
+        ub = 0d0
+        ! Reference points are the center of the domain
+        !y_ref_index = ny_global / 2 ! automatically rounds down
+        y_ref_index = Minloc( &
+        Abs(y_global - 0.5d0*Ly_channel), &
+        Dim=1 )
+        ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
+        ! (i.e., fall between an nb_start and nb_end)
+        nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
+        nb_end = 1         ! Initialize to the lowest possible index
+        Do j = 1, nzb
+          Do i = 1, nxb
+            k = i + (j-1) * nxb
+            xb(k) = (real(i,8) - 0.5d0) * dxb
+            yb(k) = 0.5d0 * Ly_channel
+            zb(k) = (real(j,8) - 0.5d0) * dzb
+          End Do
+          If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
+            nb_start = (j-1) * nxb + 1
+          End If
+          If (zb(j * nxb) < z(nz-1) .and. nb_end < j * nxb) then
+            nb_end = j * nxb
+          End If
+        End Do
+        
+        sb = dxb * dzb
+
+        ! Vector arrays
+        Do k=1,nb
+          tangents_1(k) = 1d0
+          tangents_2(2*nb + k) = -1d0
+          normals(nb + k) = -1d0
+        End Do
+
+      Case ('center_wall_deforming_subsurface') ! Deforming planar wall centered at y = 1 (subsurface)
         If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
         moving_body = .False.
         moving_z_flag = .False.
@@ -440,47 +485,145 @@ Contains
           normals(nb + k) = -1d0
         End Do
 
-      Case ('center_wall_deforming_subsurface') ! Deforming planar wall centered at y = 1 (subsurface)
-        If ( grid_type /= 0 ) Stop 'Error: body type is incompatible with grid type'
-        moving_body = .False.
-        moving_z_flag = .False.
-
-        ub = 0d0
-        ! Reference points are the center of the domain
-        y_ref_index = ny_global / 2 ! automatically rounds down
-
-        ! Scalar arrays. Arrange such that the points treated by one partition are contiguous
-        ! (i.e., fall between an nb_start and nb_end)
-        nb_start = nb + 1  ! Initialize to an invalid value (beyond the max index)
-        nb_end = 1         ! Initialize to the lowest possible index
-        Do j = 1, nzb
-          Do i = 1, nxb
-            k = i + (j-1) * nxb
-            xb(k) = (real(i,8) - 0.5d0) * dxb
-            yb(k) = 0.5d0 * Ly_channel
-            zb(k) = (real(j,8) - 0.5d0) * dzb
-          End Do
-          If (zb((j-1) * nxb + 1) >= z(1) .and. nb_start > (j-1) * nxb + 1) then
-            nb_start = (j-1) * nxb + 1
-          End If
-          If (zb(j * nxb) < z(nz-1) .and. nb_end < j * nxb) then
-            nb_end = j * nxb
-          End If
-        End Do
-        
-        sb = dxb * dzb
-
-        ! Vector arrays
-        Do k=1,nb
-          tangents_1(k) = 1d0
-          tangents_2(2*nb + k) = -1d0
-          normals(nb + k) = -1d0
-        End Do
-
     End Select
 
   End Subroutine setup_IB_geometry
+Subroutine update_center_wall_surface_metrics
 
+  Integer(Int32) :: i, j, k
+  Integer(Int32) :: im, ip, jm, jp
+  Integer(Int32) :: kim, kip, kjm, kjp
+
+  Real(Int64) :: gx, gy, gz
+  Real(Int64) :: hx, hy, hz
+  Real(Int64) :: cx, cy, cz
+
+  Real(Int64) :: gmag, cmag
+  Real(Int64) :: t1x, t1y, t1z
+  Real(Int64) :: nxloc, nyloc, nzloc
+
+  If (trim(body_type) /= 'center_wall_deforming_testcase') Return
+
+  Do j = 1, nzb
+
+    ! Periodic neighbors in the z-parametric direction
+    jm = Modulo(j - 2, nzb) + 1
+    jp = Modulo(j,     nzb) + 1
+
+    Do i = 1, nxb
+
+      ! Periodic neighbors in the x-parametric direction
+      im = Modulo(i - 2, nxb) + 1
+      ip = Modulo(i,     nxb) + 1
+
+      k   = i  + (j  - 1)*nxb
+      kim = im + (j  - 1)*nxb
+      kip = ip + (j  - 1)*nxb
+      kjm = i  + (jm - 1)*nxb
+      kjp = i  + (jp - 1)*nxb
+
+      !------------------------------------------------------!
+      ! Central surface direction in the x-index direction. !
+      ! Use the actual 3-D marker coordinates.               !
+      !------------------------------------------------------!
+      gx = xb(kip) - xb(kim)
+      gy = yb(kip) - yb(kim)
+      gz = zb(kip) - zb(kim)
+
+      ! Minimum-image correction for periodic coordinates
+      gx = gx - Lxp*Anint(gx/Lxp)
+      gz = gz - Lzp*Anint(gz/Lzp)
+
+      gx = 0.5d0*gx
+      gy = 0.5d0*gy
+      gz = 0.5d0*gz
+
+      !------------------------------------------------------!
+      ! Central surface direction in the z-index direction. !
+      !------------------------------------------------------!
+      hx = xb(kjp) - xb(kjm)
+      hy = yb(kjp) - yb(kjm)
+      hz = zb(kjp) - zb(kjm)
+
+      hx = hx - Lxp*Anint(hx/Lxp)
+      hz = hz - Lzp*Anint(hz/Lzp)
+
+      hx = 0.5d0*hx
+      hy = 0.5d0*hy
+      hz = 0.5d0*hz
+
+      !------------------------------------------------------!
+      ! Cross product: g_x cross g_z.                        !
+      !                                                       !
+      ! For the undeformed center wall:                      !
+      !   g_x = (dxb,0,0)                                    !
+      !   g_z = (0,0,dzb)                                    !
+      !                                                       !
+      ! so the normal points downward: (0,-1,0).             !
+      !------------------------------------------------------!
+      cx = gy*hz - gz*hy
+      cy = gz*hx - gx*hz
+      cz = gx*hy - gy*hx
+
+      gmag = Sqrt(gx*gx + gy*gy + gz*gz)
+      cmag = Sqrt(cx*cx + cy*cy + cz*cz)
+
+      If (gmag <= 100d0*Epsilon(1d0) .or. &
+          cmag <= 100d0*Epsilon(1d0)) Then
+
+        Error Stop 'Degenerate element in center-wall surface geometry'
+
+      End If
+
+      !------------------------------------------------------!
+      ! First unit tangent: predominantly streamwise.        !
+      !------------------------------------------------------!
+      t1x = gx/gmag
+      t1y = gy/gmag
+      t1z = gz/gmag
+
+      tangents_1(k)        = t1x
+      tangents_1(nb+k)     = t1y
+      tangents_1(2*nb+k)   = t1z
+
+      !------------------------------------------------------!
+      ! Downward-pointing unit normal.                       !
+      !------------------------------------------------------!
+      nxloc = cx/cmag
+      nyloc = cy/cmag
+      nzloc = cz/cmag
+
+      normals(k)           = nxloc
+      normals(nb+k)        = nyloc
+      normals(2*nb+k)      = nzloc
+
+      !------------------------------------------------------!
+      ! Second tangent = tangent_1 cross normal.             !
+      !                                                       !
+      ! For a flat wall this becomes (0,0,-1), matching the  !
+      ! existing center-wall initialization.                 !
+      !------------------------------------------------------!
+      tangents_2(k) = &
+           t1y*nzloc - t1z*nyloc
+
+      tangents_2(nb+k) = &
+           t1z*nxloc - t1x*nzloc
+
+      tangents_2(2*nb+k) = &
+           t1x*nyloc - t1y*nxloc
+
+      !------------------------------------------------------!
+      ! Nodal current-surface area.                          !
+      !                                                       !
+      ! Because gx and gz are half central differences,      !
+      ! |gx cross gz| equals dA at this marker.               !
+      !------------------------------------------------------!
+      sb(k) = cmag
+
+    End Do
+  End Do
+
+End Subroutine update_center_wall_surface_metrics
   Subroutine remove_mean_per_body(f_)
     Implicit None
     Real(Int64), Dimension(nb), Intent(InOut) :: f_

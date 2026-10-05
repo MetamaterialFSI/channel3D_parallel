@@ -84,6 +84,7 @@ Contains
         Write(*,*) 'Mean masked mass flow in y  :', Qflow_y
         Write(*,*) 'Mean masked mass flow in z  :', Qflow_z
         Write(*,*) 'Mean pressure gradient in x :', dPdx
+       
         Write(*,*) 'Mean pressure gradient in y :', dPdy
         Write(*,*) 'Mean pressure gradient in z :', dPdz
         

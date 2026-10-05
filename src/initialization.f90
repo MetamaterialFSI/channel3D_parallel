@@ -498,7 +498,8 @@ Contains
     ! Body forcing
     Allocate (fb(3 * nb) )
     fb = 0d0
-
+ Allocate (fb_redist(3 * nb) )
+    fb_redist = 0d0
     ! Body velocity
     Allocate (ub (3 * nb) )
 
@@ -576,6 +577,7 @@ Contains
     Allocate ( bcg_rhat( 3 * nb) )
     Allocate ( bcg_p( 3 * nb) )
     Allocate ( bcg_nu( 3 * nb) )
+      Allocate ( bcg_nu1( 3 * nb) )
     Allocate ( bcg_h( 3 * nb) )
     Allocate ( bcg_sv( 3 * nb) )
     Allocate ( bcg_tv( 3 * nb) )
@@ -589,7 +591,11 @@ Contains
     Allocate(zbref(3*nb))
     Allocate(Mmat_testcase(nb,nb))
     Mmat_testcase=0.d0
+      Allocate(Mmat_testcase_actual(nb,nb))
+    Mmat_testcase=0.d0
     Allocate(Kmat_testcase(nb,nb))
+    Kmat_testcase=0.d0
+   Allocate(Kmat_testcase_actual(nb,nb))
     Kmat_testcase=0.d0
     Allocate(Kmat_testcase1(nb,nb))
     Kmat_testcase1=0.d0
@@ -598,6 +604,8 @@ Contains
     Allocate(Kmat_testcase3(nb,nb))
     Kmat_testcase3=0.d0
     Allocate(Cmat_testcase(nb,nb))
+    Cmat_testcase=0.d0
+   Allocate(Cmat_testcase_actual(nb,nb))
     Cmat_testcase=0.d0
     Allocate(sol_mat(nb,nb))
     sol_mat=0.d0
@@ -639,6 +647,8 @@ Contains
     Allocate(zbref(3*nb))
     Allocate (F_bf(nblocks))
     F_bf=0.d0  
+     Allocate(rhsib(3*nb))
+    rhsib = 0d0
 end if 
 
     !-------------------------Done--------------------------------!

@@ -136,7 +136,7 @@ call khatmatrix_testcase(sol_mat,Mmat_testcase,Kmat_testcase,Cmat_testcase)
 Ustarfsi=U
 Vstarfsi=V
 Wstarfsi=W
-
+ 
 do while ( (err_FSI .ge. tol_FSI) .and. (iter_FSI .le. 1000) )
 
       call setup_IB_operators
@@ -147,19 +147,18 @@ do while ( (err_FSI .ge. tol_FSI) .and. (iter_FSI .le. 1000) )
       r_chi=zeta+((2/dt_fsi)*chi)-((2/dt_fsi)*chi_k)+zeta_k
       r_chirhs=-Itilde(r_chi)
       r_zeta = matmul(Mmat_testcase, ( zetadot+ (4.0d0/dt_fsi)*zeta + (4.0d0/(dt_fsi*dt_fsi))*(chi - chi_k) ))+ matmul(Cmat_testcase, ( zeta+ (2.0d0/dt_fsi)*(chi - chi_k) ))+ F_bf- matmul(Kmat_testcase, chi_k)
-      r_zetarhs = (2/dt_fsi)*Itilde(matmul(sol_mat,r_zeta))
+     ! r_zetarhs = (2/dt_fsi)*Itilde(matmul(sol_mat,r_zeta))
+      r_zetarhs = (2.d0/dt_fsi)*Itilde( diagonal_matvec(sol_mat,r_zeta))
       r_crhs1= (Itilde(zeta_k))
       r_c_rhs=r_crhs1
       rhsib=rhsib+r_c_rhs+r_zetarhs+r_chirhs
 
 
       call bicgstab_fsi_testcase( fb, rhsib)
-
-           
-
-
+      !fb_redist=redistribute(fb)
       dchi_1=KhatinvQItildeprimeW(fb)
-      dchi= (matmul(sol_mat,r_zeta))+dchi_1
+      !dchi= (matmul(sol_mat,r_zeta))+dchi_1
+      dchi = diagonal_matvec(sol_mat,r_zeta) + dchi_1
       chi_k = chi_k + dchi
       zeta_k = -zeta + ((2.0/dt_fsi) * (chi_k - chi))
       zetadot_k = ((4.0/(dt_fsi*dt_fsi))* (chi_k - chi)) - ((4.0/dt_fsi)*zeta) - zetadot
@@ -174,11 +173,17 @@ do while ( (err_FSI .ge. tol_FSI) .and. (iter_FSI .le. 1000) )
       xb = xbref +  chi_k2(1:nb)
       yb=  ybref +  chi_k2(nb+1:2*nb)
       zb=  zbref +  chi_k2((2*nb)+1:3*nb)
+      Call update_center_wall_surface_metrics
       zeta_k2=Itilde(zeta_k)
       iter_FSI=iter_FSI+1
 
 end do
-
+If (myid == 0 ) Then
+  Write(*,*) 'FSI outer loop: step=', istep, &
+             ' RK=', rk_step, ' iterations=', iter_FSI, &
+             ' error=', err_FSI
+End If
+Call setup_IB_operators
 xb=xb
 yb=yb
 zb=zb
@@ -367,6 +372,13 @@ Subroutine bicgstab_fsi_testcase( bcg_x, bcg_b)
       iter = iter + 1
       Call Mpi_bcast (error, 1, MPI_real8, 0, MPI_COMM_WORLD, ierr)
     End Do
+    cg_accum_iter = cg_accum_iter + iter
+
+If (myid == 0 ) Then
+  Write(*,*) 'FSI BiCGSTAB: step=', istep, &
+             ' RK=', rk_step, ' iterations=', iter, &
+             ' residual=', Sqrt(error)
+End If
     If (iter .gt. cg_max_iter .and. myid == 0) Then
       Write(*,*)  "......WARNING, bicgstab used maximum number of iterations (", cg_max_iter, ")"
       Write(*,*)  "......max |residual| = ", Maxval(Abs(bcg_r))

@@ -5,7 +5,7 @@ Module mass_flow
 
   ! Modules
   Use iso_fortran_env, Only : error_unit, Int32, Int64
-  Use global,          Only : nx, nxg, nyg, ny, nz, nzg, yg, y, & 
+  Use global,          Only : nx, nxg, nyg, ny, nz, nzg, yg, Ly_channel,y, & 
                               Qflow_x_0, Qflow_y_0, Qflow_z_0, ierr, Hu_interior, Hv_interior, Hw_interior
   Use mpi 
 
@@ -36,7 +36,7 @@ Contains
     Do k=2,nzg-1
        Do j=3,nyg-1
           Do i=2,nx-1
-             Qflow_local = Qflow_local + ( Hu_interior(i,j,k) * U(i,j,k) + Hu_interior(i,j-1,k) * U(i,j-1,k) ) &
+            Qflow_local = Qflow_local + ( Hu_interior(i,j,k) * U(i,j,k) + Hu_interior(i,j-1,k) * U(i,j-1,k) ) &
                * 0.5d0 * ( yg(j) - yg(j-1) )
              norm_local  = norm_local  + ( Hu_interior(i,j,k) + Hu_interior(i,j-1,k) ) &
                * 0.5d0 * ( yg(j) - yg(j-1) )
@@ -51,7 +51,56 @@ Contains
     Qflow = Qflow/norm
 
   End Subroutine compute_mean_mass_flow_U
+!Subroutine compute_mean_mass_flow_U(U,Qflow)
 
+ ! Real(Int64), Dimension(nx,nyg,nzg), Intent(In) :: U    
+ ! Real(Int64), Intent(Out) :: Qflow
+
+ ! Real(Int64) :: Qflow_local, norm_local
+ ! Real(Int64) :: norm
+ ! Real(Int64) :: yIB
+ ! Integer(Int32) :: i, j, k
+
+  !yIB = 0.5d0 * Ly_channel
+
+  ! compute local mass flow only above the IB
+  !Qflow_local = 0d0
+  !norm_local  = 0d0
+
+  !Do k = 2,nzg-1
+  !   Do j = 3,nyg-1
+
+  !      If (yg(j-1) >= yIB) Then
+
+  !         Do i = 2,nx-1
+
+  !            Qflow_local = Qflow_local + &
+  !                 ( Hu_interior(i,j,k)   * U(i,j,k)   + &
+  !                   Hu_interior(i,j-1,k) * U(i,j-1,k) ) &
+  !                 * 0.5d0 * ( yg(j) - yg(j-1) )
+
+  !           norm_local = norm_local + &
+  !                 ( Hu_interior(i,j,k)   + &
+  !                   Hu_interior(i,j-1,k) ) &
+  !                 * 0.5d0 * ( yg(j) - yg(j-1) )
+
+  !         End Do
+
+  !      End If
+
+  !   End Do
+  !End Do
+
+  !Call MPI_AllReduce(Qflow_local, Qflow, 1, MPI_real8, MPI_sum, MPI_COMM_WORLD, ierr)
+  !Call MPI_AllReduce(norm_local,  norm,  1, MPI_real8, MPI_sum, MPI_COMM_WORLD, ierr)
+
+  !If (norm > 0d0) Then
+   !  Qflow = Qflow / norm
+  !Else
+   !  Qflow = 0d0
+  !End If
+
+!End Subroutine compute_mean_mass_flow_U
   !-----------------------------------------------!
   !             Compute mean mass flow            !
   !              for V between y(1:ny)            !
@@ -86,8 +135,12 @@ Contains
     Call MPI_AllReduce(Qflow_local,Qflow,1,MPI_real8,MPI_sum,MPI_COMM_WORLD,ierr)
     Call MPI_AllReduce(norm_local,  norm,1,MPI_real8,MPI_sum,MPI_COMM_WORLD,ierr)
     
-    Qflow = Qflow/norm
-
+    !Qflow = Qflow/norm
+If (Abs(norm) > Tiny(1.0d0)) Then
+  Qflow = Qflow/norm
+Else
+  Qflow = 0.0d0
+End If
   End Subroutine compute_mean_mass_flow_V
 
   !-----------------------------------------------!
@@ -124,8 +177,12 @@ Contains
     Call MPI_AllReduce(Qflow_local,Qflow,1,MPI_real8,MPI_sum,MPI_COMM_WORLD,ierr)
     Call MPI_AllReduce(norm_local,  norm,1,MPI_real8,MPI_sum,MPI_COMM_WORLD,ierr)
     
-    Qflow = Qflow/norm
-
+    !Qflow = Qflow/norm
+If (Abs(norm) > Tiny(1.0d0)) Then
+  Qflow = Qflow/norm
+Else
+  Qflow = 0.0d0
+End If
   End Subroutine compute_mean_mass_flow_W
   
   !------------------------------------------------------------!
@@ -161,6 +218,7 @@ Contains
                * 0.5d0 * ( yg(j) - yg(j-1) )
              norm_local  = norm_local  + ( Hu_interior(i,j,k) + Hu_interior(i,j-1,k) ) &
                * 0.5d0 * ( yg(j) - yg(j-1) )
+  
           End Do
        End Do
     End Do
@@ -170,10 +228,65 @@ Contains
     Call MPI_AllReduce(norm_local,  norm,1,MPI_real8,MPI_sum,MPI_COMM_WORLD,ierr)
 
     ! compute pressure gradient
-    dPdx = Qflow_x_0 - Int_U/norm
+ 
+   dPdx = Qflow_x_0 - Int_U/norm
 
   End Subroutine compute_dPx_for_constant_mass_flow
+!Subroutine compute_dPx_for_constant_mass_flow(U,dPdx)
 
+ ! Real(Int64), Dimension(nx,nyg,nzg), Intent(In) :: U
+ ! Real(Int64), Intent(Out) :: dPdx
+
+  !! local variables
+ ! Real(Int64) :: norm_local, Int_U_local
+ ! Real(Int64) :: norm,       Int_U
+ ! Real(Int64) :: yIB
+ ! Integer(Int32) :: i, k, j
+
+ ! yIB = 0.5d0 * Ly_channel
+
+  !! compute integrals with trapezoidal rule
+  !Int_U_local = 0d0
+  !norm_local  = 0d0
+
+  !Do k = 2,nzg-1
+   !  Do j = 3,nyg-1
+
+        ! Only include cells above the immersed wall.
+        ! This means the segment [yg(j-1), yg(j)] must be above yIB.
+    !    If (yg(j-1) >= yIB) Then
+
+     !      Do i = 2,nx-1
+
+      !        Int_U_local = Int_U_local + &
+       !            ( Hu_interior(i,j,k)   * U(i,j,k)   + &
+        !             Hu_interior(i,j-1,k) * U(i,j-1,k) ) &
+         !          * 0.5d0 * ( yg(j) - yg(j-1) )
+
+          !    norm_local = norm_local + &
+          !         ( Hu_interior(i,j,k)   + &
+          !           Hu_interior(i,j-1,k) ) &
+          !         * 0.5d0 * ( yg(j) - yg(j-1) )
+
+          ! End Do
+
+        !End If
+
+     !End Do
+  !End Do
+
+  !! compute total mass flow
+  !Call MPI_AllReduce(Int_U_local, Int_U, 1, MPI_real8, MPI_sum, MPI_COMM_WORLD, ierr)
+  !Call MPI_AllReduce(norm_local,   norm,  1, MPI_real8, MPI_sum, MPI_COMM_WORLD, ierr)
+
+  ! compute pressure gradient correction
+  !If (norm > 0d0) Then
+   !  dPdx = Qflow_x_0 - Int_U / norm
+  !Else
+   !  dPdx = 0d0
+  !End If
+
+!End Subroutine compute_dPx_for_constant_mass_flow
   !------------------------------------------------------------!
   !           Compute dPy for constant mass flow in y          !
   !        The mass flow is conserved in V at y points         !

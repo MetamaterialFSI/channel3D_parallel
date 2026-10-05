@@ -26,7 +26,7 @@ Contains
     logical :: exterior_pressure_gradient
     namelist /params/ &
       Lxp, Lzp, Ly_channel, alpha_stretch, &
-      nx_global, ny_global, nz_global, &
+      nx_global, ny_global, nz_global, nd, &
       nxb, nzb, &
       CFL, &
       nu, &
@@ -48,10 +48,13 @@ Contains
     alpha_stretch = 2.6d0
     Lxp = 9.4248
     Lzp = 3.1416
+    !Lxp = 1.718
+    !Lzp = 0.859
     Ly_channel = 4d0
-    min_buffer_width = 0d0
-    cg_tol = 1d-8
-    cg_max_iter = 50
+    min_buffer_width = 0.16d0
+    nd=48
+    cg_tol = 1d-3
+    cg_max_iter = 3000
     t_init = 0d0
     body_type = 'none'
     exterior_pressure_gradient = .True.
@@ -63,8 +66,8 @@ Contains
     dPdz = 0d0
     body_ramp_up_time = 0d0
     perturb_scale = 0.5d0
-    Qflow_x_0 = -999999.0d0
-    Qflow_z_0 = -999999.0d0
+    Qflow_x_0 = 0.666666d0
+    Qflow_z_0 = 0d0
 
     functionality = 0
     nblocks = 1
@@ -116,7 +119,7 @@ Contains
     Call Mpi_bcast ( nx_global,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( ny_global,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( nz_global,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
-
+    Call Mpi_bcast ( nd,       1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( Lxp,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( Lzp,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( Ly_channel,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
@@ -188,8 +191,19 @@ Contains
   Subroutine create_grid
 
     Integer(Int32) :: i
+Integer(Int32) :: n_buffer, n_lower_outer
+Integer(Int32) :: n_ref, i_ref_start
+Integer(Int32) :: j_plate, j_last, ny_required
 
-    n_uniform = 1
+Real(Int64) :: dy
+Real(Int64) :: dys
+Real(Int64) :: buffer_target
+Real(Int64) :: buffer_width
+Real(Int64) :: lower_edge
+
+Real(Int64), Allocatable, Dimension(:) :: y_single_unpadded
+
+    n_uniform = 8
 
     Do i = 1, nx_global
       x_global(i) = Real(i-1,8)
@@ -247,7 +261,382 @@ Contains
           If (2 * n_uniform >= Ny) Stop 'Number of buffer points exceeds the total number of grid points' 
         End Do
         ! Move entire channel in the positive y-direction to center around y = 1
-        y_global = y_global + 1d0
+        !y_global = y_global + 1d0
+        y_global = y_global + 0.5d0*Ly_channel
+
+      Case (3) ! Asymmetric Kim-Choi grid identical to serial guess generator
+
+        If (myid == 0) Then
+          Write(*,*) 'Generating asymmetric Kim-Choi-reference y grid'
+        End If
+
+        !---------------------------------------------------------!
+        ! This grid is specifically constructed for the physical !
+        ! domain 0 <= y <= 4 with the IB plate located at y = 2. !
+        !---------------------------------------------------------!
+
+        If (Abs(Ly_channel - 4.0d0) > 1.0d-13) Then
+          If (myid == 0) Then
+            Write(*,*) 'GRID_TYPE=3 requires Ly_channel = 4'
+            Write(*,*) 'Current Ly_channel = ', Ly_channel
+          End If
+          Error Stop 'Incorrect Ly_channel for Kim-Choi grid'
+        End If
+
+        !---------------------------------------------------------!
+        ! Kim and Choi 65-point reference grid.                  !
+        !                                                       !
+        ! Minimum spacing: dy_min^+ = 0.47 at Re_tau = 138.     !
+        !---------------------------------------------------------!
+
+        n_ref         = 65
+        alpha_stretch = 2.23906084958144d0
+        dy            = 0.47d0 / 138.0d0
+
+        ! This is the minimum wall-normal spacing.
+        dymin = dy
+
+        !---------------------------------------------------------!
+        ! Uniform buffer around the plate at y = 2.              !
+        !                                                        !
+        ! dy = 0.47/138                                          !
+        !    = 0.003405797101449275                              !
+        !                                                        !
+        ! Required minimum buffer half-width = 0.16.             !
+        !                                                        !
+        ! Ceiling(0.16/dy) = 47 intervals per side.              !
+        !                                                        !
+        ! Therefore:                                             !
+        !   nd       = 48                                        !
+        !   n_buffer = 47                                        !
+        !                                                        !
+        ! Actual buffer half-width:                              !
+        !   47*dy = 0.1600724637681159                           !
+        !                                                        !
+        ! Uniform fine-grid region therefore extends from        !
+        !                                                        !
+        !   y = 1.839927536231884                                !
+        !                                                        !
+        ! to                                                     !
+        !                                                        !
+        !   y = 2.160072463768116                                !
+        !---------------------------------------------------------!
+
+        buffer_target = 0.16d0
+        n_buffer      = nd - 1
+
+        !---------------------------------------------------------!
+        ! Inactive lower region: 20 uniform intervals from y=0   !
+        ! to the lower edge of the fine IB buffer.               !
+        !---------------------------------------------------------!
+
+        n_lower_outer = 20
+
+        !---------------------------------------------------------!
+        ! Require the smallest integer number of fine intervals  !
+        ! that completely covers +/-0.16.                        !
+        !                                                        !
+        ! For the current grid this requires:                    !
+        !                                                        !
+        !   n_buffer = 47                                        !
+        !   nd       = 48                                        !
+        !---------------------------------------------------------!
+
+        If (n_buffer /= Ceiling(buffer_target/dy)) Then
+
+          If (myid == 0) Then
+            Write(*,*) 'Incorrect nd for GRID_TYPE = 3'
+            Write(*,*) 'Current nd                  = ', nd
+            Write(*,*) 'Required nd                 = ', &
+                       Ceiling(buffer_target/dy) + 1
+            Write(*,*) 'Requested buffer half-width = ', buffer_target
+            Write(*,*) 'Available uniform dy        = ', dy
+            Write(*,*) 'Required uniform intervals  = ', &
+                       Ceiling(buffer_target/dy)
+            Write(*,*) 'Actual buffer half-width    = ', &
+                 Real(Ceiling(buffer_target/dy),Int64)*dy
+          End If
+
+          Error Stop 'GRID_TYPE=3: incorrect ND'
+
+        End If
+
+        buffer_width = Real(n_buffer,Int64)*dy
+        lower_edge   = 2.0d0 - buffer_width
+
+        !---------------------------------------------------------!
+        ! Construct Kim-Choi 65-point reference coordinates over !
+        ! a channel extending from 0 to 2.                       !
+        !                                                        !
+        ! The retained coordinates will later be shifted upward  !
+        ! by 2 into the physical upper channel.                  !
+        !---------------------------------------------------------!
+
+        Allocate(y_single_unpadded(n_ref))
+
+        Do i = 1, n_ref
+
+          dys = -1.0d0 + 2.0d0*Real(i-1,Int64) / &
+                             Real(n_ref-1,Int64)
+
+          y_single_unpadded(i) = 1.0d0 + &
+               dtanh(alpha_stretch*dys) / dtanh(alpha_stretch)
+
+        End Do
+
+        !---------------------------------------------------------!
+        ! Find first Kim-Choi reference coordinate strictly      !
+        ! above the upper edge of the uniform IB buffer.         !
+        !                                                        !
+        ! For the current +/-0.16 buffer, this is reference      !
+        ! index 17.                                              !
+        !---------------------------------------------------------!
+
+        i_ref_start = n_ref
+
+        Do i = 2, n_ref
+
+          If (y_single_unpadded(i) > buffer_width) Then
+            i_ref_start = i
+            Exit
+          End If
+
+        End Do
+
+        !---------------------------------------------------------!
+        ! Required number of y coordinates:                      !
+        !                                                        !
+        ! 1 bottom boundary                                      !
+        ! + 20 lower-region intervals                            !
+        ! + 47 lower-buffer intervals                            !
+        ! + 47 upper-buffer intervals                            !
+        ! + retained Kim-Choi points.                            !
+        !                                                        !
+        ! For the current configuration:                         !
+        !                                                        !
+        !   i_ref_start = 17                                     !
+        !   NY_GLOBAL   = 164                                    !
+        !---------------------------------------------------------!
+
+        ny_required = 1 + n_lower_outer + 2*n_buffer + &
+                      (n_ref - i_ref_start + 1)
+
+        If (ny_global /= ny_required) Then
+
+          If (myid == 0) Then
+            Write(*,*) 'Incorrect NY_GLOBAL for GRID_TYPE = 3'
+            Write(*,*) 'Current NY_GLOBAL           = ', ny_global
+            Write(*,*) 'Required NY_GLOBAL          = ', ny_required
+            Write(*,*) 'Current nd                  = ', nd
+            Write(*,*) 'Reference start index       = ', i_ref_start
+            Write(*,*) 'Lower outside intervals     = ', n_lower_outer
+            Write(*,*) 'Uniform intervals per side  = ', n_buffer
+          End If
+
+          Error Stop 'GRID_TYPE=3: incorrect NY_GLOBAL'
+
+        End If
+
+        !---------------------------------------------------------!
+        ! Lower inactive region.                                 !
+        !                                                        !
+        ! 20 uniformly spaced intervals from y=0 to the lower    !
+        ! edge of the fine IB buffer.                            !
+        !---------------------------------------------------------!
+
+        y_global(1) = 0.0d0
+
+        Do i = 1, n_lower_outer
+
+          y_global(i+1) = lower_edge * Real(i,Int64) / &
+                                      Real(n_lower_outer,Int64)
+
+        End Do
+
+        ! Force exact lower buffer boundary.
+
+        y_global(n_lower_outer+1) = lower_edge
+
+        !---------------------------------------------------------!
+        ! Uniform lower IB buffer:                               !
+        !                                                        !
+        ! 2-buffer_width <= y <= 2                               !
+        !---------------------------------------------------------!
+
+        Do i = 1, n_buffer
+
+          y_global(n_lower_outer+1+i) = lower_edge + &
+                                        dy*Real(i,Int64)
+
+        End Do
+
+        j_plate = n_lower_outer + 1 + n_buffer
+
+        ! Force plate coordinate to exactly y=2.
+
+        y_global(j_plate) = 2.0d0
+
+        !---------------------------------------------------------!
+        ! Uniform upper IB buffer:                               !
+        !                                                        !
+        ! 2 <= y <= 2+buffer_width                               !
+        !---------------------------------------------------------!
+
+        Do i = 1, n_buffer
+
+          y_global(j_plate+i) = 2.0d0 + &
+                                dy*Real(i,Int64)
+
+        End Do
+
+        j_last = j_plate + n_buffer
+
+        !---------------------------------------------------------!
+        ! Add remaining Kim-Choi reference coordinates.          !
+        !                                                        !
+        ! Original reference positions span 0 <= y <= 2.        !
+        ! Adding 2 shifts them into the physical upper channel.  !
+        !---------------------------------------------------------!
+
+        Do i = i_ref_start, n_ref
+
+          j_last = j_last + 1
+
+          y_global(j_last) = 2.0d0 + &
+                             y_single_unpadded(i)
+
+        End Do
+
+        !---------------------------------------------------------!
+        ! Safety checks.                                         !
+        !---------------------------------------------------------!
+
+        If (j_last /= ny_global) Then
+
+          If (myid == 0) Then
+            Write(*,*) 'Last assigned y index = ', j_last
+            Write(*,*) 'Expected final index  = ', ny_global
+          End If
+
+          Error Stop 'GRID_TYPE=3: internal point-count error'
+
+        End If
+
+        If (Any(y_global(2:ny_global) <= &
+                y_global(1:ny_global-1))) Then
+
+          If (myid == 0) Then
+
+            Do i = 1, ny_global-1
+
+              If (y_global(i+1) <= y_global(i)) Then
+
+                Write(*,*) 'Non-increasing grid at index ', i
+                Write(*,*) 'y_global(i)   = ', y_global(i)
+                Write(*,*) 'y_global(i+1) = ', y_global(i+1)
+
+              End If
+
+            End Do
+
+          End If
+
+          Error Stop 'GRID_TYPE=3: y grid is not increasing'
+
+        End If
+
+        If (Abs(y_global(1)) > 1.0d-13) Then
+
+          If (myid == 0) Then
+            Write(*,*) 'y_global(1) = ', y_global(1)
+          End If
+
+          Error Stop 'GRID_TYPE=3: lower wall is not at y=0'
+
+        End If
+
+        If (Abs(y_global(j_plate)-2.0d0) > 1.0d-13) Then
+
+          If (myid == 0) Then
+            Write(*,*) 'Plate coordinate = ', y_global(j_plate)
+          End If
+
+          Error Stop 'GRID_TYPE=3: plate is not at y=2'
+
+        End If
+
+        If (Abs(y_global(ny_global)-4.0d0) > 1.0d-12) Then
+
+          If (myid == 0) Then
+            Write(*,*) 'Upper-wall coordinate = ', &
+                       y_global(ny_global)
+          End If
+
+          Error Stop 'GRID_TYPE=3: upper wall is not at y=4'
+
+        End If
+
+        !---------------------------------------------------------!
+        ! Print grid summary from processor zero only.            !
+        !---------------------------------------------------------!
+
+        If (myid == 0) Then
+
+          Write(*,*) 'Asymmetric Kim-Choi grid successfully generated'
+          Write(*,*) '  NY_GLOBAL                    = ', ny_global
+          Write(*,*) '  ND                           = ', nd
+          Write(*,*) '  plate face index             = ', j_plate
+          Write(*,*) '  top-channel face points      = ', &
+                     ny_global-j_plate+1
+          Write(*,*) '  lower outside intervals      = ', &
+                     n_lower_outer
+          Write(*,*) '  points strictly below buffer = ', &
+                     n_lower_outer
+          Write(*,*) '  lower outside uniform dy     = ', &
+                     lower_edge/Real(n_lower_outer,Int64)
+          Write(*,*) '  uniform intervals per side   = ', &
+                     n_buffer
+          Write(*,*) '  uniform buffer dy            = ', dy
+          Write(*,*) '  uniform dy in plus units     = ', &
+                     dy*138.0d0
+          Write(*,*) '  target buffer half-width     = ', &
+                     buffer_target
+          Write(*,*) '  actual buffer half-width     = ', &
+                     buffer_width
+          Write(*,*) '  buffer lower edge            = ', &
+                     lower_edge
+          Write(*,*) '  buffer upper edge            = ', &
+                     2.0d0+buffer_width
+          Write(*,*) '  first retained KC index      = ', &
+                     i_ref_start
+          Write(*,*) '  first retained KC location   = ', &
+                     y_single_unpadded(i_ref_start)
+          Write(*,*) '  first retained physical y    = ', &
+                     2.0d0+y_single_unpadded(i_ref_start)
+          Write(*,*) '  y minimum                    = ', &
+                     y_global(1)
+          Write(*,*) '  y at plate                   = ', &
+                     y_global(j_plate)
+          Write(*,*) '  y maximum                    = ', &
+                     y_global(ny_global)
+
+        End If
+
+        Deallocate(y_single_unpadded)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     End Select
 
@@ -301,77 +690,265 @@ Contains
   !                                                !
   !------------------------------------------------!
   Subroutine init_flow
-  
-    Integer(Int32) :: ii, jj, kk
-    Real(Int64) :: ym_val
 
-    Select Case (init_type)
-      Case (0) ! read input data from file
-        If ( myid==0 ) Write(*,*) 'Reading input data'
-        Call read_input_data
-      
-      Case (1) ! create grid and initialize velocity to zero
-        If ( myid==0 ) Write(*,*) 'Generating zero initial condition'
-        Call create_grid
-        U = 0d0; V = 0d0; W = 0d0
+  Integer(Int32) :: ii, jj, kk
+  Real(Int64)    :: ym_val
+  Real(Int64)    :: r
 
-      Case (2) ! create grid and initialize velocity to the laminar parabolic profile with random perturbations
-        If ( myid==0 ) Write(*,*) 'Generating random initial condition'
-        Call create_grid
+  Select Case (init_type)
 
-        ! U
-        Do jj=1,ny_global-1
-          ym_val = 0.5d0 * (y_global(jj) + y_global(jj + 1))
-          If ( ym_val .gt. 0d0 .and. ym_val .lt. Ly_channel ) Then
-            U(:,jj+1,:) = dpdx / (Ly_channel * nu) * ym_val * (Ly_channel - ym_val)
+    !============================================================!
+    ! Read an existing restart                                  !
+    !============================================================!
+    Case (0)
+
+      If (myid == 0) Write(*,*) 'Reading input data'
+      Call read_input_data
+
+
+    !============================================================!
+    ! Zero initial condition                                    !
+    !============================================================!
+    Case (1)
+
+      If (myid == 0) Write(*,*) 'Generating zero initial condition'
+
+      Call create_grid
+
+      U = 0.0d0
+      V = 0.0d0
+      W = 0.0d0
+
+
+    !============================================================!
+    ! Random turbulent initial condition for the TOP CHANNEL     !
+    !                                                            !
+    ! Physical fluid channel:                                    !
+    !                                                            !
+    !                2 < y < 4                                   !
+    !                                                            !
+    ! Region y <= 2 is kept completely at rest.                  !
+    !                                                            !
+    ! This matches the serial rigid-guess initialization.        !
+    !============================================================!
+    Case (2)
+
+      If (myid == 0) Then
+        Write(*,*) 'Generating random top-channel initial condition'
+      End If
+
+      Call create_grid
+
+      !----------------------------------------------------------!
+      ! Start with absolutely zero velocity everywhere.          !
+      ! This is important because the lower region y <= 2 must   !
+      ! remain inactive.                                         !
+      !----------------------------------------------------------!
+
+      U = 0.0d0
+      V = 0.0d0
+      W = 0.0d0
+
+
+      !==========================================================!
+      ! U VELOCITY                                               !
+      !                                                          !
+      ! U is staggered in y, so its physical y-location is the   !
+      ! midpoint between consecutive y_global face coordinates.  !
+      !                                                          !
+      ! Serial initialization:                                   !
+      !                                                          !
+      ! U = (y-2)*(4-y) + perturbation                           !
+      !                                                          !
+      ! only for y > 2.                                          !
+      !==========================================================!
+
+      Do jj = 1, ny_global-1
+
+        ym_val = 0.5d0 * &
+                 (y_global(jj) + y_global(jj+1))
+
+        If (ym_val > 2.0d0 .and. ym_val < Ly_channel) Then
+
+          ! Match the serial code: one random perturbation
+          ! for this wall-normal plane.
+          Call random_number(r)
+
+          U(:,jj+1,:) = &
+               (ym_val - 2.0d0) * (Ly_channel - ym_val) &
+               + perturb_scale * (r - 0.5d0)
+
+        Else
+
+          U(:,jj+1,:) = 0.0d0
+
+        End If
+
+      End Do
+
+      ! Ghost values at physical outer walls.
+      U(:,1,:)             = -U(:,2,:)
+      U(:,ny_global+1,:)   = -U(:,ny_global,:)
+
+
+      !==========================================================!
+      ! V VELOCITY                                               !
+      !                                                          !
+      ! V lives directly on y_global faces.                      !
+      !                                                          !
+      ! Add random perturbations only for physical y > 2.        !
+      ! y = 2 itself remains zero.                               !
+      !==========================================================!
+
+      Do ii = 1, nxg_global
+
+        Do jj = 1, ny_global
+
+          If (y_global(jj) > 2.0d0 .and. &
+              y_global(jj) < Ly_channel) Then
+
+            Do kk = 1, nzg
+
+              Call random_number(r)
+
+              V(ii,jj,kk) = &
+                   perturb_scale * (r - 0.5d0)
+
+            End Do
+
+          Else
+
+            V(ii,jj,:) = 0.0d0
+
           End If
-        end Do
-        Do ii=1,nx_global
-          Do jj=1,nyg_global
-             Do kk=1,nzg
-               U(ii,jj,kk) = U(ii,jj,kk) + perturb_scale * (rand() - 0.5)
-             End Do
-          End Do
+
         End Do
-        U(:,1,:) = -U(:,2,:)
-        U(:,ny_global+1,:) = -U(:,ny_global,:)
 
-        ! V
-        V = 0d0
-        Do ii=1,nxg_global
-          Do jj=1,ny_global
-             Do kk=1,nzg
-               V(ii,jj,kk) = V(ii,jj,kk) + perturb_scale * (rand() - 0.5)
-             End Do
+      End Do
+
+      ! Exact no-penetration at the two physical outer walls.
+      V(:,1,:)         = 0.0d0
+      V(:,ny_global,:) = 0.0d0
+
+
+      !==========================================================!
+      ! W VELOCITY                                               !
+      !                                                          !
+      ! W has the same wall-normal staggering as U.              !
+      ! Therefore use the cell-midpoint coordinate ym_val.       !
+      !==========================================================!
+
+      Do jj = 1, ny_global-1
+
+        ym_val = 0.5d0 * &
+                 (y_global(jj) + y_global(jj+1))
+
+        If (ym_val > 2.0d0 .and. ym_val < Ly_channel) Then
+
+          Do ii = 1, nxg_global
+
+            Do kk = 1, nz
+
+              Call random_number(r)
+
+              W(ii,jj+1,kk) = &
+                   perturb_scale * (r - 0.5d0)
+
+            End Do
+
           End Do
-        End Do
-        V(:,1,:) = 0d0
-        V(:,ny_global,:) = 0d0
 
-        ! W
-        W = 0d0
-        Do ii=1,nxg_global
-          Do jj=1,ny_global
-             Do kk=1,nz
-               W(ii,jj,kk) = W(ii,jj,kk) + perturb_scale * (rand() - 0.5)
-             End Do
-          End Do
-        End Do
-        W(:,1,:) = -W(:,2,:)
-        W(:,ny_global+1,:) = -W(:,ny_global,:)
-    End Select
+        Else
 
-    If ( myid==0 ) Then
-      Write(*,*) 'Max U',MaxVal(U)
-      Write(*,*) 'Max V',MaxVal(V)
-      Write(*,*) 'Max W',MaxVal(W)
+          W(:,jj+1,:) = 0.0d0
 
-      Write(*,*) 'Mean U',sum(U)/Real(nx_global*nyg_global*nzg_global,8)
-      Write(*,*) 'Mean V',sum(V)/Real(nxg_global*ny_global*nzg_global,8)
-      Write(*,*) 'Mean W',sum(W)/Real(nxg_global*nyg_global*nz_global,8)
-    End If
+        End If
 
-  End Subroutine init_flow
+      End Do
+
+      ! Ghost values at physical outer walls.
+      W(:,1,:)             = -W(:,2,:)
+      W(:,ny_global+1,:)   = -W(:,ny_global,:)
+
+
+    !============================================================!
+    ! Exact laminar initial condition for TOP CHANNEL only       !
+    !                                                            !
+    ! This is also corrected so that it no longer creates a      !
+    ! parabolic flow through the inactive y < 2 region.          !
+    !============================================================!
+    Case (3)
+
+      If (myid == 0) Then
+        Write(*,*) 'Generating exact top-channel laminar condition'
+      End If
+
+      Call create_grid
+
+      U = 0.0d0
+      V = 0.0d0
+      W = 0.0d0
+
+      Do jj = 1, ny_global-1
+
+        ym_val = 0.5d0 * &
+                 (y_global(jj) + y_global(jj+1))
+
+        If (ym_val > 2.0d0 .and. ym_val < Ly_channel) Then
+
+          U(:,jj+1,:) = &
+               dPdx / (2.0d0*nu) * &
+               (ym_val - 2.0d0) * &
+               (Ly_channel - ym_val)
+
+        Else
+
+          U(:,jj+1,:) = 0.0d0
+
+        End If
+
+      End Do
+
+      U(:,1,:)           = -U(:,2,:)
+      U(:,ny_global+1,:) = -U(:,ny_global,:)
+
+      V = 0.0d0
+      W = 0.0d0
+
+
+    Case Default
+
+      If (myid == 0) Then
+        Write(*,*) 'Unknown init_type = ', init_type
+      End If
+
+      Error Stop 'Invalid init_type in init_flow'
+
+  End Select
+
+
+  !==============================================================!
+  ! Initial-condition diagnostics                                !
+  !==============================================================!
+
+  If (myid == 0) Then
+
+    Write(*,*) 'Max U  ', MaxVal(U)
+    Write(*,*) 'Max V  ', MaxVal(V)
+    Write(*,*) 'Max W  ', MaxVal(W)
+
+    Write(*,*) 'Mean U ', &
+         Sum(U) / Real(nx_global*nyg_global*nzg_global,8)
+
+    Write(*,*) 'Mean V ', &
+         Sum(V) / Real(nxg_global*ny_global*nzg_global,8)
+
+    Write(*,*) 'Mean W ', &
+         Sum(W) / Real(nxg_global*nyg_global*nz_global,8)
+
+  End If
+
+End Subroutine init_flow
 
   !--------------------------------------------!
   !    Read binary snapshot: mesh, U,V and W   !
@@ -536,6 +1113,85 @@ Contains
 
   End Subroutine read_input_data
 
+Subroutine read_fsi_body_restart_data
+
+    Character(200) :: fname
+    Integer(Int32) :: ndum
+    Integer(Int32) :: nxb_f, nzb_f
+
+    If ( functionality /= 1 ) Return
+    If ( init_type /= 0 ) Return
+
+    fname = Trim(Adjustl(filein))//'.fsi'
+
+    If ( myid == 0 ) Then
+
+      Write(*,*) 'reading FSI/body restart from ', Trim(Adjustl(fname)), '...'
+
+      Open(99,file=fname,access='stream',form='unformatted', &
+           action='read',convert='big_endian')
+
+      ! body position
+      Read(99) ndum
+      If ( ndum /= Size(xb) ) Stop 'restart size mismatch: xb'
+      Read(99) xb
+
+      Read(99) ndum
+      If ( ndum /= Size(yb) ) Stop 'restart size mismatch: yb'
+      Read(99) yb
+
+      Read(99) ndum
+      If ( ndum /= Size(zb) ) Stop 'restart size mismatch: zb'
+      Read(99) zb
+
+      Read(99) nxb_f
+      If ( nxb_f /= nxb ) Stop 'restart size mismatch: nxb'
+
+      Read(99) nzb_f
+      If ( nzb_f /= nzb ) Stop 'restart size mismatch: nzb'
+
+      ! FSI variables
+      Read(99) ndum
+      If ( ndum /= Size(chi) ) Stop 'restart size mismatch: chi'
+      Read(99) chi
+
+      Read(99) ndum
+      If ( ndum /= Size(zeta) ) Stop 'restart size mismatch: zeta'
+      Read(99) zeta
+
+      Read(99) ndum
+      If ( ndum /= Size(zetadot) ) Stop 'restart size mismatch: zetadot'
+      Read(99) zetadot
+
+      Read(99) ndum
+      If ( ndum /= Size(chi_k) ) Stop 'restart size mismatch: chi_k'
+      Read(99) chi_k
+
+      Read(99) ndum
+      If ( ndum /= Size(zeta_k) ) Stop 'restart size mismatch: zeta_k'
+      Read(99) zeta_k
+
+      Read(99) ndum
+      If ( ndum /= Size(zetadot_k) ) Stop 'restart size mismatch: zetadot_k'
+      Read(99) zetadot_k
+
+      Close(99)
+
+    End If
+
+    Call Mpi_bcast(xb,Size(xb),MPI_real8,0,MPI_COMM_WORLD,ierr)
+    Call Mpi_bcast(yb,Size(yb),MPI_real8,0,MPI_COMM_WORLD,ierr)
+    Call Mpi_bcast(zb,Size(zb),MPI_real8,0,MPI_COMM_WORLD,ierr)
+
+    Call Mpi_bcast(chi,Size(chi),MPI_real8,0,MPI_COMM_WORLD,ierr)
+    Call Mpi_bcast(zeta,Size(zeta),MPI_real8,0,MPI_COMM_WORLD,ierr)
+    Call Mpi_bcast(zetadot,Size(zetadot),MPI_real8,0,MPI_COMM_WORLD,ierr)
+
+    Call Mpi_bcast(chi_k,Size(chi_k),MPI_real8,0,MPI_COMM_WORLD,ierr)
+    Call Mpi_bcast(zeta_k,Size(zeta_k),MPI_real8,0,MPI_COMM_WORLD,ierr)
+    Call Mpi_bcast(zetadot_k,Size(zetadot_k),MPI_real8,0,MPI_COMM_WORLD,ierr)
+
+End Subroutine read_fsi_body_restart_data
   !--------------------------------------------!
   !    write binary snapshot: mesh, U,V and W  !
   !                                            !
@@ -750,6 +1406,17 @@ Contains
         Write(1) nxb
         Write(1) nzb
 
+        ! FSI restart variables
+        If ( functionality .eq. 1 ) Then
+          Write(1) Shape(chi, Int32), chi
+          Write(1) Shape(zeta, Int32), zeta
+          Write(1) Shape(zetadot, Int32), zetadot
+
+          Write(1) Shape(chi_k, Int32), chi_k
+          Write(1) Shape(zeta_k, Int32), zeta_k
+          Write(1) Shape(zetadot_k, Int32), zetadot_k
+        End If
+
         ! surface stress
         Write(1) Shape(fb, Int32), fb
 
@@ -778,6 +1445,40 @@ Contains
        
   End Subroutine output_data
 
+Subroutine output_fsi_body_restart_data
+
+    Character(200) :: fname
+    Character(8)   :: ext
+
+    If ( functionality /= 1 ) Return
+
+    If ( myid == 0 ) Then
+
+      Write(ext,'(I8)') istep + nstep_init
+      fname = Trim(Adjustl(fileout))//'.'//Trim(Adjustl(ext))//'.fsi'
+
+      Open(99,file=fname,access='stream',form='unformatted', &
+           action='write',convert='big_endian')
+
+      Write(99) Size(xb), xb
+      Write(99) Size(yb), yb
+      Write(99) Size(zb), zb
+      Write(99) nxb
+      Write(99) nzb
+
+      Write(99) Size(chi), chi
+      Write(99) Size(zeta), zeta
+      Write(99) Size(zetadot), zetadot
+
+      Write(99) Size(chi_k), chi_k
+      Write(99) Size(zeta_k), zeta_k
+      Write(99) Size(zetadot_k), zetadot_k
+
+      Close(99)
+
+    End If
+
+End Subroutine output_fsi_body_restart_data
   !----------------------------------------------!
   !   Write some basic statistics in a txt file  !
   !----------------------------------------------!
