@@ -37,6 +37,7 @@ Contains
 
     ! time
     t = t_init
+    istep = 0
     
     !-------------------grid definitions-------------------------!
     Allocate (  k1_global(0:nprocs-1),  k2_global(0:nprocs-1) )
@@ -496,7 +497,7 @@ Contains
     Allocate(sb (nb) )
 
     ! Body forcing
-    Allocate (fb(4 * nb) )
+    Allocate (fb(3 * nb) )
     fb = 0d0
     Allocate (p_jump(nb) )
     p_jump = 0d0
@@ -505,6 +506,14 @@ Contains
 
     ! Body velocity
     Allocate (ub (3 * nb) )
+    Allocate (ab (3 * nb) )
+    Allocate (pn_mean (nb) )
+    ab = 0d0
+    pn_mean = 0d0
+    ramp_is_zero = .False.
+    n_accel_adv = 0
+    t_ub = t
+    dt_ub = 0d0
 
     ! Body normals and tangents
     Allocate (normals (3 * nb) )
@@ -516,9 +525,25 @@ Contains
 
     Allocate (E1nHc_exterior (nb) )
     Allocate (E1nH_exterior  (3 * nb) )
+    Allocate (EHc_exterior (nb) )
+    Allocate (E2n1c (nb) )
+    Allocate (M2dir (3 * nb) )
+    Allocate (Ecross (nb) )
+    Allocate (dpds_known (nb) )
+    Allocate (ring_tang (3 * nb) )
+    Allocate (ring_start (nb) )
+    Allocate (ring_len (nb) )
+    EHc_exterior = 0d0
+    E2n1c = 0d0
+    M2dir = 0d0
+    Ecross = 0d0
+    dpds_known = 0d0
+    ring_tang = 0d0
+    ring_start = 1
+    ring_len = 1
 
     ! Auxiliary surface arrays
-    Allocate ( rhs_ib (4 * nb) )
+    Allocate ( rhs_ib (3 * nb) )
     Allocate ( aux_surface_vector (3 * nb) )
     Allocate ( aux_surface_scalar (nb) )
     Allocate ( regT_buffer_vector (3 * nb) )
@@ -528,6 +553,10 @@ Contains
     Allocate (U_reg  (    nx,  nym+2, nzm+2) )
     Allocate (V_reg  ( nxm+2,     ny, nzm+2) )
     Allocate (W_reg  ( nxm+2,  nym+2,    nz) )
+    Allocate (U_ib_tmp (    nx,  nym+2, nzm+2) )
+    Allocate (V_ib_tmp ( nxm+2,     ny, nzm+2) )
+    Allocate (W_ib_tmp ( nxm+2,  nym+2,    nz) )
+    Allocate (con_F ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
 
     ! Body arrays for accepting interpolated fields
     Allocate (Eu (3 * nb))
@@ -582,13 +611,13 @@ Contains
 
     !--------------------Initialize BiCGSTAB arrays---------------!    
 
-    Allocate ( bcg_r( 4 * nb) )
-    Allocate ( bcg_rhat( 4 * nb) )
-    Allocate ( bcg_p( 4 * nb) )
-    Allocate ( bcg_nu( 4 * nb) )
-    Allocate ( bcg_h( 4 * nb) )
-    Allocate ( bcg_sv( 4 * nb) )
-    Allocate ( bcg_tv( 4 * nb) )
+    Allocate ( bcg_r( 3 * nb) )
+    Allocate ( bcg_rhat( 3 * nb) )
+    Allocate ( bcg_p( 3 * nb) )
+    Allocate ( bcg_nu( 3 * nb) )
+    Allocate ( bcg_h( 3 * nb) )
+    Allocate ( bcg_sv( 3 * nb) )
+    Allocate ( bcg_tv( 3 * nb) )
     cg_accum_iter = 0
     cg_nsolves    = 0
 

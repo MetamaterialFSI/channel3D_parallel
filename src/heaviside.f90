@@ -49,7 +49,9 @@ Contains
     Call apply_boundary_conditions(Hu_interior, Hv_interior, Hw_interior)
     
     Call regTc_1n(E1nHc_exterior, Hc_exterior)
+    Call regTc(EHc_exterior, Hc_exterior)
     Call regT_1n(E1nH_exterior, Hu_exterior, Hv_exterior, Hw_exterior)
+    pjv_gscale = Max(Maxval(Abs(E1nH_exterior)), 1d-30)
 
   End Subroutine compute_heaviside
 

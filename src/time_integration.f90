@@ -111,6 +111,7 @@ Contains
 
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
+      Call advance_accel_clock
       call setup_IB_geometry
       call setup_IB_operators
       call compute_heaviside
@@ -141,6 +142,7 @@ Contains
 
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
+      Call advance_accel_clock
       call setup_IB_geometry
       call setup_IB_operators
       call compute_heaviside
@@ -174,6 +176,7 @@ Contains
 
     ! update body point positions and velocities if body is moving
     If ( moving_body ) Then
+      Call advance_accel_clock
       call setup_IB_geometry
       call setup_IB_operators
       call compute_heaviside

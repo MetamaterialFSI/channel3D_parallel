@@ -47,33 +47,40 @@ Contains
 
   Subroutine compute_IB_projection
 
+    Real(Int64), Dimension(3 * nb) :: vr0
+    Real(Int64), Dimension(nb) :: pzero
+
     ! - E u* + ub 
     Call regT(Eu, U, V, W)
-    rhs_ib(1 : 3 * nb) = -Eu + ub
+    vr0 = ub - Eu
+    Call cart_to_frame_t(vr0, rhs_ib(1 : 2 * nb))
+    rhs_ib(2 * nb + 1 : 3 * nb) = -(vr0(1 : nb) * normals(1 : nb) &
+      + vr0(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb) &
+      + vr0(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb))
+    pzero = 0d0
+    Call dpmean_ds(P_interim, 1d0, pzero, dpds_known, ring_tang)
     Call regTc_1n(E1np, P_interim)
-    rhs_ib(3 * nb + 1 : 4 * nb) = -E1np
+    rhs_ib(2 * nb + 1 : 3 * nb) = rhs_ib(2 * nb + 1 : 3 * nb) &
+      - E1np + E2n1c * pn_mean + Ecross * dpds_known
 
     ! Remove mean from rhs pressure
-    Call remove_mean_per_body(rhs_ib(3 * nb + 1 : 4 * nb))
 
     ! solve for IB forcing
     Call bicgstab(fb, rhs_ib)
 
-    dudn_jump = fb(1          : 3 * nb)
-    p_jump    = fb(3 * nb + 1 : 4 * nb)
+    Call frame_to_cart_t(fb, dudn_jump)
+    p_jump = fb(2 * nb + 1 : 3 * nb)
+    Call remove_mean_per_body(p_jump)
 
     ! U_reg = R f
-    aux_surface_scalar = dt * nu * dudn_jump(1 : nb)              - dt * p_jump * normals(1 : nb)
-    Call regu(U_reg, aux_surface_scalar)
-    aux_surface_scalar = dt * nu * dudn_jump(nb + 1 : 2 * nb)     - dt * p_jump * normals(nb + 1 : 2 * nb)
-    Call regv(V_reg, aux_surface_scalar)
-    aux_surface_scalar = dt * nu * dudn_jump(2 * nb + 1 : 3 * nb) - dt * p_jump * normals(2 * nb + 1 : 3 * nb)
-    Call regw(W_reg, aux_surface_scalar)
+    Call apply_momentum_forcing(U_reg, V_reg, W_reg, kdt * dudn_jump, kdt * p_jump)
 
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
 
     ! rhs_p = D R f
     Call divergence(rhs_p, U_reg, V_reg, W_reg)
+    Call apply_continuity_forcing(con_F, dudn_jump)
+    rhs_p = rhs_p + con_F
 
     ! rhs_p = Linv D R f
     Call solve_poisson_equation(rhs_p)
@@ -81,10 +88,11 @@ Contains
 
     ! Pnp1 = P* - Linv D R f
     rhs_p = P_interim - rhs_p
+    P(2:nxg-1, 2:nyg-1, 2:nzg-1) = rhs_p(2:nxg-1, 2:nyg-1, 2:nzg-1)
+    pressure_computed = .True.
 
     ! U, V, W = G Pnp1
-    rhs_p = dt * rhs_p
-    Call gradient(U, V, W, rhs_p)
+    Call gradient(U, V, W, dt * rhs_p)
 
     ! Unp1 = U** - R f - G Pnp1
     U = U_interim - U_reg - U
@@ -99,47 +107,53 @@ Contains
     Implicit None
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: Sf_(:)
+    Real(Int64), Dimension(3 * nb) :: vres, tang_r
+    Real(Int64), Dimension(nb) :: dpds_r
+    Real(Int64), Dimension(nbodies) :: pavg
 
     Sf_ = 0.d0
 
-    dudn_jump = f_(1          : 3 * nb)
-    p_jump    = f_(3 * nb + 1 : 4 * nb)
+    Call frame_to_cart_t(f_, dudn_jump)
+    p_jump = f_(2 * nb + 1 : 3 * nb)
+    Call remove_mean_per_body(p_jump)
 
     ! U_reg = R f
-    aux_surface_scalar = dt * nu * dudn_jump(1 : nb)              - dt * p_jump * normals(1 : nb)
-    Call regu(U_reg, aux_surface_scalar)
-    aux_surface_scalar = dt * nu * dudn_jump(nb + 1 : 2 * nb)     - dt * p_jump * normals(nb + 1 : 2 * nb)
-    Call regv(V_reg, aux_surface_scalar)
-    aux_surface_scalar = dt * nu * dudn_jump(2 * nb + 1 : 3 * nb) - dt * p_jump * normals(2 * nb + 1 : 3 * nb)
-    Call regw(W_reg, aux_surface_scalar)
+    Call apply_momentum_forcing(U_reg, V_reg, W_reg, kdt * dudn_jump, kdt * p_jump)
+    Call apply_continuity_forcing(con_F, dudn_jump)
 
     Call apply_boundary_conditions(U_reg, V_reg, W_reg)
 
     ! rhs_p = D R f
     Call divergence(rhs_p, U_reg, V_reg, W_reg)
+    rhs_p = rhs_p + con_F
 
     ! rhs_p = Linv D R f
     call solve_poisson_equation(rhs_p)
     rhs_p = rhs_p / dt
 
     Call regTc_1n(E1np, rhs_p)
-    Sf_(3 * nb + 1 : 4 * nb) = -E1np
-    Call remove_mean_per_body(Sf_(3 * nb + 1 : 4 * nb))
-    Sf_(3 * nb + 1 : 4 * nb) = Sf_(3 * nb + 1 : 4 * nb) - E1nHc_exterior * p_jump
+    Call dpmean_ds(rhs_p, -1d0, p_jump, dpds_r, tang_r)
 
     ! U, V, W = G Linv D R f
-    rhs_p = dt * rhs_p
-    Call gradient(U, V, W, rhs_p)
-    Call apply_boundary_conditions(U, V, W)
+    Call gradient(U, V, W, dt * rhs_p)
 
     ! U, V, W = -R f + G Linv D R f
     U = U - U_reg 
     V = V - V_reg 
     W = W - W_reg 
+    Call apply_boundary_conditions(U, V, W)
 
     ! Sf_ = -E (I -  G Linv D) R f
     Call regT(Eu, U, V, W)
-    Sf_(1 : 3 * nb) = Eu - E1nH_exterior * dudn_jump
+    vres = Eu - E1nH_exterior * dudn_jump
+    Call cart_to_frame_t(vres, Sf_(1 : 2 * nb))
+    Sf_(2 * nb + 1 : 3 * nb) = -(vres(1 : nb) * normals(1 : nb) &
+      + vres(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb) &
+      + vres(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb))
+    Call compute_average_pressure_per_body(pavg, f_(2 * nb + 1 : 3 * nb))
+    Call add_per_body_constant(Sf_(2 * nb + 1 : 3 * nb), -pjv_gscale * pavg)
+    Sf_(2 * nb + 1 : 3 * nb) = Sf_(2 * nb + 1 : 3 * nb) &
+      - E1np - E1nHc_exterior * p_jump - Ecross * dpds_r
 
   End Subroutine schur
 
@@ -150,7 +164,12 @@ Contains
     Real(Int64) :: rho_o, rho_n, alpha, om, eps, error, bta
 
     !initialize
-    eps = cg_tol * cg_tol
+    eps = dot_product(bcg_b, bcg_b)
+    If (eps > 0d0) Then
+      eps = cg_tol * cg_tol * eps
+    Else
+      eps = cg_tol * cg_tol
+    End If
     iter = 0
     Call schur(bcg_r, bcg_x)
     bcg_r = bcg_b - bcg_r
