@@ -482,8 +482,6 @@ Contains
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: U_(:, :, :)
 
-    U_ = 0d0
-
     ! compute local_reg for each partition
     Call local_reg(U_, U_supp, f_, 1)
     ! update the interior points from other partitions
@@ -496,8 +494,6 @@ Contains
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: V_(:, :, :)
 
-    V_ = 0d0
-    
     ! compute local_reg for each partition
     Call local_reg(V_, V_supp, f_, 2)
     ! update the interior points from other partitions
@@ -509,10 +505,6 @@ Contains
     Implicit None
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: W_(:, :, :)
-    Integer(Int32) :: i, j
-
-    W_ = 0d0
-
     ! compute local_reg for each partition
     Call local_reg(W_, W_supp, f_, 3)
     ! update the interior points from other partitions
@@ -524,8 +516,6 @@ Contains
     Implicit None
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: U_(:, :, :)
-
-    U_ = 0d0
 
     ! compute local_reg for each partition
     Call local_reg_1n(U_, U_supp, f_, 1)
@@ -539,8 +529,6 @@ Contains
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: V_(:, :, :)
 
-    V_ = 0d0
-    
     ! compute local_reg for each partition
     Call local_reg_1n(V_, V_supp, f_, 2)
     ! update the interior points from other partitions
@@ -552,10 +540,6 @@ Contains
     Implicit None
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: W_(:, :, :)
-    Integer(Int32) :: i, j
-
-    W_ = 0d0
-
     ! compute local_reg for each partition
     Call local_reg_1n(W_, W_supp, f_, 3)
     ! update the interior points from other partitions
@@ -582,7 +566,9 @@ Contains
     integer :: proc_idx
 
     Integer(Int32) :: i, j
-    Eu_ = 0.D0
+    Eu_(nb_start : nb_end) = 0d0
+    Eu_(nb + nb_start : nb + nb_end) = 0d0
+    Eu_(2 * nb + nb_start : 2 * nb + nb_end) = 0d0
      
     Do j = nb_start, nb_end
       Do i = 1, nweights
@@ -629,7 +615,9 @@ Contains
     integer :: proc_idx
 
     Integer(Int32) :: i, j
-    E1nu_ = 0.D0
+    E1nu_(nb_start : nb_end) = 0d0
+    E1nu_(nb + nb_start : nb + nb_end) = 0d0
+    E1nu_(2 * nb + nb_start : 2 * nb + nb_end) = 0d0
      
     Do j = nb_start, nb_end
       Do i = 1, nweights
@@ -672,7 +660,7 @@ Contains
     integer :: proc_idx
 
     Integer(Int32) :: i, j
-    E1np_ = 0.D0
+    E1np_(nb_start : nb_end) = 0d0
 
     Do j = nb_start, nb_end
       Do i = 1, nweights
@@ -696,7 +684,7 @@ Contains
     Real(Int64), Contiguous, Intent(Out) :: Ec_(:)
     Integer(Int32) :: i, j, proc_idx
 
-    Ec_ = 0d0
+    Ec_(nb_start : nb_end) = 0d0
     Do j = nb_start, nb_end
       Do i = 1, nweights
         proc_idx = c_proc(i, j)
@@ -747,46 +735,71 @@ Contains
     factor = 1.0 / (dx * dymin * dz)
 
     ! Loop over body points and accumulate using the appropriate weight array
-    do j = nb_start, nb_end
-      do i = 1, nweights
-        select case (id)
-        case (1)
+    select case (id)
+    case (1)
+      do j = nb_start, nb_end
+        do i = 1, nweights
           proc_idx = u_proc(i, j)
           xi       = u_x_indices(i, j)
           yi       = u_y_indices(i, j)
           zi_loc   = u_z_local_indices(i, j)
           zi_supp  = u_z_supp_idx(i, j)
           weight = u_weights(i,j)
-        case (2)
+          if (proc_idx == myid) then
+            F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
+          else
+            if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+              WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+              stop 'Error: zi_supp out of [1..suppz]'
+            END IF
+            F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
+          end if
+        end do
+      end do
+    case (2)
+      do j = nb_start, nb_end
+        do i = 1, nweights
           proc_idx = v_proc(i, j)
           xi       = v_x_indices(i, j)
           yi       = v_y_indices(i, j)
           zi_loc   = v_z_local_indices(i, j)
           zi_supp  = v_z_supp_idx(i, j)
           weight = v_weights(i,j)
-        case (3)
+          if (proc_idx == myid) then
+            F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
+          else
+            if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+              WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+              stop 'Error: zi_supp out of [1..suppz]'
+            END IF
+            F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
+          end if
+        end do
+      end do
+    case (3)
+      do j = nb_start, nb_end
+        do i = 1, nweights
           proc_idx = w_proc(i, j)
           xi       = w_x_indices(i, j)
           yi       = w_y_indices(i, j)
           zi_loc   = w_z_local_indices(i, j)
           zi_supp  = w_z_supp_idx(i, j)
           weight = w_weights(i,j)
-        case default
-          print *, 'Error in scatter_IB_subset: invalid id =', id
-          stop
-        end select
-        if (proc_idx == myid) then
-          ! Write into local F
-          F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
-        else
-          if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
-            WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
-            stop 'Error: zi_supp out of [1..suppz]'
-          END IF
-          F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
-        end if
+          if (proc_idx == myid) then
+            F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
+          else
+            if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+              WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+              stop 'Error: zi_supp out of [1..suppz]'
+            END IF
+            F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
+          end if
+        end do
       end do
-    end do
+    case default
+      print *, 'Error in scatter_IB_subset: invalid id =', id
+      stop
+    end select
   end subroutine local_reg
 
   subroutine local_reg_1n(F, F_supp, f_, id)
@@ -808,46 +821,71 @@ Contains
     factor = 1.0 / (dx * dymin * dz)
 
     ! Loop over body points and accumulate using the appropriate weight array
-    do j = nb_start, nb_end
-      do i = 1, nweights
-        select case (id)
-        case (1)
+    select case (id)
+    case (1)
+      do j = nb_start, nb_end
+        do i = 1, nweights
           proc_idx = u_proc(i, j)
           xi       = u_x_indices(i, j)
           yi       = u_y_indices(i, j)
           zi_loc   = u_z_local_indices(i, j)
           zi_supp  = u_z_supp_idx(i, j)
           weight = u_weights(i,j) * dxnu(i,j)
-        case (2)
+          if (proc_idx == myid) then
+            F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
+          else
+            if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+              WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+              stop 'Error: zi_supp out of [1..suppz]'
+            END IF
+            F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
+          end if
+        end do
+      end do
+    case (2)
+      do j = nb_start, nb_end
+        do i = 1, nweights
           proc_idx = v_proc(i, j)
           xi       = v_x_indices(i, j)
           yi       = v_y_indices(i, j)
           zi_loc   = v_z_local_indices(i, j)
           zi_supp  = v_z_supp_idx(i, j)
           weight = v_weights(i,j) * dxnv(i,j)
-        case (3)
+          if (proc_idx == myid) then
+            F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
+          else
+            if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+              WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+              stop 'Error: zi_supp out of [1..suppz]'
+            END IF
+            F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
+          end if
+        end do
+      end do
+    case (3)
+      do j = nb_start, nb_end
+        do i = 1, nweights
           proc_idx = w_proc(i, j)
           xi       = w_x_indices(i, j)
           yi       = w_y_indices(i, j)
           zi_loc   = w_z_local_indices(i, j)
           zi_supp  = w_z_supp_idx(i, j)
           weight = w_weights(i,j) * dxnw(i,j)
-        case default
-          print *, 'Error in scatter_IB_subset: invalid id =', id
-          stop
-        end select
-        if (proc_idx == myid) then
-          ! Write into local F
-          F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
-        else
-          if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
-            WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
-            stop 'Error: zi_supp out of [1..suppz]'
-          END IF
-          F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
-        end if
+          if (proc_idx == myid) then
+            F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
+          else
+            if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+              WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+              stop 'Error: zi_supp out of [1..suppz]'
+            END IF
+            F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
+          end if
+        end do
       end do
-    end do
+    case default
+      print *, 'Error in scatter_IB_subset: invalid id =', id
+      stop
+    end select
   end subroutine local_reg_1n
 
   Subroutine apply_momentum_forcing(Fx_, Fy_, Fz_, dudn_jump_, p_jump_)
@@ -1006,6 +1044,7 @@ Contains
     Integer(Int32) :: marker, l, m, n, count, p, q, r, pn, qn, rn, pm, rm
     Integer(Int32) :: i0, j0, k0, dxoff, dyoff, dzoff, Lx, Lz, pmax, qmax, rmax
     Integer(Int32) :: pu, qu, su, pv, qv, sv, pw, qw, sw, ii, jj, kk, kl
+    Logical(Int32) :: marker_is_local
     Real(Int64) :: dvol, sbk, nrmx, nrmy, nrmz, bu, bv, bw
     Real(Int64) :: IxRu, IyRu, IzRu, IxRv, IyRv, IzRv, IxRw, IyRw, IzRw
     Real(Int64) :: IxDu, IyDu, IzDu, IxDv, IyDv, IzDv, IxDw, IyDw, IzDw
@@ -1028,6 +1067,18 @@ Contains
       Do r = 1, Lz
         kg(r) = wrap_z_ib(k0 + r)
       End Do
+
+      rmax = Min(2 * suppz + 2 + dzoff, Lz)
+      marker_is_local = .False.
+      Do r = 1, Min(rmax + 1, Lz)
+        kk = kg(r)
+        If ((kk >= kg1_global(myid) + 1 .And. kk <= kg2_global(myid) - 1) .Or. &
+            (kk >= k1_global(myid) + 1 .And. kk <= k2_global(myid) - 1)) Then
+          marker_is_local = .True.
+          Exit
+        End If
+      End Do
+      If (.Not. marker_is_local) Cycle
 
       sbk = sb(marker)
       nrmx = normals(marker)
@@ -1069,7 +1120,6 @@ Contains
 
       pmax = Min(2 * suppx + 2 + dxoff, Lx)
       qmax = 2 * suppy + 2 + dyoff
-      rmax = Min(2 * suppz + 2 + dzoff, Lz)
       T1u = 0d0
       T2u = 0d0
       T3u = 0d0

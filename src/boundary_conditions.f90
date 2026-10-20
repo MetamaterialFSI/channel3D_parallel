@@ -656,8 +656,6 @@ Contains
       
     End if  
 
-    Call Mpi_barrier(MPI_COMM_WORLD, ierr) 
-    
   End Subroutine interior_planes_update_support
 
   Subroutine interior_planes_update_support_pressure(F, F_supp)
@@ -711,8 +709,6 @@ Contains
              istat, ierr)   
         F_supp(2:nxg-1, 2:nyg-1,suppz+2:2*suppz+1) = buffer_psupp_r(2:nxg-1, 2:nyg-1,1:suppz) ! received buffer
 
-    Call Mpi_barrier(MPI_COMM_WORLD, ierr) 
-    
   End Subroutine interior_planes_update_support_pressure
 
   !-------------------------------------------------------------------------------
@@ -900,7 +896,6 @@ Contains
            istat, ierr)   
       F(:,:,nz-suppz-1:nz-1) = F(:,:,nz-suppz-1:nz-1)+ buffer_wsupp_r ! received buffer     
     End if 
-    Call Mpi_barrier(MPI_COMM_WORLD, ierr) 
     !WRITE(*,*) 'Done:supp2interior myid:',myid,'id:',id
     
   End Subroutine support_update_interior_planes
