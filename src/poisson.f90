@@ -30,14 +30,19 @@ Contains
   ! Output: rhs (solution to the Poisson equation)     !
   !                                                    !
   !----------------------------------------------------!
-  Subroutine solve_poisson_equation(rhs)
+  Subroutine solve_poisson_equation(rhs, save_pressure)
 
     Real   (Int64), DIMENSION( 2:nxg-1, 2:nyg-1, 2:nzg ), INTENT(INOUT)  :: rhs
-    Integer(Int32) :: i, j, k, k_global, i_global, info
+    Logical, Optional, Intent(In) :: save_pressure
+    Integer(Int32) :: i, j, k, info
     Real   (Int64) :: dum, dumref, maxerr
+    Logical :: save_pressure_
 
     ! Lapack function for solving tridiagonal systems
-    External :: zgesv
+    External :: zgttrs
+
+    save_pressure_ = .True.
+    If (Present(save_pressure)) save_pressure_ = save_pressure
 
     ! 2D Fourier transform interior points 
     Do j = 2, nyg-1
@@ -49,27 +54,11 @@ Contains
     ! solve for each mode
     Do k = 0, mz
        Do i = 0, mx
-          ! mapping to x-mode 
-          i_global = imode_map_fft( i, k )
-          ! mapping to z-mode 
-          k_global = kmode_map_fft( i, k )
-          ! i_global = i
-          ! k_global = local_k_offset + k
-          ! form matrix          
-          Do j = 2, nyg-1 ! diagonal
-             D(j) = Dyy(j,j) + kxx(i_global) + kzz(k_global) 
-          End Do
-          Do j = 2, nyg-2 ! lower diagonal
-             DL(j) = Dyy(j+1,j)
-          End Do
-          Do j = 2, nyg-2 ! upper diagonal
-             DU(j) = Dyy(j,j+1)
-          End Do
-          ! remove singularity 00 mode (set a reference pseudo-pressure)
-          If ( i_global==0 .And. k_global==0 ) D(2) = 3d0/2d0*D(2) 
           ! solve M*u = rhs (solution stored in rhs_hat)
           rhs_aux = rhs_hat (i, :, k)
-          Call Zgtsv( nr, nrhs, DL, D, DU, rhs_aux, nr, info) 
+          Call zgttrs('N', nr, nrhs, poisson_dl(:,i,k), poisson_d(:,i,k), &
+               poisson_du(:,i,k), poisson_du2(:,i,k), poisson_ipiv(:,i,k), &
+               rhs_aux, nr, info)
           rhs_hat (i, :, k) = rhs_aux
        End Do
     End Do
@@ -88,7 +77,7 @@ Contains
     Call update_ghost_interior_planes_centers(rhs)
 
     ! save pressure for statistics
-    If ( rk_step == 1 ) Then
+    If ( rk_step == 1 .And. save_pressure_ ) Then
        P( 2:nxg-1, 2:nyg-1, 2:nzg-1 ) = rhs( 2:nxg-1, 2:nyg-1, 2:nzg-1 )/(dt*rk_coef(1,1))
        P(  1,:,:) = P(    2,:,:)
        P(nxg,:,:) = P(nxg-1,:,:)

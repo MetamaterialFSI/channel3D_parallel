@@ -24,8 +24,10 @@ Contains
   Subroutine initialize
     
     Integer(Int32) :: i, j, k, kk, nzpe, pos, ipos, nze, nzme, count
+    Integer(Int32) :: i_global, k_global, info
     Real   (Int64) :: dy1, dy2, det, a, b, c, r, Qflow_ref
     Integer(Int32), Dimension(:,:), Allocatable :: A_kmodes, A_kmodes_local
+    External :: zgttrf
 
     If (myid==0) Then 
        Write(*,*) '----------------------------------------------------------------------'       
@@ -153,6 +155,9 @@ Contains
     ! Auxiliary arrays
     Allocate ( term_1 ( nxg, nyg, nzg ) ) 
     Allocate ( term_2 ( nxg, nyg, nzg ) ) 
+    Allocate ( uv_flux ( nx,  ny,  nzg     ) )
+    Allocate ( uw_flux ( nx,  nyg, nzg - 1 ) )
+    Allocate ( vw_flux ( nxg, ny,  nzg - 1 ) )
 
     ! RHS: interior points only
     Allocate ( rhs_uo ( 2:nx-1,  2:nyg-1, 2:nzg-1 ) ) 
@@ -351,9 +356,7 @@ Contains
      
     !------------------------Tridiagonal linear solver-------------------------!
     If ( myid==0 ) Write(*,*) 'initializing pressure solver...'
-    Allocate ( pivot(nyg) )
-    Allocate ( Dyy(2:nyg-1,2:nyg-1), M(2:nyg-1,2:nyg-1) )
-    Allocate ( D(2:nyg-1), DL(2:nyg-2), DU(2:nyg-2) )
+    Allocate ( Dyy(2:nyg-1,2:nyg-1) )
      
     ! second derivative matrix for pressure (full data in y assumed)
     Dyy = 0d0
@@ -394,6 +397,31 @@ Contains
     ! some parameters for linear solver
     nr   = nym
     nrhs = 1
+
+    Allocate ( poisson_d   (2:nyg-1, 0:mx, 0:mz) )
+    Allocate ( poisson_dl  (2:nyg-2, 0:mx, 0:mz) )
+    Allocate ( poisson_du  (2:nyg-2, 0:mx, 0:mz) )
+    Allocate ( poisson_du2 (2:nyg-3, 0:mx, 0:mz) )
+    Allocate ( poisson_ipiv(1:nr,    0:mx, 0:mz) )
+
+    Do k = 0, mz
+       Do i = 0, mx
+          i_global = imode_map_fft(i,k)
+          k_global = kmode_map_fft(i,k)
+          Do j = 2, nyg-1
+             poisson_d(j,i,k) = Dyy(j,j) + kxx(i_global) + kzz(k_global)
+          End Do
+          Do j = 2, nyg-2
+             poisson_dl(j,i,k) = Dyy(j+1,j)
+             poisson_du(j,i,k) = Dyy(j,j+1)
+          End Do
+          If (i_global==0 .And. k_global==0) poisson_d(2,i,k) = 3d0/2d0*poisson_d(2,i,k)
+          Call zgttrf(nr, poisson_dl(:,i,k), poisson_d(:,i,k), poisson_du(:,i,k), &
+               poisson_du2(:,i,k), poisson_ipiv(:,i,k), info)
+          If (info/=0) Stop 'Error: Poisson factorization failed'
+       End Do
+    End Do
+    Deallocate ( Dyy )
 
 
     !------------------------statistics---------------------------!

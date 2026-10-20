@@ -220,7 +220,6 @@ Contains
         F(:,:,nzg  ) = buffer_ci(:,:,3) ! U_global(:,:,3)
       End If    
     End If   
-    Call Mpi_barrier(MPI_COMM_WORLD, ierr)
   End Subroutine apply_periodic_bc_z
 
   !-------------------------------------------------!

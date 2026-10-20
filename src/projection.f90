@@ -75,8 +75,6 @@ Contains
     ! U_reg = R f
     Call apply_momentum_forcing(U_reg, V_reg, W_reg, kdt * dudn_jump, kdt * p_jump)
 
-    Call apply_boundary_conditions(U_reg, V_reg, W_reg)
-
     ! rhs_p = D R f
     Call divergence(rhs_p, U_reg, V_reg, W_reg)
     Call apply_continuity_forcing(con_F, dudn_jump)
@@ -121,14 +119,12 @@ Contains
     Call apply_momentum_forcing(U_reg, V_reg, W_reg, kdt * dudn_jump, kdt * p_jump)
     Call apply_continuity_forcing(con_F, dudn_jump)
 
-    Call apply_boundary_conditions(U_reg, V_reg, W_reg)
-
     ! rhs_p = D R f
     Call divergence(rhs_p, U_reg, V_reg, W_reg)
     rhs_p = rhs_p + con_F
 
     ! rhs_p = Linv D R f
-    call solve_poisson_equation(rhs_p)
+    call solve_poisson_equation(rhs_p, .False.)
     rhs_p = rhs_p / dt
 
     Call regTc_1n(E1np, rhs_p)

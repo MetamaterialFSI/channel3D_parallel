@@ -20,13 +20,6 @@ Contains
   Subroutine compute_heaviside
 
     Integer(Int32) :: i, j, k
-    Hc_exterior = 0d0
-    Hc_interior = 0d0
-
-    U_reg = 0d0
-    V_reg = 0d0
-    W_reg = 0d0
-
     Call regu(U_reg, normals(1 : nb))             
     Call regv(V_reg, normals(nb + 1 : 2 * nb))    
     Call regw(W_reg, normals(2 * nb + 1 : 3 * nb))

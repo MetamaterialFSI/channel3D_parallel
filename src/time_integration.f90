@@ -33,6 +33,7 @@ Contains
     Wo = W
 
     ! compute rhs for U
+    Call prepare_cross_fluxes(Uo,Vo,Wo)
     Call compute_rhs_u(Uo,Vo,Wo,rhs_uo)
 
     ! Advance U interior points
@@ -99,6 +100,7 @@ Contains
 
     ! step 1
     rk_step = 1
+    Call prepare_cross_fluxes(U,V,W)
     Call compute_rhs_u(U,V,W,Fu1)
     Call compute_rhs_v(U,V,W,Fv1)
     Call compute_rhs_w(U,V,W,Fw1)
@@ -130,6 +132,7 @@ Contains
 
     ! step 2
     rk_step = 2
+    Call prepare_cross_fluxes(U,V,W)
     Call compute_rhs_u(U,V,W,Fu2)
     Call compute_rhs_v(U,V,W,Fv2)
     Call compute_rhs_w(U,V,W,Fw2)
@@ -161,6 +164,7 @@ Contains
 
     ! step 3
     rk_step = 3
+    Call prepare_cross_fluxes(U,V,W)
     Call compute_rhs_u(U,V,W,Fu3)
     Call compute_rhs_v(U,V,W,Fv3)
     Call compute_rhs_w(U,V,W,Fw3)
@@ -230,6 +234,11 @@ Contains
     Real   (Int64) :: dt_conv_u, dt_conv_v, dt_conv_w, dt_conv
     Real   (Int64) :: dt_vis_u, dt_vis_v, dt_vis_w, dt_vis
     Real   (Int64) :: dt_max
+
+    If ( CFL<0 ) Then
+       dt = -CFL
+       Return
+    End If
     
     ! convective time step
     lUmax = 0d0
@@ -267,9 +276,6 @@ Contains
     ! time step limiter
     dt_max = 1d-1
     dt     = Min( dt, dt_max )
-    If ( CFL<0 ) Then
-       dt = -CFL
-    End If
      
    End Subroutine compute_dt
 

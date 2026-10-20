@@ -959,9 +959,7 @@ Contains
       End Do
     End Do
 
-    Call apply_boundary_conditions(Fx_, Fy_, Fz_)
     Call accumulate_DR1n_forcing(Fx_, Fy_, Fz_, dudn_jump_)
-    Call apply_boundary_conditions(Fx_, Fy_, Fz_)
 
     fwork = -p_jump_ * normals(1 : nb)
     Call regu(U_ib_tmp, fwork)

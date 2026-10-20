@@ -116,6 +116,7 @@ Module global
 
   ! local auxiliary 
   Real(Int64), Allocatable, Dimension(:,:,:) :: term_1, term_2
+  Real(Int64), Allocatable, Dimension(:,:,:) :: uv_flux, uw_flux, vw_flux
 
   ! local rhs for velocities and pressure
   Real(Int64), Allocatable, Dimension(:,:)   :: px_bottom, px_top
@@ -146,7 +147,7 @@ Module global
   
   ! local auxiliary planes for FFTW
   Type(C_PTR) :: cplane_fft
-  Complex(C_DOUBLE_COMPLEX), Pointer, Dimension(:,:) :: plane, plane_hat
+  Complex(C_DOUBLE_COMPLEX), Pointer, Contiguous, Dimension(:,:) :: plane, plane_hat
 
   ! Fourier points and wave numbers 
   Integer(C_INTPTR_T) :: nxp_global, nzp_global, local_k_offset
@@ -171,9 +172,9 @@ Module global
 
   ! linear solver
   Integer (Int32) :: nr, nrhs
-  Integer (Int32), Dimension(:),   Allocatable :: pivot  
-  Complex (Int64), Dimension(:),   Allocatable :: D, DL, DU
-  Complex (Int64), Dimension(:,:), Allocatable :: M, Dyy
+  Integer (Int32), Dimension(:,:,:), Allocatable :: poisson_ipiv
+  Complex (Int64), Dimension(:,:,:), Allocatable :: poisson_d, poisson_dl, poisson_du, poisson_du2
+  Complex (Int64), Dimension(:,:), Allocatable :: Dyy
 
   ! pressure gradients
   Real(Int64) :: dPdx, dPdy, dPdz, dPdx_ref
