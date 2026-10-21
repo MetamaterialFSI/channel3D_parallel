@@ -37,7 +37,7 @@ Contains
       init_type, grid_type, body_type, exterior_pressure_gradient, &
       read_input_IB_data, read_input_time, read_input_dpdx, &
       body_param_3, body_param_1, body_param_2, body_ramp_up_time, &
-      min_buffer_width, cg_tol, cg_max_iter, perturb_scale, &
+      min_buffer_width, cg_tol, cg_abs_tol, cg_max_iter, perturb_scale, &
       use_rk3
 
     ! default values
@@ -47,6 +47,7 @@ Contains
     Ly_channel = 2d0
     min_buffer_width = 0d0
     cg_tol = 1e-8
+    cg_abs_tol = 1d-12
     cg_max_iter = 50
     t_init = 0d0
     body_type = 'none'
@@ -80,6 +81,8 @@ Contains
           Print *, "Error reading namelist. IOSTAT =", ioerr, " IOMSG = ", msg
           Stop 1
       End If
+      If (cg_tol <= 0d0) Error Stop 'CG_TOL must be positive'
+      If (cg_abs_tol <= 0d0) Error Stop 'CG_ABS_TOL must be positive'
 
       utau_    = dPdx ** 0.5d0
       dPdx_ref = dPdx
@@ -133,6 +136,7 @@ Contains
     Call Mpi_bcast ( min_buffer_width,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( cg_max_iter,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( cg_tol,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( cg_abs_tol,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( perturb_scale,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
     Call Mpi_bcast (   body_param_1,1,MPI_real8,0,MPI_COMM_WORLD,ierr )

@@ -587,6 +587,7 @@ Contains
     Allocate (V_ib_tmp ( nxm+2,     ny, nzm+2) )
     Allocate (W_ib_tmp ( nxm+2,  nym+2,    nz) )
     Allocate (con_F ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
+    con_F = 0d0
 
     ! Body arrays for accepting interpolated fields
     Allocate (Eu (3 * nb))
@@ -648,8 +649,15 @@ Contains
     Allocate ( bcg_h( 3 * nb) )
     Allocate ( bcg_sv( 3 * nb) )
     Allocate ( bcg_tv( 3 * nb) )
+    Allocate ( cg_report_iterations(cg_report_max_solves) )
+    Allocate ( cg_report_stages(cg_report_max_solves) )
+    Allocate ( cg_report_history(5, 0:cg_max_iter, cg_report_max_solves) )
+    Allocate ( cg_report_rhs_rms(3, cg_report_max_solves) )
+    Allocate ( cg_report_tolerances(2, cg_report_max_solves) )
     cg_accum_iter = 0
     cg_nsolves    = 0
+    cg_report_count = 0
+    cg_report_step = -Huge(cg_report_step)
 
     !-------------------------Done--------------------------------!
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)
