@@ -356,18 +356,18 @@ Contains
             y_ref_index(k) = 1
             y_ref_index(k + nxb) = ny_global
 
-            If (yb(k) < y(1 + suppy)) Then
+            If (yb(k) < y(2 + suppy)) Then
               If ( myid==0 ) Then
                 write(*,'(A,I3,A,F13.6,A,F13.6)') "yb(", k, ") = ", yb(k), &
-                  " is smaller than y(1 + suppy) = ", y(1 + suppy)
+                  " is smaller than y(2 + suppy) = ", y(2 + suppy)
                 write(*,*) "Error: body points support exceeds grid dimensions"
               End If
               Stop
             End If
-            If (yb(k + nxb) > y(ny_global - suppy)) Then
+            If (yb(k + nxb) > y(ny_global - suppy - 1)) Then
               If ( myid==0 ) Then
                 write(*,'(A,I3,A,F13.6,A,F13.6)') "yb(", k + nxb, ") = ", yb(k + nxb), &
-                  " is greater than y(ny_global - suppy) = ", y(ny_global - suppy)
+                  " is greater than y(ny_global - suppy - 1) = ", y(ny_global - suppy - 1)
                 write(*,*) "Error: body points support exceeds grid dimensions"
               End If
               Stop
@@ -470,18 +470,18 @@ Contains
             y_ref_index(k) = 1
             y_ref_index(k + nxb) = ny_global
 
-            If (yb(k) < y(1 + suppy)) Then
+            If (yb(k) < y(2 + suppy)) Then
               If ( myid==0 ) Then
                 write(*,'(A,I3,A,F13.6,A,F13.6)') "yb(", k, ") = ", yb(k), &
-                  " is smaller than y(1 + suppy) = ", y(1 + suppy)
+                  " is smaller than y(2 + suppy) = ", y(2 + suppy)
                 write(*,*) "Error: body points support exceeds grid dimensions"
               End If
               Stop
             End If
-            If (yb(k + nxb) > y(ny_global - suppy)) Then
+            If (yb(k + nxb) > y(ny_global - suppy - 1)) Then
               If ( myid==0 ) Then
                 write(*,'(A,I3,A,F13.6,A,F13.6)') "yb(", k + nxb, ") = ", yb(k + nxb), &
-                  " is greater than y(ny_global - suppy) = ", y(ny_global - suppy)
+                  " is greater than y(ny_global - suppy - 1) = ", y(ny_global - suppy - 1)
                 write(*,*) "Error: body points support exceeds grid dimensions"
               End If
               Stop

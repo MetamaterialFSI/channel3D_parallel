@@ -1028,7 +1028,6 @@ Contains
     Integer(Int32), Parameter :: nly = 2 * suppy + 4
     Integer(Int32), Parameter :: nlz = 2 * suppz + 4
     Real(Int64) :: Ru(nlx, nly, nlz), Rv(nlx, nly, nlz), Rw(nlx, nly, nlz)
-    Real(Int64) :: Du(nlx, nly, nlz), Dv(nlx, nly, nlz), Dw(nlx, nly, nlz)
     Real(Int64) :: T1u(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
     Real(Int64) :: T2u(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
     Real(Int64) :: T3u(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
@@ -1038,10 +1037,14 @@ Contains
     Real(Int64) :: T1w(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
     Real(Int64) :: T2w(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
     Real(Int64) :: T3w(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
+    Real(Int64) :: nxf(nlx + 1), nxc(nlx + 1), nxfm(nlx), nxcm(nlx)
+    Real(Int64) :: nyf(nly + 1), nyc(nly + 1), nyfm(nly), nycm(nly)
+    Real(Int64) :: nzf(nlz + 1), nzc(nlz + 1), nzfm(nlz), nzcm(nlz)
     Integer(Int32) :: ig(nlx), kg(nlz)
     Integer(Int32) :: marker, l, m, n, count, p, q, r, pn, qn, rn, pm, rm
     Integer(Int32) :: i0, j0, k0, dxoff, dyoff, dzoff, Lx, Lz, pmax, qmax, rmax
     Integer(Int32) :: pu, qu, su, pv, qv, sv, pw, qw, sw, ii, jj, kk, kl
+    Integer(Int32) :: ii_periodic, kk_periodic, x_periodic_shifts, z_periodic_shifts
     Logical(Int32) :: marker_is_local
     Real(Int64) :: dvol, sbk, nrmx, nrmy, nrmz, bu, bv, bw
     Real(Int64) :: IxRu, IyRu, IzRu, IxRv, IyRv, IzRv, IxRw, IyRw, IzRw
@@ -1089,9 +1092,6 @@ Contains
       Ru = 0d0
       Rv = 0d0
       Rw = 0d0
-      Du = 0d0
-      Dv = 0d0
-      Dw = 0d0
       count = 0
       Do l = -suppz, suppz
         Do m = -suppy, suppy
@@ -1109,15 +1109,48 @@ Contains
             Ru(pu, qu, su) = Ru(pu, qu, su) + u_weights(count, marker) * sbk * nrmx / dvol
             Rv(pv, qv, sv) = Rv(pv, qv, sv) + v_weights(count, marker) * sbk * nrmy / dvol
             Rw(pw, qw, sw) = Rw(pw, qw, sw) + w_weights(count, marker) * sbk * nrmz / dvol
-            Du(pu, qu, su) = bu * dxnu(count, marker)
-            Dv(pv, qv, sv) = bv * dxnv(count, marker)
-            Dw(pw, qw, sw) = bw * dxnw(count, marker)
           End Do
         End Do
       End Do
 
       pmax = Min(2 * suppx + 2 + dxoff, Lx)
       qmax = 2 * suppy + 2 + dyoff
+
+      Do p = 1, pmax + 1
+        ii = i0 + p
+        x_periodic_shifts = Floor(Real(ii - 2, Int64) / Real(nx_global - 2, Int64))
+        ii_periodic = ii - x_periodic_shifts * (nx_global - 2)
+        nxf(p) = nrmx * (x_global(ii_periodic) + Real(x_periodic_shifts, Int64) * Lxp - xb(marker))
+        nxc(p) = nrmx * (xg_global(ii_periodic) + Real(x_periodic_shifts, Int64) * Lxp - xb(marker))
+      End Do
+      Do p = 1, pmax
+        nxfm(p) = nxc(p + 1)
+        nxcm(p) = nxf(p)
+      End Do
+
+      Do q = 1, qmax + 1
+        jj = j0 + q
+        nyf(q) = nrmy * (y_global(jj) - yb(marker))
+        nyc(q) = nrmy * (yg_global(jj) - yb(marker))
+      End Do
+      Do q = 1, qmax
+        jj = j0 + q
+        nyfm(q) = nyc(q + 1)
+        nycm(q) = nrmy * (0.5d0 * (yg_global(jj) + yg_global(jj + 1)) - yb(marker))
+      End Do
+
+      Do r = 1, rmax + 1
+        kk = k0 + r
+        z_periodic_shifts = Floor(Real(kk - 2, Int64) / Real(nz_global - 2, Int64))
+        kk_periodic = kk - z_periodic_shifts * (nz_global - 2)
+        nzf(r) = nrmz * (z_global(kk_periodic) + Real(z_periodic_shifts, Int64) * Lzp - zb(marker))
+        nzc(r) = nrmz * (zg_global(kk_periodic) + Real(z_periodic_shifts, Int64) * Lzp - zb(marker))
+      End Do
+      Do r = 1, rmax
+        nzfm(r) = nzc(r + 1)
+        nzcm(r) = nzf(r)
+      End Do
+
       T1u = 0d0
       T2u = 0d0
       T3u = 0d0
@@ -1143,15 +1176,15 @@ Contains
             IxRw = 0.5d0 * (Rw(p, q, r) + Rw(pn, q, r))
             IyRw = 0.5d0 * (Rw(p, q, r) + Rw(p, qn, r))
             IzRw = 0.5d0 * (Rw(p, q, r) + Rw(p, q, rn))
-            IxDu = 0.5d0 * (Du(p, q, r) + Du(pn, q, r))
-            IyDu = 0.5d0 * (Du(p, q, r) + Du(p, qn, r))
-            IzDu = 0.5d0 * (Du(p, q, r) + Du(p, q, rn))
-            IxDv = 0.5d0 * (Dv(p, q, r) + Dv(pn, q, r))
-            IyDv = 0.5d0 * (Dv(p, q, r) + Dv(p, qn, r))
-            IzDv = 0.5d0 * (Dv(p, q, r) + Dv(p, q, rn))
-            IxDw = 0.5d0 * (Dw(p, q, r) + Dw(pn, q, r))
-            IyDw = 0.5d0 * (Dw(p, q, r) + Dw(p, qn, r))
-            IzDw = 0.5d0 * (Dw(p, q, r) + Dw(p, q, rn))
+            IxDu = bu * (nxfm(p) + nyc(q) + nzc(r))
+            IyDu = bu * (nxf(p) + nycm(q) + nzc(r))
+            IzDu = bu * (nxf(p) + nyc(q) + nzcm(r))
+            IxDv = bv * (nxcm(p) + nyf(q) + nzc(r))
+            IyDv = bv * (nxc(p) + nyfm(q) + nzc(r))
+            IzDv = bv * (nxc(p) + nyf(q) + nzcm(r))
+            IxDw = bw * (nxcm(p) + nyc(q) + nzf(r))
+            IyDw = bw * (nxc(p) + nycm(q) + nzf(r))
+            IzDw = bw * (nxc(p) + nyc(q) + nzfm(r))
             T1u(p, q, r) = IxRu * IxDu
             T2u(p, q, r) = IxRv * IyDu
             T3u(p, q, r) = IxRw * IzDu

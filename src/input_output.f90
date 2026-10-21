@@ -153,9 +153,7 @@ Contains
   !--------------------------------------!
   Subroutine create_grid
 
-    Integer(Int32) :: i, n_uniform_fine
-
-    n_uniform_fine = 1
+    Integer(Int32) :: i
 
     Do i = 1, nx_global
       x_global(i) = Real(i-1,8)
@@ -196,6 +194,7 @@ Contains
 
         ! Loop until buffer condition is met
         write(*,*) 'creating stretched grid using ny_global = ', ny_global
+        n_uniform = 1
         Do
           Call create_stretched_grid(y_global, Ly_channel, ny_global, n_uniform, alpha_stretch)
 
@@ -204,9 +203,9 @@ Contains
 
           If ( myid==0 ) Write(*,'(A,I4,A,F12.6)') ' Number of buffer cells on each side = ', n_uniform, ' -> dymin = ', dymin 
           If ( myid==0 ) Write(*,'(A,F12.6,A,F12.6,A)') ' Buffer width = ', n_uniform * dymin, ' (minimum requirement = ', &
-            min_buffer_width + (2 * suppy + 2) * dymin, ')'
+            min_buffer_width + (2 * suppy + 4) * dymin, ')'
           ! TODO: check if 2 * suppy + 2 is the correct amount
-          If (n_uniform * dymin >= min_buffer_width + (2 * suppy + 2) * dymin) Exit
+          If (n_uniform * dymin >= min_buffer_width + (2 * suppy + 4) * dymin) Exit
 
           n_uniform = n_uniform + 1
 
