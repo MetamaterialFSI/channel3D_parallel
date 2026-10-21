@@ -47,18 +47,15 @@ Contains
 
   Subroutine compute_IB_projection
 
-    Real(Int64), Dimension(3 * nb) :: vr0
-    Real(Int64), Dimension(nb) :: pzero
-
     ! - E u* + ub 
     Call regT(Eu, U, V, W)
-    vr0 = ub - Eu
-    Call cart_to_frame_t(vr0, rhs_ib(1 : 2 * nb))
-    rhs_ib(2 * nb + 1 : 3 * nb) = -(vr0(1 : nb) * normals(1 : nb) &
-      + vr0(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb) &
-      + vr0(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb))
-    pzero = 0d0
-    Call dpmean_ds(P_interim, 1d0, pzero, dpds_known, ring_tang)
+    ib_surface_vector_work = ub - Eu
+    Call cart_to_frame_t(ib_surface_vector_work, rhs_ib(1 : 2 * nb))
+    rhs_ib(2 * nb + 1 : 3 * nb) = -(ib_surface_vector_work(1 : nb) * normals(1 : nb) &
+      + ib_surface_vector_work(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb) &
+      + ib_surface_vector_work(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb))
+    aux_surface_scalar = 0d0
+    Call dpmean_ds(P_interim, 1d0, aux_surface_scalar, dpds_known, ring_tang)
     Call regTc_1n(E1np, P_interim)
     rhs_ib(2 * nb + 1 : 3 * nb) = rhs_ib(2 * nb + 1 : 3 * nb) &
       - E1np + E2n1c * pn_mean + Ecross * dpds_known
@@ -73,7 +70,9 @@ Contains
     Call remove_mean_per_body(p_jump)
 
     ! U_reg = R f
-    Call apply_momentum_forcing(U_reg, V_reg, W_reg, kdt * dudn_jump, kdt * p_jump)
+    ib_surface_vector_work = kdt * dudn_jump
+    aux_surface_scalar = kdt * p_jump
+    Call apply_momentum_forcing(U_reg, V_reg, W_reg, ib_surface_vector_work, aux_surface_scalar)
 
     ! rhs_p = D R f
     Call divergence(rhs_p, U_reg, V_reg, W_reg)
@@ -90,7 +89,8 @@ Contains
     pressure_computed = .True.
 
     ! U, V, W = G Pnp1
-    Call gradient(U, V, W, dt * rhs_p)
+    rhs_p = dt * rhs_p
+    Call gradient(U, V, W, rhs_p)
 
     ! Unp1 = U** - R f - G Pnp1
     U = U_interim - U_reg - U
@@ -105,8 +105,6 @@ Contains
     Implicit None
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: Sf_(:)
-    Real(Int64), Dimension(3 * nb) :: vres, tang_r
-    Real(Int64), Dimension(nb) :: dpds_r
     Real(Int64), Dimension(nbodies) :: pavg
 
     Sf_ = 0.d0
@@ -116,7 +114,9 @@ Contains
     Call remove_mean_per_body(p_jump)
 
     ! U_reg = R f
-    Call apply_momentum_forcing(U_reg, V_reg, W_reg, kdt * dudn_jump, kdt * p_jump)
+    ib_surface_vector_work = kdt * dudn_jump
+    aux_surface_scalar = kdt * p_jump
+    Call apply_momentum_forcing(U_reg, V_reg, W_reg, ib_surface_vector_work, aux_surface_scalar)
     Call apply_continuity_forcing(con_F, dudn_jump)
 
     ! rhs_p = D R f
@@ -128,10 +128,11 @@ Contains
     rhs_p = rhs_p / dt
 
     Call regTc_1n(E1np, rhs_p)
-    Call dpmean_ds(rhs_p, -1d0, p_jump, dpds_r, tang_r)
+    Call dpmean_ds(rhs_p, -1d0, p_jump, dpds_known, ring_tang)
 
     ! U, V, W = G Linv D R f
-    Call gradient(U, V, W, dt * rhs_p)
+    rhs_p = dt * rhs_p
+    Call gradient(U, V, W, rhs_p)
 
     ! U, V, W = -R f + G Linv D R f
     U = U - U_reg 
@@ -141,15 +142,15 @@ Contains
 
     ! Sf_ = -E (I -  G Linv D) R f
     Call regT(Eu, U, V, W)
-    vres = Eu - E1nH_exterior * dudn_jump
-    Call cart_to_frame_t(vres, Sf_(1 : 2 * nb))
-    Sf_(2 * nb + 1 : 3 * nb) = -(vres(1 : nb) * normals(1 : nb) &
-      + vres(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb) &
-      + vres(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb))
+    ib_surface_vector_work = Eu - E1nH_exterior * dudn_jump
+    Call cart_to_frame_t(ib_surface_vector_work, Sf_(1 : 2 * nb))
+    Sf_(2 * nb + 1 : 3 * nb) = -(ib_surface_vector_work(1 : nb) * normals(1 : nb) &
+      + ib_surface_vector_work(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb) &
+      + ib_surface_vector_work(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb))
     Call compute_average_pressure_per_body(pavg, f_(2 * nb + 1 : 3 * nb))
     Call add_per_body_constant(Sf_(2 * nb + 1 : 3 * nb), -pjv_gscale * pavg)
     Sf_(2 * nb + 1 : 3 * nb) = Sf_(2 * nb + 1 : 3 * nb) &
-      - E1np - E1nHc_exterior * p_jump - Ecross * dpds_r
+      - E1np - E1nHc_exterior * p_jump - Ecross * dpds_known
 
   End Subroutine schur
 

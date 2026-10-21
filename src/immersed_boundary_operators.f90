@@ -350,13 +350,13 @@ Contains
     Real(Int64), Intent(In) :: pj_(:)
     Real(Int64), Intent(Out) :: dpds(:)
     Real(Int64), Intent(Out) :: tang(:)
-    Real(Int64) :: pmean(nb), ds
+    Real(Int64) :: ds
     Integer(Int32) :: k, kp, km, m, f
 
     dpds = 0d0
     tang = 0d0
-    Call regTc(pmean, p_)
-    pmean = cfield * pmean - (EHc_exterior - 0.5d0) * pj_
+    Call regTc(ib_surface_scalar_work, p_)
+    ib_surface_scalar_work = cfield * ib_surface_scalar_work - (EHc_exterior - 0.5d0) * pj_
 
     Do k = 1, nb
       f = ring_start(k)
@@ -369,7 +369,7 @@ Contains
       tang(k) = dxw(kp, km) / ds
       tang(nb + k) = (yb(kp) - yb(km)) / ds
       tang(2 * nb + k) = dzw(kp, km) / ds
-      dpds(k) = (pmean(kp) - pmean(km)) / ds
+      dpds(k) = (ib_surface_scalar_work(kp) - ib_surface_scalar_work(km)) / ds
     End Do
 
   End Subroutine dpmean_ds
@@ -895,19 +895,18 @@ Contains
     Real(Int64), Contiguous, Intent(Out) :: Fx_(:, :, :)
     Real(Int64), Contiguous, Intent(Out) :: Fy_(:, :, :)
     Real(Int64), Contiguous, Intent(Out) :: Fz_(:, :, :)
-    Real(Int64) :: fwork(nb)
     Integer(Int32) :: i, j, k
 
     Fx_ = 0d0
     Fy_ = 0d0
     Fz_ = 0d0
 
-    fwork = nu * dudn_jump_(1 : nb) * normals(1 : nb) ** 2
-    Call regu(U_ib_tmp, fwork)
-    fwork = nu * dudn_jump_(1 : nb) * normals(nb + 1 : 2 * nb) ** 2
-    Call regv(V_ib_tmp, fwork)
-    fwork = nu * dudn_jump_(1 : nb) * normals(2 * nb + 1 : 3 * nb) ** 2
-    Call regw(W_ib_tmp, fwork)
+    ib_surface_scalar_work = nu * dudn_jump_(1 : nb) * normals(1 : nb) ** 2
+    Call regu(U_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = nu * dudn_jump_(1 : nb) * normals(nb + 1 : 2 * nb) ** 2
+    Call regv(V_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = nu * dudn_jump_(1 : nb) * normals(2 * nb + 1 : 3 * nb) ** 2
+    Call regw(W_ib_tmp, ib_surface_scalar_work)
     Call apply_boundary_conditions(U_ib_tmp, V_ib_tmp, W_ib_tmp)
     Do k = 2, nzg - 1
       Do j = 2, nyg - 1
@@ -921,12 +920,12 @@ Contains
       End Do
     End Do
 
-    fwork = nu * dudn_jump_(nb + 1 : 2 * nb) * normals(1 : nb) ** 2
-    Call regu(U_ib_tmp, fwork)
-    fwork = nu * dudn_jump_(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb) ** 2
-    Call regv(V_ib_tmp, fwork)
-    fwork = nu * dudn_jump_(nb + 1 : 2 * nb) * normals(2 * nb + 1 : 3 * nb) ** 2
-    Call regw(W_ib_tmp, fwork)
+    ib_surface_scalar_work = nu * dudn_jump_(nb + 1 : 2 * nb) * normals(1 : nb) ** 2
+    Call regu(U_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = nu * dudn_jump_(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb) ** 2
+    Call regv(V_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = nu * dudn_jump_(nb + 1 : 2 * nb) * normals(2 * nb + 1 : 3 * nb) ** 2
+    Call regw(W_ib_tmp, ib_surface_scalar_work)
     Call apply_boundary_conditions(U_ib_tmp, V_ib_tmp, W_ib_tmp)
     Do k = 2, nzg - 1
       Do j = 2, ny - 1
@@ -940,12 +939,12 @@ Contains
       End Do
     End Do
 
-    fwork = nu * dudn_jump_(2 * nb + 1 : 3 * nb) * normals(1 : nb) ** 2
-    Call regu(U_ib_tmp, fwork)
-    fwork = nu * dudn_jump_(2 * nb + 1 : 3 * nb) * normals(nb + 1 : 2 * nb) ** 2
-    Call regv(V_ib_tmp, fwork)
-    fwork = nu * dudn_jump_(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb) ** 2
-    Call regw(W_ib_tmp, fwork)
+    ib_surface_scalar_work = nu * dudn_jump_(2 * nb + 1 : 3 * nb) * normals(1 : nb) ** 2
+    Call regu(U_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = nu * dudn_jump_(2 * nb + 1 : 3 * nb) * normals(nb + 1 : 2 * nb) ** 2
+    Call regv(V_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = nu * dudn_jump_(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb) ** 2
+    Call regw(W_ib_tmp, ib_surface_scalar_work)
     Call apply_boundary_conditions(U_ib_tmp, V_ib_tmp, W_ib_tmp)
     Do k = 2, nz - 1
       Do j = 2, nyg - 1
@@ -961,12 +960,12 @@ Contains
 
     Call accumulate_DR1n_forcing(Fx_, Fy_, Fz_, dudn_jump_)
 
-    fwork = -p_jump_ * normals(1 : nb)
-    Call regu(U_ib_tmp, fwork)
-    fwork = -p_jump_ * normals(nb + 1 : 2 * nb)
-    Call regv(V_ib_tmp, fwork)
-    fwork = -p_jump_ * normals(2 * nb + 1 : 3 * nb)
-    Call regw(W_ib_tmp, fwork)
+    ib_surface_scalar_work = -p_jump_ * normals(1 : nb)
+    Call regu(U_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = -p_jump_ * normals(nb + 1 : 2 * nb)
+    Call regv(V_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = -p_jump_ * normals(2 * nb + 1 : 3 * nb)
+    Call regw(W_ib_tmp, ib_surface_scalar_work)
     Fx_ = Fx_ + U_ib_tmp
     Fy_ = Fy_ + V_ib_tmp
     Fz_ = Fz_ + W_ib_tmp
@@ -978,15 +977,14 @@ Contains
     Implicit None
     Real(Int64), Contiguous, Intent(In) :: dudn_jump_(:)
     Real(Int64), Contiguous, Intent(Out) :: F_(2:, 2:, 2:)
-    Real(Int64) :: fwork(nb)
     Integer(Int32) :: i, j, k
 
-    fwork = dudn_jump_(1 : nb) * normals(1 : nb)
-    Call regu_1n(U_ib_tmp, fwork)
-    fwork = dudn_jump_(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb)
-    Call regv_1n(V_ib_tmp, fwork)
-    fwork = dudn_jump_(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb)
-    Call regw_1n(W_ib_tmp, fwork)
+    ib_surface_scalar_work = dudn_jump_(1 : nb) * normals(1 : nb)
+    Call regu_1n(U_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = dudn_jump_(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb)
+    Call regv_1n(V_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = dudn_jump_(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb)
+    Call regw_1n(W_ib_tmp, ib_surface_scalar_work)
     Call apply_boundary_conditions(U_ib_tmp, V_ib_tmp, W_ib_tmp)
 
     F_ = 0d0

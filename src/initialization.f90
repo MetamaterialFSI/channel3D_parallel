@@ -574,6 +574,8 @@ Contains
     Allocate ( rhs_ib (3 * nb) )
     Allocate ( aux_surface_vector (3 * nb) )
     Allocate ( aux_surface_scalar (nb) )
+    Allocate ( ib_surface_vector_work (3 * nb) )
+    Allocate ( ib_surface_scalar_work (nb) )
     Allocate ( regT_buffer_vector (3 * nb) )
     Allocate ( regT_buffer_scalar (nb) )
 

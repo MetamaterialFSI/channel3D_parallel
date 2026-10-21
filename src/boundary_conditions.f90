@@ -682,8 +682,8 @@ Contains
       ELSE
         buffer_psupp_s(2:nxg-1,2:nyg-1,1:suppz+1) = F(2:nxg-1, 2:nyg-1,nzg-suppz-1:nzg-1) ! send buffer
       End If
-      Call Mpi_sendrecv(buffer_psupp_s(2:nxg-1,2:nyg-1,1:suppz+1), (nxg-2)*(nyg-2)*(suppz+1), Mpi_real8, sendto, tagto,        &
-      buffer_psupp_r(2:nxg-1,2:nyg-1,1:suppz+1), (nxg-2)*(nyg-2)*(suppz+1), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+      Call Mpi_sendrecv(buffer_psupp_s, (nxg-2)*(nyg-2)*(suppz+1), Mpi_real8, sendto, tagto,        &
+      buffer_psupp_r, (nxg-2)*(nyg-2)*(suppz+1), Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
            istat, ierr)   
       F_supp(2:nxg-1, 2:nyg-1,1:suppz+1) = buffer_psupp_r(2:nxg-1,2:nyg-1,1:suppz+1) ! received buffer
       
@@ -703,8 +703,8 @@ Contains
       ELSE
         buffer_psupp_s(2:nxg-1, 2:nyg-1,1:suppz) = F(2:nxg-1, 2:nyg-1,2:1+suppz)  ! send buffer
       End If
-        Call Mpi_sendrecv(buffer_psupp_s(2:nxg-1, 2:nyg-1,1:suppz), (nxg-2)*(nyg-2)*suppz, Mpi_real8, sendto, tagto,        &
-        buffer_psupp_r(2:nxg-1, 2:nyg-1,1:suppz), (nxg-2)*(nyg-2)*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
+        Call Mpi_sendrecv(buffer_psupp_s, (nxg-2)*(nyg-2)*suppz, Mpi_real8, sendto, tagto,        &
+        buffer_psupp_r, (nxg-2)*(nyg-2)*suppz, Mpi_real8, recvfrom, tagfrom, MPI_COMM_WORLD, &
              istat, ierr)   
         F_supp(2:nxg-1, 2:nyg-1,suppz+2:2*suppz+1) = buffer_psupp_r(2:nxg-1, 2:nyg-1,1:suppz) ! received buffer
 
