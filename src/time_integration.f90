@@ -24,8 +24,8 @@ Contains
   !-----------------------------------------------!
   Subroutine compute_time_step_Euler
 
-    ! equivalent to last rk steps
-    rk_step = 3
+    ! equivalent to a single rk step
+    rk_step = 1
 
     ! save current step
     Uo = U
@@ -54,11 +54,23 @@ Contains
     kdt = dt
     t = t + kdt
 
+    ! update body point positions and velocities if body is moving
+    If ( moving_body ) Then
+      Call setup_IB_geometry
+      Call setup_IB_operators
+      Call compute_heaviside
+    End If
+
     ! boundary conditions
     Call apply_boundary_conditions(U, V, W)
     
     ! projection step
     Call compute_non_IB_projection
+
+    If ( trim(body_type) /= 'none' ) Then
+      Call apply_boundary_conditions(U, V, W)
+      Call compute_IB_projection
+    End If
     
     ! boundary conditions
     Call apply_boundary_conditions(U, V, W)
@@ -76,6 +88,14 @@ Contains
        Call compute_dPy_for_constant_mass_flow(V,dPdy)
        V(2:nxg-1,1:ny,2:nzg-1) = V(2:nxg-1,1:ny,2:nzg-1) + dPdy
        dPdy = dPdy/dt ! to be used later by rhs_*
+       Call apply_boundary_conditions(U, V, W)
+    End If
+
+    ! compute mean pressure gradient for constant mass flow in z
+    If ( z_mass_cte == 1 ) Then
+       Call compute_dPz_for_constant_mass_flow(W,dPdz)
+       W(2:nxg-1,2:nyg-1,2:nz-1) = W(2:nxg-1,2:nyg-1,2:nz-1) + dPdz
+       dPdz = dPdz/dt ! to be used later by rhs_*
        Call apply_boundary_conditions(U, V, W)
     End If
 
@@ -227,6 +247,11 @@ Contains
     Real   (Int64) :: dt_conv_u, dt_conv_v, dt_conv_w, dt_conv
     Real   (Int64) :: dt_vis_u, dt_vis_v, dt_vis_w, dt_vis
     Real   (Int64) :: dt_max
+
+    If ( CFL<0 ) Then
+       dt = -CFL
+       Return
+    End If
     
     ! convective time step
     lUmax = 0d0
@@ -264,9 +289,6 @@ Contains
     ! time step limiter
     dt_max = 1d-1
     dt     = Min( dt, dt_max )
-    If ( CFL<0 ) Then
-       dt = -CFL
-    End If
      
    End Subroutine compute_dt
 

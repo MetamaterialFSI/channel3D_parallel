@@ -30,14 +30,19 @@ Contains
   ! Output: rhs (solution to the Poisson equation)     !
   !                                                    !
   !----------------------------------------------------!
-  Subroutine solve_poisson_equation(rhs)
+  Subroutine solve_poisson_equation(rhs, save_pressure)
 
     Real   (Int64), DIMENSION( 2:nxg-1, 2:nyg-1, 2:nzg ), INTENT(INOUT)  :: rhs
+    Logical, Optional, Intent(In) :: save_pressure
     Integer(Int32) :: i, j, k, k_global, i_global, info
     Real   (Int64) :: dum, dumref, maxerr
+    Logical :: save_pressure_
 
     ! Lapack function for solving tridiagonal systems
     External :: zgesv
+
+    save_pressure_ = .True.
+    If (Present(save_pressure)) save_pressure_ = save_pressure
 
     ! 2D Fourier transform interior points 
     Do j = 2, nyg-1
@@ -88,8 +93,8 @@ Contains
     Call update_ghost_interior_planes_centers(rhs)
 
     ! save pressure for statistics
-    If ( rk_step == 1 ) Then
-       P( 2:nxg-1, 2:nyg-1, 2:nzg-1 ) = rhs( 2:nxg-1, 2:nyg-1, 2:nzg-1 )/(dt*rk_coef(1,1))
+    If ( rk_step == 1 .And. save_pressure_ ) Then
+       P( 2:nxg-1, 2:nyg-1, 2:nzg-1 ) = rhs( 2:nxg-1, 2:nyg-1, 2:nzg-1 )/kdt
        P(  1,:,:) = P(    2,:,:)
        P(nxg,:,:) = P(nxg-1,:,:)
        P(:,  1,:) = P(:,    2,:)

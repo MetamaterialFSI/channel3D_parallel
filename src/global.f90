@@ -50,6 +50,7 @@ Module global
   ! steps
   Integer(Int32) :: nsteps, nstep_init
   Real   (Int64) :: dt, t, t_init, kdt
+  Logical(Int32) :: use_rk3
 
   ! grid stretching factor
   Real(Int64) :: alpha_stretch
@@ -256,8 +257,12 @@ Module global
 
   ! Biconjugate gradient max iterations and tolerance
   ! cg_accum_iter and cg_nsolves accumulate over one monitor interval
-  Integer(Int32) :: cg_max_iter, cg_accum_iter, cg_nsolves
-  Real(Int64) :: cg_tol, cg_mean_iter
+  Integer(Int32), Parameter :: cg_report_max_solves = 3
+  Integer(Int32) :: cg_max_iter, cg_accum_iter, cg_nsolves, cg_report_count, cg_report_step
+  Integer(Int32), Dimension(:), Allocatable :: cg_report_iterations, cg_report_stages
+  Real(Int64) :: cg_tol, cg_abs_tol, cg_mean_iter
+  Real(Int64), Dimension(:,:,:), Allocatable :: cg_report_history
+  Real(Int64), Dimension(:,:), Allocatable :: cg_report_rhs_rms, cg_report_tolerances
 
   ! immersed boundary operator variables
   Integer(Int32), Dimension(:), Allocatable :: send_counts_nb, displs_nb

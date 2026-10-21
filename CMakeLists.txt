@@ -4,6 +4,8 @@ project(Channel3D VERSION 0.1
 	DESCRIPTION "3D channel flow solver"
         LANGUAGES Fortran)
 
+include(CTest)
+
 # set(CMAKE_Fortran_STANDARD 2018)
 # set(CMAKE_Fortran_STANDARD_REQUIRED ON)
 
@@ -59,3 +61,7 @@ add_subdirectory(src)
 
 add_executable(channel3D app/main.f90)
 target_link_libraries(channel3D PRIVATE channel_lib)
+
+if(BUILD_TESTING)
+    add_subdirectory(test)
+endif()

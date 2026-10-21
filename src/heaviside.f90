@@ -34,7 +34,7 @@ Contains
 
     Call divergence(Hc_interior, U_reg, V_reg, W_reg)
     Hc_interior = -Hc_interior
-    Call solve_poisson_equation(Hc_interior)
+    Call solve_poisson_equation(Hc_interior, .False.)
     Hc_exterior = 1 - Hc_interior
 
     Call interpolate_x(Hc_exterior, Hu_exterior(2:nx-1 , 2:nyg-1, 2:nzg)) 
