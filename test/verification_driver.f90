@@ -8,7 +8,7 @@ program channel3d_verification
   use heaviside, only : compute_heaviside
   use boundary_conditions, only : apply_boundary_conditions
   use mass_flow, only : compute_mean_mass_flow_U, compute_mean_mass_flow_V, compute_mean_mass_flow_W
-  use time_integration, only : compute_dt, compute_time_step_RK3
+  use time_integration, only : compute_dt, compute_time_step_Euler, compute_time_step_RK3
   use finalization, only : finalize
   use mpi
   implicit none
@@ -51,7 +51,11 @@ program channel3d_verification
 
   do istep = 1, nsteps
     call compute_dt
-    call compute_time_step_RK3
+    if (use_rk3) then
+      call compute_time_step_RK3
+    else
+      call compute_time_step_Euler
+    end if
   end do
 
   call compute_velocity_errors(trim(verification_case), h, rel_l1, rel_l2, rel_linf, rel_linf_bulk, &

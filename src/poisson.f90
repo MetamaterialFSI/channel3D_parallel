@@ -78,7 +78,7 @@ Contains
 
     ! save pressure for statistics
     If ( rk_step == 1 .And. save_pressure_ ) Then
-       P( 2:nxg-1, 2:nyg-1, 2:nzg-1 ) = rhs( 2:nxg-1, 2:nyg-1, 2:nzg-1 )/(dt*rk_coef(1,1))
+       P( 2:nxg-1, 2:nyg-1, 2:nzg-1 ) = rhs( 2:nxg-1, 2:nyg-1, 2:nzg-1 )/kdt
        P(  1,:,:) = P(    2,:,:)
        P(nxg,:,:) = P(nxg-1,:,:)
        P(:,  1,:) = P(:,    2,:)

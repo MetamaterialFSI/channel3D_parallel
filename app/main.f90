@@ -113,7 +113,11 @@ Program channel_FD
     Call compute_dt
 
     ! time step
-    Call compute_time_step_RK3
+    If ( use_rk3 ) Then
+      Call compute_time_step_RK3
+    Else
+      Call compute_time_step_Euler
+    End If
 
     ! compute a few statistics
     Call compute_statistics 
