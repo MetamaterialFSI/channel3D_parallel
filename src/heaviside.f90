@@ -20,13 +20,6 @@ Contains
   Subroutine compute_heaviside
 
     Integer(Int32) :: i, j, k
-    Hc_exterior = 0d0
-    Hc_interior = 0d0
-
-    U_reg = 0d0
-    V_reg = 0d0
-    W_reg = 0d0
-
     Call regu(U_reg, normals(1 : nb))             
     Call regv(V_reg, normals(nb + 1 : 2 * nb))    
     Call regw(W_reg, normals(2 * nb + 1 : 3 * nb))
@@ -34,7 +27,7 @@ Contains
 
     Call divergence(Hc_interior, U_reg, V_reg, W_reg)
     Hc_interior = -Hc_interior
-    Call solve_poisson_equation(Hc_interior)
+    Call solve_poisson_equation(Hc_interior, .False.)
     Hc_exterior = 1 - Hc_interior
 
     Call interpolate_x(Hc_exterior, Hu_exterior(2:nx-1 , 2:nyg-1, 2:nzg)) 
@@ -49,7 +42,9 @@ Contains
     Call apply_boundary_conditions(Hu_interior, Hv_interior, Hw_interior)
     
     Call regTc_1n(E1nHc_exterior, Hc_exterior)
+    Call regTc(EHc_exterior, Hc_exterior)
     Call regT_1n(E1nH_exterior, Hu_exterior, Hv_exterior, Hw_exterior)
+    pjv_gscale = Max(Maxval(Abs(E1nH_exterior)), 1d-30)
 
   End Subroutine compute_heaviside
 

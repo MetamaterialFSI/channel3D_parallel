@@ -24,8 +24,10 @@ Contains
   Subroutine initialize
     
     Integer(Int32) :: i, j, k, kk, nzpe, pos, ipos, nze, nzme, count
+    Integer(Int32) :: i_global, k_global, info
     Real   (Int64) :: dy1, dy2, det, a, b, c, r, Qflow_ref
     Integer(Int32), Dimension(:,:), Allocatable :: A_kmodes, A_kmodes_local
+    External :: zgttrf
 
     If (myid==0) Then 
        Write(*,*) '----------------------------------------------------------------------'       
@@ -37,6 +39,7 @@ Contains
 
     ! time
     t = t_init
+    istep = 0
     
     !-------------------grid definitions-------------------------!
     Allocate (  k1_global(0:nprocs-1),  k2_global(0:nprocs-1) )
@@ -152,6 +155,9 @@ Contains
     ! Auxiliary arrays
     Allocate ( term_1 ( nxg, nyg, nzg ) ) 
     Allocate ( term_2 ( nxg, nyg, nzg ) ) 
+    Allocate ( uv_flux ( nx,  ny,  nzg     ) )
+    Allocate ( uw_flux ( nx,  nyg, nzg - 1 ) )
+    Allocate ( vw_flux ( nxg, ny,  nzg - 1 ) )
 
     ! RHS: interior points only
     Allocate ( rhs_uo ( 2:nx-1,  2:nyg-1, 2:nzg-1 ) ) 
@@ -350,9 +356,7 @@ Contains
      
     !------------------------Tridiagonal linear solver-------------------------!
     If ( myid==0 ) Write(*,*) 'initializing pressure solver...'
-    Allocate ( pivot(nyg) )
-    Allocate ( Dyy(2:nyg-1,2:nyg-1), M(2:nyg-1,2:nyg-1) )
-    Allocate ( D(2:nyg-1), DL(2:nyg-2), DU(2:nyg-2) )
+    Allocate ( Dyy(2:nyg-1,2:nyg-1) )
      
     ! second derivative matrix for pressure (full data in y assumed)
     Dyy = 0d0
@@ -393,6 +397,31 @@ Contains
     ! some parameters for linear solver
     nr   = nym
     nrhs = 1
+
+    Allocate ( poisson_d   (2:nyg-1, 0:mx, 0:mz) )
+    Allocate ( poisson_dl  (2:nyg-2, 0:mx, 0:mz) )
+    Allocate ( poisson_du  (2:nyg-2, 0:mx, 0:mz) )
+    Allocate ( poisson_du2 (2:nyg-3, 0:mx, 0:mz) )
+    Allocate ( poisson_ipiv(1:nr,    0:mx, 0:mz) )
+
+    Do k = 0, mz
+       Do i = 0, mx
+          i_global = imode_map_fft(i,k)
+          k_global = kmode_map_fft(i,k)
+          Do j = 2, nyg-1
+             poisson_d(j,i,k) = Dyy(j,j) + kxx(i_global) + kzz(k_global)
+          End Do
+          Do j = 2, nyg-2
+             poisson_dl(j,i,k) = Dyy(j+1,j)
+             poisson_du(j,i,k) = Dyy(j,j+1)
+          End Do
+          If (i_global==0 .And. k_global==0) poisson_d(2,i,k) = 3d0/2d0*poisson_d(2,i,k)
+          Call zgttrf(nr, poisson_dl(:,i,k), poisson_d(:,i,k), poisson_du(:,i,k), &
+               poisson_du2(:,i,k), poisson_ipiv(:,i,k), info)
+          If (info/=0) Stop 'Error: Poisson factorization failed'
+       End Do
+    End Do
+    Deallocate ( Dyy )
 
 
     !------------------------statistics---------------------------!
@@ -496,7 +525,7 @@ Contains
     Allocate(sb (nb) )
 
     ! Body forcing
-    Allocate (fb(4 * nb) )
+    Allocate (fb(3 * nb) )
     fb = 0d0
     Allocate (p_jump(nb) )
     p_jump = 0d0
@@ -505,6 +534,14 @@ Contains
 
     ! Body velocity
     Allocate (ub (3 * nb) )
+    Allocate (ab (3 * nb) )
+    Allocate (pn_mean (nb) )
+    ab = 0d0
+    pn_mean = 0d0
+    ramp_is_zero = .False.
+    n_accel_adv = 0
+    t_ub = t
+    dt_ub = 0d0
 
     ! Body normals and tangents
     Allocate (normals (3 * nb) )
@@ -516,11 +553,29 @@ Contains
 
     Allocate (E1nHc_exterior (nb) )
     Allocate (E1nH_exterior  (3 * nb) )
+    Allocate (EHc_exterior (nb) )
+    Allocate (E2n1c (nb) )
+    Allocate (M2dir (3 * nb) )
+    Allocate (Ecross (nb) )
+    Allocate (dpds_known (nb) )
+    Allocate (ring_tang (3 * nb) )
+    Allocate (ring_start (nb) )
+    Allocate (ring_len (nb) )
+    EHc_exterior = 0d0
+    E2n1c = 0d0
+    M2dir = 0d0
+    Ecross = 0d0
+    dpds_known = 0d0
+    ring_tang = 0d0
+    ring_start = 1
+    ring_len = 1
 
     ! Auxiliary surface arrays
-    Allocate ( rhs_ib (4 * nb) )
+    Allocate ( rhs_ib (3 * nb) )
     Allocate ( aux_surface_vector (3 * nb) )
     Allocate ( aux_surface_scalar (nb) )
+    Allocate ( ib_surface_vector_work (3 * nb) )
+    Allocate ( ib_surface_scalar_work (nb) )
     Allocate ( regT_buffer_vector (3 * nb) )
     Allocate ( regT_buffer_scalar (nb) )
 
@@ -528,6 +583,11 @@ Contains
     Allocate (U_reg  (    nx,  nym+2, nzm+2) )
     Allocate (V_reg  ( nxm+2,     ny, nzm+2) )
     Allocate (W_reg  ( nxm+2,  nym+2,    nz) )
+    Allocate (U_ib_tmp (    nx,  nym+2, nzm+2) )
+    Allocate (V_ib_tmp ( nxm+2,     ny, nzm+2) )
+    Allocate (W_ib_tmp ( nxm+2,  nym+2,    nz) )
+    Allocate (con_F ( 2:nxg-1, 2:nyg-1, 2:nzg ) )
+    con_F = 0d0
 
     ! Body arrays for accepting interpolated fields
     Allocate (Eu (3 * nb))
@@ -582,15 +642,22 @@ Contains
 
     !--------------------Initialize BiCGSTAB arrays---------------!    
 
-    Allocate ( bcg_r( 4 * nb) )
-    Allocate ( bcg_rhat( 4 * nb) )
-    Allocate ( bcg_p( 4 * nb) )
-    Allocate ( bcg_nu( 4 * nb) )
-    Allocate ( bcg_h( 4 * nb) )
-    Allocate ( bcg_sv( 4 * nb) )
-    Allocate ( bcg_tv( 4 * nb) )
+    Allocate ( bcg_r( 3 * nb) )
+    Allocate ( bcg_rhat( 3 * nb) )
+    Allocate ( bcg_p( 3 * nb) )
+    Allocate ( bcg_nu( 3 * nb) )
+    Allocate ( bcg_h( 3 * nb) )
+    Allocate ( bcg_sv( 3 * nb) )
+    Allocate ( bcg_tv( 3 * nb) )
+    Allocate ( cg_report_iterations(cg_report_max_solves) )
+    Allocate ( cg_report_stages(cg_report_max_solves) )
+    Allocate ( cg_report_history(5, 0:cg_max_iter, cg_report_max_solves) )
+    Allocate ( cg_report_rhs_rms(3, cg_report_max_solves) )
+    Allocate ( cg_report_tolerances(2, cg_report_max_solves) )
     cg_accum_iter = 0
     cg_nsolves    = 0
+    cg_report_count = 0
+    cg_report_step = -Huge(cg_report_step)
 
     !-------------------------Done--------------------------------!
     Call Mpi_barrier(MPI_COMM_WORLD,ierr)

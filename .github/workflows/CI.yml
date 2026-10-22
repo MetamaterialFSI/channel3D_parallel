@@ -96,7 +96,7 @@ jobs:
       run: cmake --build build
     
     - name: Run Testing Framwork
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --test-dir build --output-on-failure --no-tests=error
 
     - name: Test executable
       shell: bash
@@ -152,7 +152,7 @@ jobs:
       run: cmake --build build
 
     - name: Run Testing Framwork
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --test-dir build --output-on-failure --no-tests=error
 
     - name: Test executable
       shell: bash

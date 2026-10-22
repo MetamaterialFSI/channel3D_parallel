@@ -46,6 +46,7 @@ Contains
     Real   (Int64) :: maxerr
 
     ! compute rhs terms 
+    Call prepare_cross_fluxes(U, V, W)
     Call compute_rhs_u( U, V, W, rhs_uf(2:nx-1, 2:nyg-1,2:nzg-1) )
     Call compute_rhs_v( U, V, W, rhs_vf(2:nxg-1,2:ny-1, 2:nzg-1) )
     Call compute_rhs_w( U, V, W, rhs_wf(2:nxg-1,2:nyg-1,2:nz-1 ) )
@@ -93,10 +94,10 @@ Contains
   !----------------------------------------------------!
   Subroutine solve_poisson_equation_for_pressure
 
-    Integer(Int32) :: i, j, k, i_global, k_global, info
+    Integer(Int32) :: i, j, k, info
     Real   (Int64) :: maxerr
 
-    External :: zgesv
+    External :: zgttrs
 
     ! 2D Fourier transform interior points rhs_p
     Do j = 2, nyg-1
@@ -117,28 +118,14 @@ Contains
     ! solve for each mode
     Do k = 0, mz
        Do i = 0, mx
-          ! mapping to x-mode 
-          i_global = imode_map_fft( i, k )
-          ! mapping to z-mode 
-          k_global = kmode_map_fft( i, k )
-          ! form matrix
-          Do j = 2, nyg-1 ! diagonal
-             D(j) = Dyy(j,j) + kxx(i_global) + kzz(k_global)
-          End Do
-          Do j = 2, nyg-2 ! lower diagonal
-             DL(j) = Dyy(j+1,j)
-          End Do
-          Do j = 2, nyg-2 ! upper diagonal
-             DU(j) = Dyy(j,j+1)
-          End Do
-          ! remove singularity 00 mode (set a reference pressure)
-          if ( i_global==0 .And. k_global==0 ) D(2) = 3d0/2d0*D(2)
           ! rhs with boundary conditions for pressure
           rhs_aux        = rhs_hat(i,:,k) 
           rhs_aux(    2) = rhs_aux(    2) + coef_bc_1*(yg(  2)-yg(    1))*bc_1_hat(i,k)
           rhs_aux(nyg-1) = rhs_aux(nyg-1) - coef_bc_2*(yg(nyg)-yg(nyg-1))*bc_2_hat(i,k)
           ! solve M*u = rhs (solution stored in rhs_hat)
-          Call Zgtsv( nr, nrhs, DL, D, DU, rhs_aux, nr, info)
+          Call zgttrs('N', nr, nrhs, poisson_dl(:,i,k), poisson_d(:,i,k), &
+               poisson_du(:,i,k), poisson_du2(:,i,k), poisson_ipiv(:,i,k), &
+               rhs_aux, nr, info)
           rhs_hat(i,:,k) = rhs_aux
        End Do
     End Do
