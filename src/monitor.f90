@@ -22,9 +22,9 @@ Contains
 
     Real(Int64) ::  maxU,  maxV,  maxW, local_sum
     Real(Int64) :: meanU, meanV, meanW
-    Real(Int64) :: max_divergence, continuity_max, continuity_rms
-    Real(Int64), Allocatable :: wall_error(:,:)
-    Integer(Int32) :: body, nsolves
+    Real(Int64) :: max_divergence
+    Real(Int64) :: wall_error(4), wall_velocity_scale(2)
+    Integer(Int32) :: nsolves
     Logical :: report_physical_constraints
 
     If ( Mod(istep,nmonitor)==0 ) Then
@@ -51,12 +51,9 @@ Contains
 
       nsolves = cg_nsolves
       report_physical_constraints = trim(body_type) /= 'none' .And. nsolves > 0
-      Call check_divergence(max_divergence, continuity_max, continuity_rms, report_physical_constraints)
+      Call check_divergence(max_divergence)
       
-      If ( trim(body_type) /= 'none' ) Then
-        Allocate(wall_error(4, 0:nbodies))
-        Call check_wall_errors(wall_error)
-      End If
+      If (report_physical_constraints) Call compute_wall_condition(wall_error, wall_velocity_scale)
 
       ! compute average number of bicgstab iterations over the solves that
       ! actually ran since the last monitor output, rather than assuming a
@@ -104,15 +101,18 @@ Contains
         write(*,*) 'Maximum divergence               :', max_divergence
         If ( trim(body_type) /= 'none' ) Then
           If (report_physical_constraints) Then
-            Do body = 0, nbodies
-              Write(*,'(A,2(1X,I0),4(1X,ES16.8))') 'IB_WALL_ERROR', istep, body, wall_error(:, body)
-            End Do
-            Write(*,'(A,1X,I0,2(1X,ES16.8))') 'IB_CONTINUITY_ERROR', istep, &
-              continuity_max, continuity_rms
+            Write(*,'(A)') ' wall condition   (rel = fraction of the velocity scale below)'
+            Write(*,'(A,ES11.3,A,F6.4,A,ES11.3,A,F6.4,A)') '   no-pen         : max ', &
+              wall_error(1), ' (rel ', wall_error(1) / wall_velocity_scale(1), &
+              ')   rms ', wall_error(2), ' (rel ', wall_error(2) / wall_velocity_scale(2), ')'
+            Write(*,'(A,ES11.3,A,F6.4,A,ES11.3,A,F6.4,A)') '   slip           : max ', &
+              wall_error(3), ' (rel ', wall_error(3) / wall_velocity_scale(1), &
+              ')   rms ', wall_error(4), ' (rel ', wall_error(4) / wall_velocity_scale(2), ')'
+            Write(*,'(A,ES11.3,A,ES11.3)') '   velocity scale : max ', wall_velocity_scale(1), &
+              '                rms ', wall_velocity_scale(2)
           End If
           If ( nsolves > 0 ) Then
             write(*,'(A,F10.3)') ' Average BiCGSTAB iteration count :', cg_mean_iter
-            Call output_bicgstab_diagnostics
           End If
         End If
         write(*,*) 'Elapsed time (s)                 :', time2-time1
@@ -120,8 +120,6 @@ Contains
         Write(*,*) '------------------------------------------------------'
 
       End If
-
-      If (Allocated(wall_error)) Deallocate(wall_error)
 
       cg_report_count = 0
 
@@ -133,32 +131,6 @@ Contains
     End If
 
   End Subroutine output_monitor
-
-  Subroutine output_bicgstab_diagnostics
-    Integer(Int32) :: solve_index, iteration, block
-    Real(Int64) :: maximum_scaled_residual, relative_to_initial(2)
-
-    Do solve_index = 1, cg_report_count
-      Write(*,'(A,3(1X,I0),5(1X,ES16.8))') 'BICGSTAB_SOLVE', istep, &
-        cg_report_stages(solve_index), cg_report_iterations(solve_index), &
-        cg_report_rhs_rms(:, solve_index), cg_report_tolerances(:, solve_index)
-      Do iteration = 0, cg_report_iterations(solve_index)
-        maximum_scaled_residual = Maxval(cg_report_history(4:5, iteration, solve_index))
-        relative_to_initial = 0d0
-        Do block = 1, 2
-          If (cg_report_history(3 + block, 0, solve_index) > 0d0) Then
-            relative_to_initial(block) = cg_report_history(3 + block, iteration, solve_index) / &
-              cg_report_history(3 + block, 0, solve_index)
-          Else If (cg_report_history(3 + block, iteration, solve_index) > 0d0) Then
-            relative_to_initial(block) = -1d0
-          End If
-        End Do
-        Write(*,'(A,3(1X,I0),8(1X,ES16.8))') 'BICGSTAB_HISTORY', istep, &
-          cg_report_stages(solve_index), iteration, cg_report_history(:, iteration, solve_index), &
-          maximum_scaled_residual, relative_to_initial
-      End Do
-    End Do
-  End Subroutine output_bicgstab_diagnostics
 
   !------------------------------------------!
   !   Output summary of initial parameters   !
@@ -263,128 +235,62 @@ Contains
   ! Output: div, max_divergence                        !
   !                                                    !
   !----------------------------------------------------!
-  Subroutine check_divergence(max_divergence, continuity_max, continuity_rms, compute_continuity)
+  Subroutine check_divergence(max_divergence)
 
-    Real(Int64), Intent(Out) :: max_divergence, continuity_max, continuity_rms
-    Logical, Intent(In) :: compute_continuity
-    Integer(Int32) :: i, j, k
+    Real(Int64), Intent(Out) :: max_divergence
     Real(Int64) :: max_divergence_local
-    Real(Int64) :: squared_error_local, volume_local, squared_error, volume, cell_volume
 
     rhs_p = 0d0
     Call divergence(rhs_p, U, V, W)
     max_divergence_local = Maxval(Abs(rhs_p(2:nxg-1, 2:nyg-1, 2:nzg-1)))
     Call MPI_Reduce(max_divergence_local, max_divergence, 1, MPI_real8, MPI_max, 0, MPI_COMM_WORLD,ierr)
-    continuity_max = 0d0
-    continuity_rms = 0d0
-    If (compute_continuity) Then
-      squared_error_local = 0d0
-      volume_local = 0d0
-      Do k = 2, nzg - 1
-        Do j = 2, nyg - 1
-          Do i = 2, nxg - 1
-            cell_volume = (x(i) - x(i - 1)) * (y(j) - y(j - 1)) * (z(k) - z(k - 1))
-            squared_error_local = squared_error_local + cell_volume * rhs_p(i, j, k)**2
-            volume_local = volume_local + cell_volume
-          End Do
-        End Do
-      End Do
-      Call MPI_Reduce(squared_error_local, squared_error, 1, MPI_real8, MPI_sum, 0, MPI_COMM_WORLD, ierr)
-      Call MPI_Reduce(volume_local, volume, 1, MPI_real8, MPI_sum, 0, MPI_COMM_WORLD, ierr)
-      If (myid == 0) Then
-        If (volume <= 0d0) Error Stop 'Continuity diagnostic volume must be positive'
-        continuity_max = max_divergence
-        continuity_rms = Sqrt(squared_error / volume)
-      End If
-    End If
 
   End Subroutine check_divergence
 
-  Subroutine check_wall_errors(wall_error)
+  Subroutine compute_wall_condition(wall_error, velocity_scale)
 
-    Real(Int64), Intent(Out) :: wall_error(4, 0:nbodies)
-    Integer(Int32) :: body, k
+    Real(Int64), Intent(Out) :: wall_error(4), velocity_scale(2)
+    Integer(Int32) :: k
     Real(Int64) :: error_x, error_y, error_z
-    Real(Int64) :: normal_error, tangent_1_error, tangent_2_error, tangent_squared
-    Real(Int64) :: area(0:nbodies), normal_squared(0:nbodies), tangent_sum(0:nbodies)
+    Real(Int64) :: normal_error, tangent_squared
+    Real(Int64) :: normal_squared, tangent_sum
+    Real(Int64) :: fluid_speed, wall_speed, marker_velocity_scale, velocity_scale_squared
 
     Call regT(Eu, U, V, W)
     aux_surface_vector = Eu - ub
 
     wall_error = 0d0
-    area = 0d0
+    velocity_scale = 0d0
     normal_squared = 0d0
     tangent_sum = 0d0
+    velocity_scale_squared = 0d0
 
     Do k = 1, nb
-      body = marker_body_index(k)
       error_x = aux_surface_vector(k)
       error_y = aux_surface_vector(nb + k)
       error_z = aux_surface_vector(2 * nb + k)
       normal_error = error_x * normals(k) + error_y * normals(nb + k) + &
         error_z * normals(2 * nb + k)
-      tangent_1_error = error_x * tangents_1(k) + error_y * tangents_1(nb + k) + &
-        error_z * tangents_1(2 * nb + k)
-      tangent_2_error = error_x * tangents_2(k) + error_y * tangents_2(nb + k) + &
-        error_z * tangents_2(2 * nb + k)
-      tangent_squared = tangent_1_error**2 + tangent_2_error**2
+      tangent_squared = Max(error_x**2 + error_y**2 + error_z**2 - normal_error**2, 0d0)
 
-      Call accumulate_wall_error(0, sb(k), normal_error, tangent_squared, wall_error, area, &
-        normal_squared, tangent_sum)
-      Call accumulate_wall_error(body, sb(k), normal_error, tangent_squared, wall_error, area, &
-        normal_squared, tangent_sum)
+      fluid_speed = Sqrt(Eu(k)**2 + Eu(nb + k)**2 + Eu(2 * nb + k)**2)
+      wall_speed = Sqrt(ub(k)**2 + ub(nb + k)**2 + ub(2 * nb + k)**2)
+      marker_velocity_scale = Max(fluid_speed, wall_speed)
+
+      wall_error(1) = Max(wall_error(1), Abs(normal_error))
+      wall_error(3) = Max(wall_error(3), Sqrt(tangent_squared))
+      velocity_scale(1) = Max(velocity_scale(1), marker_velocity_scale)
+
+      normal_squared = normal_squared + normal_error**2
+      tangent_sum = tangent_sum + tangent_squared
+      velocity_scale_squared = velocity_scale_squared + marker_velocity_scale**2
     End Do
 
-    Do body = 0, nbodies
-      If (area(body) <= 0d0) Error Stop 'Wall-error diagnostic area must be positive'
-      wall_error(2, body) = Sqrt(normal_squared(body) / area(body))
-      wall_error(4, body) = Sqrt(tangent_sum(body) / area(body))
-    End Do
+    wall_error(2) = Sqrt(normal_squared / Real(nb, 8))
+    wall_error(4) = Sqrt(tangent_sum / Real(nb, 8))
+    velocity_scale(1) = Max(velocity_scale(1), 1d-30)
+    velocity_scale(2) = Max(Sqrt(velocity_scale_squared / Real(nb, 8)), 1d-30)
 
-  End Subroutine check_wall_errors
-
-  Subroutine accumulate_wall_error(body, marker_area, normal_error, tangent_squared, wall_error, &
-      area, normal_squared, tangent_sum)
-
-    Integer(Int32), Intent(In) :: body
-    Real(Int64), Intent(In) :: marker_area, normal_error, tangent_squared
-    Real(Int64), Intent(InOut) :: wall_error(4, 0:nbodies)
-    Real(Int64), Intent(InOut) :: area(0:nbodies), normal_squared(0:nbodies), tangent_sum(0:nbodies)
-
-    area(body) = area(body) + marker_area
-    wall_error(1, body) = Max(wall_error(1, body), Abs(normal_error))
-    wall_error(3, body) = Max(wall_error(3, body), Sqrt(tangent_squared))
-    normal_squared(body) = normal_squared(body) + marker_area * normal_error**2
-    tangent_sum(body) = tangent_sum(body) + marker_area * tangent_squared
-
-  End Subroutine accumulate_wall_error
-
-  Integer(Int32) Function marker_body_index(marker) Result(body)
-
-    Integer(Int32), Intent(In) :: marker
-    Integer(Int32) :: nxb1, within_ring
-
-    Select Case (trim(body_type))
-      Case ('double_cylinders_z')
-        nxb1 = Int(2 * 3.14159 * body_param_1 / dxb)
-        within_ring = Modulo(marker - 1, nxb) + 1
-        If (within_ring <= nxb1) Then
-          body = 1
-        Else
-          body = 2
-        End If
-      Case ('standing_wave_x', 'traveling_wave_x', 'traveling_wave_z')
-        within_ring = Modulo(marker - 1, 2 * nxb) + 1
-        If (within_ring <= nxb) Then
-          body = 1
-        Else
-          body = 2
-        End If
-      Case Default
-        If (nbodies /= 1) Error Stop 'Unknown multi-body marker layout'
-        body = 1
-    End Select
-
-  End Function marker_body_index
+  End Subroutine compute_wall_condition
 
 End Module monitor
