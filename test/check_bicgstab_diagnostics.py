@@ -3,6 +3,7 @@
 import argparse
 import math
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -13,22 +14,29 @@ def fail(message, result):
     raise RuntimeError(message)
 
 
-def parse_record(line, tag, integer_count, real_count, result):
-    fields = line.split()
-    expected_count = 1 + integer_count + real_count
-    if len(fields) != expected_count:
-        fail(
-            f"{tag} record has {len(fields)} fields; expected {expected_count}: {line}",
-            result,
-        )
+def parse_float(value, description, result):
     try:
-        integers = tuple(int(value) for value in fields[1 : 1 + integer_count])
-        reals = tuple(float(value) for value in fields[1 + integer_count :])
+        parsed = float(value.replace("D", "E").replace("d", "e"))
     except ValueError as error:
-        fail(f"could not parse {tag} record: {line}: {error}", result)
-    if not all(math.isfinite(value) for value in reals):
-        fail(f"{tag} record contains a non-finite value: {line}", result)
-    return integers, reals
+        fail(f"could not parse {description}: {value}: {error}", result)
+    if not math.isfinite(parsed):
+        fail(f"{description} is not finite: {value}", result)
+    return parsed
+
+
+def unique_line(lines, prefix, description, result):
+    matches = [line for line in lines if line.startswith(prefix)]
+    if len(matches) != 1:
+        fail(f"expected exactly one {description}, found {len(matches)}", result)
+    return matches[0]
+
+
+def parse_scalar_line(lines, label, result):
+    line = unique_line(lines, label, label, result)
+    fields = line.split(":", maxsplit=1)
+    if len(fields) != 2 or fields[0].strip() != label:
+        fail(f"could not parse {label}: {line}", result)
+    return parse_float(fields[1].strip(), label, result), line
 
 
 def main():
@@ -56,176 +64,151 @@ def main():
     if "Maximum IB slip" in result.stdout:
         fail("diagnostic run emitted the removed legacy slip output", result)
 
-    lines = [line.strip() for line in result.stdout.splitlines()]
-    solve_lines = [line for line in lines if line.startswith("BICGSTAB_SOLVE ")]
-    history_lines = [line for line in lines if line.startswith("BICGSTAB_HISTORY ")]
-    true_lines = [line for line in lines if line.startswith("BICGSTAB_TRUE ")]
-    wall_lines = [line for line in lines if line.startswith("IB_WALL_ERROR ")]
-    continuity_lines = [line for line in lines if line.startswith("IB_CONTINUITY_ERROR ")]
-    gauge_lines = [line for line in lines if line.startswith("IB_GAUGE ")]
-
-    if len(solve_lines) != 1:
-        fail(f"expected exactly one BiCGSTAB solve record, found {len(solve_lines)}", result)
-    if true_lines:
-        fail("unexpected explicitly recomputed residual record", result)
-
-    solve_ids, solve_values = parse_record(solve_lines[0], "BICGSTAB_SOLVE", 3, 5, result)
-    step, stage, iterations = solve_ids
-    if step != 1 or stage != 1:
-        fail(f"expected the Euler solve at step 1, stage 1; got step {step}, stage {stage}", result)
-    if iterations < 0:
-        fail(f"iteration count must be nonnegative, got {iterations}", result)
-    if any(value < 0.0 for value in solve_values[:3]):
-        fail(f"RHS RMS values must be nonnegative: {solve_values[:3]}", result)
-    if any(value <= 0.0 for value in solve_values[3:]):
-        fail(f"block tolerances must be positive: {solve_values[3:]}", result)
-    if args.case == "center_wall" and (
-        solve_values[2] != 0.0 or solve_values[3] <= solve_values[4]
-    ):
-        fail(
-            "expected a relative-dominated tangent block and an absolute-floor "
-            f"pressure block, got RHS/tolerances {solve_values}",
-            result,
-        )
-
-    parsed_history = []
-    for line in history_lines:
-        identifiers, values = parse_record(line, "BICGSTAB_HISTORY", 3, 8, result)
-        history_step, history_stage, iteration = identifiers
-        if (history_step, history_stage) != (step, stage):
-            fail(
-                "history record belongs to a different solve: "
-                f"step {history_step}, stage {history_stage}",
-                result,
-            )
-        if any(value < 0.0 for value in values[:6]):
-            fail(f"history residual values must be nonnegative: {line}", result)
-        if not math.isclose(values[5], max(values[3:5]), rel_tol=2.0e-8, abs_tol=1.0e-14):
-            fail(f"history maximum does not match its block residuals: {line}", result)
-        parsed_history.append((iteration, values))
-
-    observed_iterations = [iteration for iteration, _ in parsed_history]
-    expected_iterations = list(range(iterations + 1))
-    if observed_iterations != expected_iterations:
-        fail(
-            "history iteration indices are not contiguous from zero through the reported "
-            f"iteration count: observed={observed_iterations}, expected={expected_iterations}",
-            result,
-        )
-    if parsed_history[-1][1][5] > 1.0:
-        fail(
-            f"final recursive max_eta exceeds one: {parsed_history[-1][1][5]:.12e}",
-            result,
-        )
-    initial_values = parsed_history[0][1]
-    for _, values in parsed_history:
-        for block in range(2):
-            initial_eta = initial_values[3 + block]
-            if initial_eta > 0.0:
-                expected_relative = values[3 + block] / initial_eta
-            else:
-                expected_relative = -1.0 if values[3 + block] > 0.0 else 0.0
-            if not math.isclose(
-                values[6 + block], expected_relative, rel_tol=2.0e-8, abs_tol=1.0e-14
-            ):
-                fail(f"history r/r0 does not match block residuals: {values}", result)
-
-    wall_records = {}
-    for line in wall_lines:
-        identifiers, values = parse_record(line, "IB_WALL_ERROR", 2, 8, result)
-        if identifiers in wall_records:
-            fail(f"duplicate IB_WALL_ERROR record for {identifiers}", result)
-        if any(value < 0.0 for value in values):
-            fail(f"wall-error metrics must be nonnegative: {line}", result)
-        for maximum_index, rms_index in ((0, 1), (2, 3), (4, 5), (6, 7)):
-            if values[rms_index] > values[maximum_index] * (1.0 + 2.0e-8) + 1.0e-14:
-                fail(f"wall-error RMS exceeds its maximum: {line}", result)
-        wall_records[identifiers] = values
-
-    expected_bodies = {0, 1} if args.case == "center_wall" else {0, 1, 2}
-    expected_wall_records = {(1, body) for body in expected_bodies}
-    if set(wall_records) != expected_wall_records:
-        fail(
-            f"expected wall records {sorted(expected_wall_records)}, got {sorted(wall_records)}",
-            result,
-        )
-    if args.case == "center_wall":
-        for global_value, body_value in zip(wall_records[(1, 0)], wall_records[(1, 1)]):
-            if not math.isclose(global_value, body_value, rel_tol=2.0e-8, abs_tol=1.0e-14):
-                fail("one-body global and per-body wall metrics differ", result)
-        wall_values = wall_records[(1, 0)]
-        for raw_index, corrected_index in ((0, 4), (1, 5)):
-            if not math.isclose(
-                wall_values[raw_index],
-                wall_values[corrected_index],
-                rel_tol=2.0e-8,
-                abs_tol=1.0e-14,
-            ):
-                fail("center-wall raw and corrected normal errors differ", result)
-        if max(wall_values[0], wall_values[4]) > 1.0e-10:
-            fail(f"center-wall normal error is unexpectedly large: {wall_values}", result)
-    for wall_key, wall_values in wall_records.items():
-        if wall_values[2] <= 0.0:
-            fail(f"expected a nonzero raw tangential wall error for {wall_key}", result)
-        if wall_values[6] >= 1.0e-3 * wall_values[2]:
-            fail(
-                f"corrected tangential maximum was not substantially smaller for {wall_key}",
-                result,
-            )
-        if wall_values[7] >= 1.0e-3 * wall_values[3]:
-            fail(
-                f"corrected tangential RMS was not substantially smaller for {wall_key}",
-                result,
-            )
-
-    if len(continuity_lines) != 1:
-        fail(
-            f"expected exactly one corrected-continuity record, found {len(continuity_lines)}",
-            result,
-        )
-    continuity_ids, continuity_values = parse_record(
-        continuity_lines[0], "IB_CONTINUITY_ERROR", 1, 2, result
+    removed_record_names = (
+        "BICGSTAB_SOLVE",
+        "BICGSTAB_HISTORY",
+        "BICGSTAB_TRUE",
+        "IB_WALL_ERROR",
+        "IB_CONTINUITY_ERROR",
+        "IB_GAUGE",
     )
-    if continuity_ids != (1,):
-        fail(f"expected corrected-continuity record at step 1, got {continuity_ids}", result)
-    if any(value < 0.0 for value in continuity_values):
-        fail(f"continuity metrics must be nonnegative: {continuity_lines[0]}", result)
-    if continuity_values[1] > continuity_values[0] * (1.0 + 2.0e-8) + 1.0e-14:
-        fail(f"continuity RMS exceeds its maximum: {continuity_lines[0]}", result)
-    if continuity_values[0] > 1.0e-10:
-        fail(f"corrected continuity error is unexpectedly large: {continuity_lines[0]}", result)
+    for record_name in removed_record_names:
+        if record_name in result.stdout:
+            fail(f"diagnostic run emitted removed {record_name} output", result)
 
-    gauge_records = {}
-    for line in gauge_lines:
-        identifiers, values = parse_record(line, "IB_GAUGE", 2, 2, result)
-        if identifiers in gauge_records:
-            fail(f"duplicate IB_GAUGE record for {identifiers}", result)
-        if identifiers[0] != 1:
-            fail(f"expected gauge record at step 1, got {identifiers}", result)
-        if values[0] * values[1] > 1.0e-28:
-            fail(f"gauge-row term does not oppose the raw pressure mean: {line}", result)
-        gauge_records[identifiers] = values
-    expected_gauge_records = {(1, body) for body in expected_bodies if body != 0}
-    if set(gauge_records) != expected_gauge_records:
+    lines = [line.strip() for line in result.stdout.splitlines()]
+
+    continuity_max, continuity_max_line = parse_scalar_line(
+        lines, "Maximum divergence minus IB source", result
+    )
+    if any(line.startswith("RMS divergence minus IB source") for line in lines):
+        fail("diagnostic run emitted the removed RMS divergence output", result)
+    if continuity_max < 0.0:
+        fail("maximum divergence minus the IB source must be nonnegative", result)
+    if continuity_max > 1.0e-10:
+        fail(f"continuity residual is unexpectedly large: {continuity_max:.12e}", result)
+
+    wall_header = "wall condition   (rel = fraction of the velocity scale below)"
+    unique_line(lines, wall_header, "wall-condition header", result)
+    wall_pattern = re.compile(
+        r"^(raw no-pen|raw slip|corrected no-pen|corrected slip)\s*:\s*"
+        r"max\s+(\S+)\s+\(rel\s+(\S+)\)\s+"
+        r"rms\s+(\S+)\s+\(rel\s+(\S+)\)$"
+    )
+    wall_values = {}
+    wall_lines = []
+    for line in lines:
+        match = wall_pattern.fullmatch(line)
+        if match is None:
+            continue
+        name = match.group(1)
+        if name in wall_values:
+            fail(f"duplicate {name} wall-condition line", result)
+        wall_values[name] = tuple(
+            parse_float(value, f"{name} wall-condition value", result)
+            for value in match.groups()[1:]
+        )
+        wall_lines.append(line)
+
+    expected_wall_names = {
+        "raw no-pen",
+        "raw slip",
+        "corrected no-pen",
+        "corrected slip",
+    }
+    if set(wall_values) != expected_wall_names:
         fail(
-            f"expected gauge records {sorted(expected_gauge_records)}, got {sorted(gauge_records)}",
+            f"expected wall-condition rows {sorted(expected_wall_names)}, "
+            f"got {sorted(wall_values)}",
+            result,
+        )
+
+    velocity_pattern = re.compile(r"^velocity scale\s*:\s*max\s+(\S+)\s+rms\s+(\S+)$")
+    velocity_matches = []
+    for line in lines:
+        match = velocity_pattern.fullmatch(line)
+        if match is not None:
+            velocity_matches.append((line, match))
+    if len(velocity_matches) != 1:
+        fail(f"expected exactly one velocity-scale row, found {len(velocity_matches)}", result)
+    velocity_line, velocity_match = velocity_matches[0]
+    velocity_max, velocity_rms = (
+        parse_float(value, "wall velocity scale", result) for value in velocity_match.groups()
+    )
+    if velocity_max <= 0.0 or velocity_rms <= 0.0:
+        fail("wall velocity scales must be positive", result)
+    if velocity_rms > velocity_max * (1.0 + 2.0e-8) + 1.0e-14:
+        fail("wall velocity-scale RMS exceeds its maximum", result)
+
+    for name, (maximum, maximum_relative, rms, rms_relative) in wall_values.items():
+        if min(maximum, maximum_relative, rms, rms_relative) < 0.0:
+            fail(f"{name} wall-condition metrics must be nonnegative", result)
+        if rms > maximum * (1.0 + 2.0e-3) + 1.0e-14:
+            fail(f"{name} wall-condition RMS exceeds its maximum", result)
+        if not math.isclose(maximum_relative, maximum / velocity_max, abs_tol=5.1e-4):
+            fail(f"{name} maximum relative error is inconsistent with the velocity scale", result)
+        if not math.isclose(rms_relative, rms / velocity_rms, abs_tol=5.1e-4):
+            fail(f"{name} RMS relative error is inconsistent with the velocity scale", result)
+
+    raw_normal = wall_values["raw no-pen"]
+    raw_slip = wall_values["raw slip"]
+    corrected_normal = wall_values["corrected no-pen"]
+    corrected_slip = wall_values["corrected slip"]
+    if args.case == "center_wall":
+        for raw_value, corrected_value in zip(
+            (raw_normal[0], raw_normal[2]), (corrected_normal[0], corrected_normal[2])
+        ):
+            if not math.isclose(raw_value, corrected_value, rel_tol=2.0e-3, abs_tol=1.0e-14):
+                fail("center-wall raw and corrected normal errors differ", result)
+        if max(raw_normal[0], corrected_normal[0]) > 1.0e-10:
+            fail("center-wall normal error is unexpectedly large", result)
+    if raw_slip[0] <= 0.0:
+        fail("expected a nonzero raw tangential wall error", result)
+    if corrected_slip[0] >= 1.01e-3 * raw_slip[0]:
+        fail("corrected tangential maximum was not substantially smaller", result)
+    if corrected_slip[2] >= 1.01e-3 * raw_slip[2]:
+        fail("corrected tangential RMS was not substantially smaller", result)
+
+    unique_line(lines, "pressure-jump gauge offset", "pressure-jump gauge header", result)
+    gauge_pattern = re.compile(r"^body\s+(\d+)\s*:\s*(\S+)$")
+    gauge_offsets = {}
+    gauge_lines = []
+    for line in lines:
+        match = gauge_pattern.fullmatch(line)
+        if match is None:
+            continue
+        body = int(match.group(1))
+        if body in gauge_offsets:
+            fail(f"duplicate pressure-jump gauge for body {body}", result)
+        gauge_offsets[body] = parse_float(match.group(2), f"body {body} gauge offset", result)
+        gauge_lines.append(line)
+
+    expected_bodies = {1} if args.case == "center_wall" else {1, 2}
+    if set(gauge_offsets) != expected_bodies:
+        fail(
+            f"expected gauge offsets for bodies {sorted(expected_bodies)}, "
+            f"got {sorted(gauge_offsets)}",
             result,
         )
     if args.case == "center_wall":
-        if max(abs(value) for value in gauge_records[(1, 1)]) > 1.0e-10:
-            fail(f"center-wall gauge values are unexpectedly large: {gauge_records[(1, 1)]}", result)
-    else:
-        gauge_scales = []
-        for gauge_key, (raw_mean, row_term) in gauge_records.items():
-            if abs(raw_mean) <= 1.0e-12 or abs(row_term) <= 1.0e-14:
-                fail(f"expected a nontrivial gauge record for {gauge_key}", result)
-            gauge_scales.append(-row_term / raw_mean)
-        if any(scale <= 0.0 for scale in gauge_scales):
-            fail(f"gauge stabilization scales must be positive: {gauge_scales}", result)
-        if not math.isclose(gauge_scales[0], gauge_scales[1], rel_tol=2.0e-7):
-            fail(f"per-body gauge stabilization scales differ: {gauge_scales}", result)
+        if abs(gauge_offsets[1]) > 1.0e-10:
+            fail(f"center-wall gauge offset is unexpectedly large: {gauge_offsets[1]:.12e}", result)
+    elif any(abs(offset) <= 1.0e-12 for offset in gauge_offsets.values()):
+        fail(f"expected nontrivial double-cylinder gauge offsets: {gauge_offsets}", result)
 
-    for line in solve_lines + history_lines + wall_lines + continuity_lines + gauge_lines:
+    mean_iterations, iteration_line = parse_scalar_line(
+        lines, "Average BiCGSTAB iteration count", result
+    )
+    if mean_iterations < 0.0:
+        fail("average BiCGSTAB iteration count must be nonnegative", result)
+
+    for line in (
+        continuity_max_line,
+        *wall_lines,
+        velocity_line,
+        *gauge_lines,
+        iteration_line,
+    ):
         print(line)
 
 
