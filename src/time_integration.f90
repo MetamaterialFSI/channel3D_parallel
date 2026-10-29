@@ -79,9 +79,10 @@ Contains
 
     ! compute mean pressure gradient for constant mass flow in x
     If ( x_mass_cte == 1 ) Then
+       dPdx_prev = dPdx
        Call compute_dPx_for_constant_mass_flow(U,dPdx)
        U(2:nx-1,2:nyg-1,2:nzg-1) = U(2:nx-1,2:nyg-1,2:nzg-1) + dPdx
-       dPdx = dPdx/dt ! to be used later by rhs_*
+       dPdx = 0.5d0 * (dPdx_prev + dPdx/dt) ! to be used later by rhs_*
        Call apply_boundary_conditions(U, V, W)
     End If
 
