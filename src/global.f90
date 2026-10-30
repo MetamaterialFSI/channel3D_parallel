@@ -50,6 +50,8 @@ Module global
   ! steps
   Integer(Int32) :: nsteps, nstep_init
   Real   (Int64) :: dt, t, t_init, kdt
+  Logical(Int32) :: use_rk3
+  Logical(Int32) :: use_bao5_ddf = .False.
 
   ! grid stretching factor
   Real(Int64) :: alpha_stretch
@@ -109,11 +111,14 @@ Module global
   Real(Int64), Allocatable, Dimension(:,:,:) :: Uoo,Voo,Woo,Poo
   Real(Int64), Allocatable, Dimension(:,:,:) :: Vw 
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_reg, V_reg, W_reg
+  Real(Int64), Allocatable, Dimension(:,:,:) :: U_ib_tmp, V_ib_tmp, W_ib_tmp
+  Real(Int64), Allocatable, Dimension(:,:,:) :: con_F
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_interim, V_interim, W_interim, P_interim
   Real(Int64), Allocatable, Dimension(:,:,:) :: U_supp, V_supp, W_supp, P_supp! first 1:suppz is for left boundary; suppz+1:2*suppz is for right boundary
 
   ! local auxiliary 
   Real(Int64), Allocatable, Dimension(:,:,:) :: term_1, term_2
+  Real(Int64), Allocatable, Dimension(:,:,:) :: uv_flux, uw_flux, vw_flux
 
   ! local rhs for velocities and pressure
   Real(Int64), Allocatable, Dimension(:,:)   :: px_bottom, px_top
@@ -144,7 +149,7 @@ Module global
   
   ! local auxiliary planes for FFTW
   Type(C_PTR) :: cplane_fft
-  Complex(C_DOUBLE_COMPLEX), Pointer, Dimension(:,:) :: plane, plane_hat
+  Complex(C_DOUBLE_COMPLEX), Pointer, Contiguous, Dimension(:,:) :: plane, plane_hat
 
   ! Fourier points and wave numbers 
   Integer(C_INTPTR_T) :: nxp_global, nzp_global, local_k_offset
@@ -169,9 +174,9 @@ Module global
 
   ! linear solver
   Integer (Int32) :: nr, nrhs
-  Integer (Int32), Dimension(:),   Allocatable :: pivot  
-  Complex (Int64), Dimension(:),   Allocatable :: D, DL, DU
-  Complex (Int64), Dimension(:,:), Allocatable :: M, Dyy
+  Integer (Int32), Dimension(:,:,:), Allocatable :: poisson_ipiv
+  Complex (Int64), Dimension(:,:,:), Allocatable :: poisson_d, poisson_dl, poisson_du, poisson_du2
+  Complex (Int64), Dimension(:,:), Allocatable :: Dyy
 
   ! pressure gradients
   Real(Int64) :: dPdx, dPdy, dPdz, dPdx_ref
@@ -232,6 +237,7 @@ Module global
 
   ! body velocity
   Real(Int64), Dimension(:), Allocatable :: ub
+  Real(Int64), Dimension(:), Allocatable :: ab, pn_mean
 
   ! body normals and tangents
   Real(Int64), Dimension(:), Allocatable :: normals, tangents_1, tangents_2
@@ -254,11 +260,16 @@ Module global
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior_o, Hv_interior_o, Hw_interior_o, Hc_interior_o
   Real   (Int64), Dimension(:,:,:), Allocatable :: Hu_interior_oo, Hv_interior_oo, Hw_interior_oo, Hc_interior_oo
   Real   (Int64), Dimension(:), Allocatable :: E1nHc_exterior, E1nH_exterior
+  Real   (Int64), Dimension(:), Allocatable :: EHc_exterior
 
   ! Biconjugate gradient max iterations and tolerance
   ! cg_accum_iter and cg_nsolves accumulate over one monitor interval
-  Integer(Int32) :: cg_max_iter, cg_accum_iter, cg_nsolves
-  Real(Int64) :: cg_tol, cg_mean_iter
+  Integer(Int32), Parameter :: cg_report_max_solves = 3
+  Integer(Int32) :: cg_max_iter, cg_accum_iter, cg_nsolves, cg_report_count, cg_report_step
+  Integer(Int32), Dimension(:), Allocatable :: cg_report_iterations, cg_report_stages
+  Real(Int64) :: cg_tol, cg_abs_tol, cg_mean_iter
+  Real(Int64), Dimension(:,:,:), Allocatable :: cg_report_history
+  Real(Int64), Dimension(:,:), Allocatable :: cg_report_rhs_rms, cg_report_tolerances
 
   ! immersed boundary operator variables
   Integer(Int32), Dimension(:), Allocatable :: send_counts_nb, displs_nb
@@ -271,6 +282,8 @@ Module global
   Integer(Int32), parameter :: nweights = (2 * suppx + 1) * (2 * suppy + 1) * (2 * suppz + 1)
   Real(Int64),    Dimension(:,:),   Allocatable :: u_weights, v_weights, w_weights, c_weights
   Real(Int64),    Dimension(:,:),   Allocatable :: dxnu, dxnv, dxnw, dxnc
+  Real(Int64),    Dimension(:),     Allocatable :: E2n1c, M2dir, Ecross, dpds_known, ring_tang
+  Integer(Int32), Dimension(:),     Allocatable :: ring_start, ring_len
 
   Integer(Int32), Dimension(:,:),   Allocatable :: u_x_indices, u_y_indices, u_z_indices, u_z_local_indices, u_proc, u_z_supp_idx
   Integer(Int32), Dimension(:,:),   Allocatable :: v_x_indices, v_y_indices, v_z_indices, v_z_local_indices, v_proc, v_z_supp_idx
@@ -282,8 +295,12 @@ Module global
 
   ! immersed body auxilliary variables
   Real(Int64), Dimension(:),     Allocatable :: aux_surface_scalar, aux_surface_vector, rhs_ib
+  Real(Int64), Dimension(:),     Allocatable :: ib_surface_scalar_work, ib_surface_vector_work
   Real(Int64), Dimension(:),     Allocatable :: regT_buffer_scalar, regT_buffer_vector
   Logical(Int32) :: moving_z_flag ! True for moving in z direction; False: stationary in z direction (for identifying the partition)
+  Logical(Int32) :: ramp_is_zero
+  Integer(Int32) :: n_accel_adv
+  Real(Int64) :: t_ub, dt_ub, pjv_gscale
 
   ! BiCGSTAB arrays
   Real(Int64), Dimension(:), Allocatable :: bcg_r, bcg_rhat, bcg_p, bcg_nu, bcg_h, bcg_sv, bcg_tv

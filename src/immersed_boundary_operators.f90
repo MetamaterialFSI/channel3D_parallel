@@ -21,11 +21,24 @@ Contains
     character(len=50) :: filename
     integer :: k_local,k_supp         ! local index
     integer :: proc_id      ! MPI rank that owns this index
-    Real(Int64) :: x_grid, y_grid, z_grid
+    Real(Int64) :: x_grid, y_grid, z_grid, x_offset, y_offset, z_offset
     integer :: prev, next, k_global
 
     !-----------------Find the indices of the flow grid points closest to the body points---------------------!
-    Do l = nb_start, nb_end
+    E2n1c = 0d0
+    M2dir = 0d0
+
+    If (use_bao5_ddf) Then
+      Do l = 1, nb
+        x_pivot_index(l) = Nint(xb(l) / dx) + 1
+        xm_pivot_index(l) = Nint((xb(l) + 0.5 * dx) / dx)
+        y_pivot_index(l) = Nint((yb(l) - y(y_ref_index(l))) / dymin) + y_ref_index(l)
+        ym_pivot_index(l) = Nint((yb(l) - (y(y_ref_index(l)) + 0.5 * dymin)) / dymin) + y_ref_index(l)
+        z_pivot_index(l) = Nint(zb(l) / dz) + 1
+        zm_pivot_index(l) = Nint((zb(l) + 0.5 * dz) / dz) + 1
+      End Do
+    Else
+    Do l = 1, nb
       ! index of largest x value that is smaller than xb(l)
       x_pivot_index(l) = Floor(xb(l) / dx) + 1
       ! index of largest xm value that is smaller than xb(l), not accounting for periodicity. Can be zero
@@ -40,10 +53,11 @@ Contains
       ! index of largest zm value that is smaller than zb(l), not accounting for periodicity. Can be zero
       zm_pivot_index(l) = Floor((zb(l) + 0.5 * dz) / dz)+1
     End Do
+    End If
 
     !----Find the flow grid indices and corresponding DDF weights within the support of the DDF at each body point----!
     ! u velocity locations
-    Do l = nb_start, nb_end
+    Do l = 1, nb
       count = 0
       Do k = -suppz, suppz
         Do j = -suppy, suppy
@@ -72,7 +86,7 @@ Contains
             end if
             
             ! calculate the support cell index
-            If ( moving_z_flag .Or. istep <= 1 ) Then
+            If ( l >= nb_start .And. l <= nb_end .And. (moving_z_flag .Or. istep <= 1) ) Then
               call global_to_local_center(u_z_indices(count, l), k_supp, k_local, proc_id)
               u_z_local_indices(count, l) = k_local
               u_z_supp_idx(count, l) = k_supp
@@ -98,7 +112,7 @@ Contains
     End Do
   
     ! v velocity locations
-    Do l = nb_start, nb_end
+    Do l = 1, nb
       count = 0
       Do k = -suppz, suppz
         Do j = -suppy, suppy
@@ -122,7 +136,7 @@ Contains
             end if
 
             ! calculate the support cell index
-            If ( moving_z_flag .Or. istep <= 1 ) Then
+            If ( l >= nb_start .And. l <= nb_end .And. (moving_z_flag .Or. istep <= 1) ) Then
               call global_to_local_center(v_z_indices(count, l), k_supp, k_local, proc_id)
               v_z_local_indices(count, l) = k_local
               v_z_supp_idx(count, l) = k_supp
@@ -148,7 +162,7 @@ Contains
     End Do
 
     ! w velocity locations
-    Do l = nb_start, nb_end
+    Do l = 1, nb
       count = 0
       Do k = -suppz, suppz
         Do j = -suppy, suppy
@@ -168,7 +182,7 @@ Contains
             w_z_indices(count, l) = kk_periodic
 
             ! calculate the support cell index
-            If ( moving_z_flag .Or. istep <= 1 ) Then
+            If ( l >= nb_start .And. l <= nb_end .And. (moving_z_flag .Or. istep <= 1) ) Then
               call global_to_local_face(w_z_indices(count, l), k_supp, k_local, proc_id)
               w_z_local_indices(count, l) = k_local
               w_z_supp_idx(count, l) = k_supp
@@ -194,7 +208,7 @@ Contains
     End Do
 
     ! compute weightc (pressure, Gux, Gvy, Gwz locations)
-    Do l = nb_start, nb_end
+    Do l = 1, nb
       count = 0
       Do k = -suppz, suppz
         Do j = -suppy, suppy
@@ -218,7 +232,7 @@ Contains
             end if
 
             ! calculate the support cell index
-            If ( moving_z_flag .Or. istep <= 1 ) Then
+            If ( l >= nb_start .And. l <= nb_end .And. (moving_z_flag .Or. istep <= 1) ) Then
               call global_to_local_center(c_z_indices(count, l), k_supp, k_local, proc_id)
               c_z_local_indices(count, l) = k_local
               c_z_supp_idx(count, l) = k_supp
@@ -234,10 +248,17 @@ Contains
               * deltafnc(y_grid, yb(l), dymin) &
               * deltafnc(z_grid, zb(l),    dz)
 
+            x_offset = x_grid - xb(l)
+            y_offset = y_grid - yb(l)
+            z_offset = z_grid - zb(l)
             dxnc(count, l) = &
-              normals(l)          * (x_grid - xb(l)) + &
-              normals(nb + l)     * (y_grid - yb(l)) + &
-              normals(2 * nb + l) * (z_grid - zb(l))
+              normals(l)          * x_offset + &
+              normals(nb + l)     * y_offset + &
+              normals(2 * nb + l) * z_offset
+            E2n1c(l) = E2n1c(l) + c_weights(count, l) * dxnc(count, l) ** 2
+            M2dir(l) = M2dir(l) + c_weights(count, l) * x_offset ** 2
+            M2dir(nb + l) = M2dir(nb + l) + c_weights(count, l) * y_offset ** 2
+            M2dir(2 * nb + l) = M2dir(2 * nb + l) + c_weights(count, l) * z_offset ** 2
           End Do
         End Do
       End Do
@@ -252,6 +273,8 @@ Contains
     Do i = 2, nprocs
       displs_nb(i) = displs_nb(i-1) + send_counts_nb(i-1)
     End Do
+
+    Call compute_ecross
 
   End Subroutine setup_IB_operators
 
@@ -270,6 +293,11 @@ Contains
   Function deltafnc(x1, x2, dr)
 
     Real(Int64) :: x1, x2, r, dr, deltafnc, r1, r2
+
+    If (use_bao5_ddf) Then
+      deltafnc = deltafnc_bao5(x1, x2, dr)
+      Return
+    End If
 
     r = abs(x1 - x2)
 
@@ -292,6 +320,134 @@ Contains
     deltafnc = deltafnc / dr
 
   End Function deltafnc
+
+  Pure Function deltafnc_bao5(x1, x2, dr) Result(value)
+    Real(Int64), Intent(In) :: x1, x2, dr
+    Real(Int64), Parameter :: moment = (38d0 - Sqrt(69d0)) / 60d0
+    Real(Int64) :: value, r, s, s2, beta, gamma, phi
+    Integer(Int32) :: offset
+
+    r = Abs(x1 - x2) / dr
+    value = 0d0
+    If (r >= 2.5d0) Return
+    offset = Nint(r)
+    s = r - offset
+    s2 = s * s
+    beta = -12600d0 * moment**2 * s2 + 3600d0 * moment**2 - 8400d0 * moment * s2**2 &
+      + 25680d0 * moment * s2 - 6840d0 * moment + 3123d0
+    gamma = -40d0 * s2 * (35d0 * s2**2 - 202d0 * s2 + 311d0)
+    phi = (-40d0 * moment - 40d0 * s2 + 136d0 + Sqrt(Max(0d0, 2d0 * (beta + gamma)))) / 280d0
+    Select Case (offset)
+    Case (0)
+      value = phi / dr
+    Case (1)
+      value = (-4d0 * phi + 3d0 * moment * s - moment + s**3 - s2 - 4d0 * s + 4d0) / (6d0 * dr)
+    Case (2)
+      value = (2d0 * phi - 3d0 * moment * s + 2d0 * moment - s**3 + 2d0 * s2 + s - 2d0) / (12d0 * dr)
+    End Select
+  End Function deltafnc_bao5
+
+  Real(Int64) Function ddf_support_radius()
+    ddf_support_radius = 2d0
+    If (use_bao5_ddf) ddf_support_radius = 2.5d0
+  End Function ddf_support_radius
+
+  Real(Int64) Function dxw(a, b)
+    Integer(Int32), Intent(In) :: a, b
+
+    dxw = xb(a) - xb(b)
+    If (dxw > 0.5d0 * Lxp) dxw = dxw - Lxp
+    If (dxw < -0.5d0 * Lxp) dxw = dxw + Lxp
+  End Function dxw
+
+  Real(Int64) Function dzw(a, b)
+    Integer(Int32), Intent(In) :: a, b
+
+    dzw = zb(a) - zb(b)
+    If (dzw > 0.5d0 * Lzp) dzw = dzw - Lzp
+    If (dzw < -0.5d0 * Lzp) dzw = dzw + Lzp
+  End Function dzw
+
+  Subroutine compute_ecross
+    Integer(Int32) :: k, kp, km, m, f
+    Real(Int64) :: ds, tx, ty, tz
+
+    Ecross = 0d0
+    Do k = 1, nb
+      f = ring_start(k)
+      m = ring_len(k)
+      If (m < 3) Cycle
+      kp = f + Mod(k - f + 1, m)
+      km = f + Mod(k - f - 1 + m, m)
+      ds = Sqrt(dxw(kp, km) ** 2 + (yb(kp) - yb(km)) ** 2 + dzw(kp, km) ** 2)
+      If (ds <= 0d0) Cycle
+      tx = dxw(kp, km) / ds
+      ty = (yb(kp) - yb(km)) / ds
+      tz = dzw(kp, km) / ds
+      Ecross(k) = normals(k) * tx * M2dir(k) &
+                + normals(nb + k) * ty * M2dir(nb + k) &
+                + normals(2 * nb + k) * tz * M2dir(2 * nb + k)
+    End Do
+  End Subroutine compute_ecross
+
+  Subroutine dpmean_ds(p_, cfield, pj_, dpds, tang)
+    Implicit None
+    Real(Int64), Contiguous, Intent(In) :: p_(2:, 2:, 2:)
+    Real(Int64), Intent(In) :: cfield
+    Real(Int64), Intent(In) :: pj_(:)
+    Real(Int64), Intent(Out) :: dpds(:)
+    Real(Int64), Intent(Out) :: tang(:)
+    Real(Int64) :: ds
+    Integer(Int32) :: k, kp, km, m, f
+
+    dpds = 0d0
+    tang = 0d0
+    Call regTc(ib_surface_scalar_work, p_)
+    ib_surface_scalar_work = cfield * ib_surface_scalar_work - (EHc_exterior - 0.5d0) * pj_
+
+    Do k = 1, nb
+      f = ring_start(k)
+      m = ring_len(k)
+      If (m < 3) Cycle
+      kp = f + Mod(k - f + 1, m)
+      km = f + Mod(k - f - 1 + m, m)
+      ds = Sqrt(dxw(kp, km) ** 2 + (yb(kp) - yb(km)) ** 2 + dzw(kp, km) ** 2)
+      If (ds <= 0d0) Cycle
+      tang(k) = dxw(kp, km) / ds
+      tang(nb + k) = (yb(kp) - yb(km)) / ds
+      tang(2 * nb + k) = dzw(kp, km) / ds
+      dpds(k) = (ib_surface_scalar_work(kp) - ib_surface_scalar_work(km)) / ds
+    End Do
+
+  End Subroutine dpmean_ds
+
+  Subroutine frame_to_cart_t(f_, dudn)
+    Implicit None
+    Real(Int64), Intent(In) :: f_(:)
+    Real(Int64), Intent(Out) :: dudn(:)
+    Integer(Int32) :: ic, j0
+
+    Do ic = 1, 3
+      j0 = (ic - 1) * nb
+      dudn(j0 + 1 : j0 + nb) = f_(1 : nb) * tangents_1(j0 + 1 : j0 + nb) &
+                              + f_(nb + 1 : 2 * nb) * tangents_2(j0 + 1 : j0 + nb)
+    End Do
+
+  End Subroutine frame_to_cart_t
+
+  Subroutine cart_to_frame_t(v3, out)
+    Implicit None
+    Real(Int64), Intent(In) :: v3(:)
+    Real(Int64), Intent(Out) :: out(:)
+
+    out(1 : nb) = v3(1 : nb) * tangents_1(1 : nb) &
+                + v3(nb + 1 : 2 * nb) * tangents_1(nb + 1 : 2 * nb) &
+                + v3(2 * nb + 1 : 3 * nb) * tangents_1(2 * nb + 1 : 3 * nb)
+    out(nb + 1 : 2 * nb) = v3(1 : nb) * tangents_2(1 : nb) &
+                         + v3(nb + 1 : 2 * nb) * tangents_2(nb + 1 : 2 * nb) &
+                         + v3(2 * nb + 1 : 3 * nb) * tangents_2(2 * nb + 1 : 3 * nb)
+
+  End Subroutine cart_to_frame_t
 
   Subroutine regT(Eu_, U_, V_, W_)
     Implicit None
@@ -356,12 +512,22 @@ Contains
 
   End Subroutine regTc_1n
 
+  Subroutine regTc(Ec_, P_)
+    Implicit None
+    Real(Int64), Contiguous, Intent(In) :: P_(2:, 2:, 2:)
+    Real(Int64), Contiguous, Intent(Out) :: Ec_(:)
+
+    Call interior_planes_update_support_pressure(P_, P_supp)
+    Call local_regTc(regT_buffer_scalar, P_, P_supp)
+    Call MPI_Allgatherv(regT_buffer_scalar(nb_start : nb_end), local_size_nb, MPI_REAL8, &
+                 Ec_, send_counts_nb, displs_nb, MPI_REAL8, MPI_COMM_WORLD, ierr)
+
+  End Subroutine regTc
+
   Subroutine regu(U_, f_)
     Implicit None
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: U_(:, :, :)
-
-    U_ = 0d0
 
     ! compute local_reg for each partition
     Call local_reg(U_, U_supp, f_, 1)
@@ -375,8 +541,6 @@ Contains
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: V_(:, :, :)
 
-    V_ = 0d0
-    
     ! compute local_reg for each partition
     Call local_reg(V_, V_supp, f_, 2)
     ! update the interior points from other partitions
@@ -388,10 +552,6 @@ Contains
     Implicit None
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: W_(:, :, :)
-    Integer(Int32) :: i, j
-
-    W_ = 0d0
-
     ! compute local_reg for each partition
     Call local_reg(W_, W_supp, f_, 3)
     ! update the interior points from other partitions
@@ -403,8 +563,6 @@ Contains
     Implicit None
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: U_(:, :, :)
-
-    U_ = 0d0
 
     ! compute local_reg for each partition
     Call local_reg_1n(U_, U_supp, f_, 1)
@@ -418,8 +576,6 @@ Contains
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: V_(:, :, :)
 
-    V_ = 0d0
-    
     ! compute local_reg for each partition
     Call local_reg_1n(V_, V_supp, f_, 2)
     ! update the interior points from other partitions
@@ -431,10 +587,6 @@ Contains
     Implicit None
     Real(Int64), Contiguous, Intent(In) :: f_(:)
     Real(Int64), Contiguous, Intent(Out) :: W_(:, :, :)
-    Integer(Int32) :: i, j
-
-    W_ = 0d0
-
     ! compute local_reg for each partition
     Call local_reg_1n(W_, W_supp, f_, 3)
     ! update the interior points from other partitions
@@ -461,7 +613,9 @@ Contains
     integer :: proc_idx
 
     Integer(Int32) :: i, j
-    Eu_ = 0.D0
+    Eu_(nb_start : nb_end) = 0d0
+    Eu_(nb + nb_start : nb + nb_end) = 0d0
+    Eu_(2 * nb + nb_start : 2 * nb + nb_end) = 0d0
      
     Do j = nb_start, nb_end
       Do i = 1, nweights
@@ -508,7 +662,9 @@ Contains
     integer :: proc_idx
 
     Integer(Int32) :: i, j
-    E1nu_ = 0.D0
+    E1nu_(nb_start : nb_end) = 0d0
+    E1nu_(nb + nb_start : nb + nb_end) = 0d0
+    E1nu_(2 * nb + nb_start : 2 * nb + nb_end) = 0d0
      
     Do j = nb_start, nb_end
       Do i = 1, nweights
@@ -551,7 +707,7 @@ Contains
     integer :: proc_idx
 
     Integer(Int32) :: i, j
-    E1np_ = 0.D0
+    E1np_(nb_start : nb_end) = 0d0
 
     Do j = nb_start, nb_end
       Do i = 1, nweights
@@ -567,6 +723,29 @@ Contains
       End Do
     End Do
   End Subroutine local_regTc_1n
+
+  Subroutine local_regTc(Ec_, P_, P_supp_)
+    Implicit None
+    Real(Int64), Contiguous, Intent(In) :: P_(2:, 2:, 2:)
+    Real(Int64), Contiguous, Intent(In) :: P_supp_(2:, 2:, :)
+    Real(Int64), Contiguous, Intent(Out) :: Ec_(:)
+    Integer(Int32) :: i, j, proc_idx
+
+    Ec_(nb_start : nb_end) = 0d0
+    Do j = nb_start, nb_end
+      Do i = 1, nweights
+        proc_idx = c_proc(i, j)
+        If (proc_idx == myid) Then
+          Ec_(j) = Ec_(j) + c_weights(i, j) * &
+            P_(c_x_indices(i, j), c_y_indices(i, j), c_z_local_indices(i, j))
+        Else
+          Ec_(j) = Ec_(j) + c_weights(i, j) * &
+            P_supp_(c_x_indices(i, j), c_y_indices(i, j), c_z_supp_idx(i, j))
+        End If
+      End Do
+    End Do
+
+  End Subroutine local_regTc
 
   !-----------------------------------------------------------------------
   !  Generalized “subset_regu” for U, V, or W:
@@ -603,46 +782,71 @@ Contains
     factor = 1.0 / (dx * dymin * dz)
 
     ! Loop over body points and accumulate using the appropriate weight array
-    do j = nb_start, nb_end
-      do i = 1, nweights
-        select case (id)
-        case (1)
+    select case (id)
+    case (1)
+      do j = nb_start, nb_end
+        do i = 1, nweights
           proc_idx = u_proc(i, j)
           xi       = u_x_indices(i, j)
           yi       = u_y_indices(i, j)
           zi_loc   = u_z_local_indices(i, j)
           zi_supp  = u_z_supp_idx(i, j)
           weight = u_weights(i,j)
-        case (2)
+          if (proc_idx == myid) then
+            F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
+          else
+            if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+              WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+              stop 'Error: zi_supp out of [1..suppz]'
+            END IF
+            F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
+          end if
+        end do
+      end do
+    case (2)
+      do j = nb_start, nb_end
+        do i = 1, nweights
           proc_idx = v_proc(i, j)
           xi       = v_x_indices(i, j)
           yi       = v_y_indices(i, j)
           zi_loc   = v_z_local_indices(i, j)
           zi_supp  = v_z_supp_idx(i, j)
           weight = v_weights(i,j)
-        case (3)
+          if (proc_idx == myid) then
+            F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
+          else
+            if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+              WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+              stop 'Error: zi_supp out of [1..suppz]'
+            END IF
+            F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
+          end if
+        end do
+      end do
+    case (3)
+      do j = nb_start, nb_end
+        do i = 1, nweights
           proc_idx = w_proc(i, j)
           xi       = w_x_indices(i, j)
           yi       = w_y_indices(i, j)
           zi_loc   = w_z_local_indices(i, j)
           zi_supp  = w_z_supp_idx(i, j)
           weight = w_weights(i,j)
-        case default
-          print *, 'Error in scatter_IB_subset: invalid id =', id
-          stop
-        end select
-        if (proc_idx == myid) then
-          ! Write into local F
-          F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
-        else
-          if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
-            WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
-            stop 'Error: zi_supp out of [1..suppz]'
-          END IF
-          F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
-        end if
+          if (proc_idx == myid) then
+            F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
+          else
+            if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+              WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+              stop 'Error: zi_supp out of [1..suppz]'
+            END IF
+            F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
+          end if
+        end do
       end do
-    end do
+    case default
+      print *, 'Error in scatter_IB_subset: invalid id =', id
+      stop
+    end select
   end subroutine local_reg
 
   subroutine local_reg_1n(F, F_supp, f_, id)
@@ -664,47 +868,419 @@ Contains
     factor = 1.0 / (dx * dymin * dz)
 
     ! Loop over body points and accumulate using the appropriate weight array
-    do j = nb_start, nb_end
-      do i = 1, nweights
-        select case (id)
-        case (1)
+    select case (id)
+    case (1)
+      do j = nb_start, nb_end
+        do i = 1, nweights
           proc_idx = u_proc(i, j)
           xi       = u_x_indices(i, j)
           yi       = u_y_indices(i, j)
           zi_loc   = u_z_local_indices(i, j)
           zi_supp  = u_z_supp_idx(i, j)
           weight = u_weights(i,j) * dxnu(i,j)
-        case (2)
+          if (proc_idx == myid) then
+            F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
+          else
+            if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+              WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+              stop 'Error: zi_supp out of [1..suppz]'
+            END IF
+            F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
+          end if
+        end do
+      end do
+    case (2)
+      do j = nb_start, nb_end
+        do i = 1, nweights
           proc_idx = v_proc(i, j)
           xi       = v_x_indices(i, j)
           yi       = v_y_indices(i, j)
           zi_loc   = v_z_local_indices(i, j)
           zi_supp  = v_z_supp_idx(i, j)
           weight = v_weights(i,j) * dxnv(i,j)
-        case (3)
+          if (proc_idx == myid) then
+            F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
+          else
+            if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+              WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+              stop 'Error: zi_supp out of [1..suppz]'
+            END IF
+            F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
+          end if
+        end do
+      end do
+    case (3)
+      do j = nb_start, nb_end
+        do i = 1, nweights
           proc_idx = w_proc(i, j)
           xi       = w_x_indices(i, j)
           yi       = w_y_indices(i, j)
           zi_loc   = w_z_local_indices(i, j)
           zi_supp  = w_z_supp_idx(i, j)
           weight = w_weights(i,j) * dxnw(i,j)
-        case default
-          print *, 'Error in scatter_IB_subset: invalid id =', id
-          stop
-        end select
-        if (proc_idx == myid) then
-          ! Write into local F
-          F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
-        else
-          if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
-            WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
-            stop 'Error: zi_supp out of [1..suppz]'
-          END IF
-          F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
-        end if
+          if (proc_idx == myid) then
+            F(xi, yi, zi_loc) = F(xi, yi, zi_loc)+weight * factor* sb(j) *f_(j)
+          else
+            if (zi_supp < 1 .or. zi_supp > 2*suppz+1) Then
+              WRITE(*,*) 'myid',myid,'proc_idx',proc_idx,'zi_supp',zi_supp
+              stop 'Error: zi_supp out of [1..suppz]'
+            END IF
+            F_supp(xi, yi, zi_supp) = F_supp(xi, yi, zi_supp)+weight * factor* sb(j) *f_(j)
+          end if
+        end do
       end do
-    end do
+    case default
+      print *, 'Error in scatter_IB_subset: invalid id =', id
+      stop
+    end select
   end subroutine local_reg_1n
+
+  Subroutine apply_momentum_forcing(Fx_, Fy_, Fz_, dudn_jump_, p_jump_)
+    Implicit None
+    Real(Int64), Contiguous, Intent(In) :: dudn_jump_(:)
+    Real(Int64), Contiguous, Intent(In) :: p_jump_(:)
+    Real(Int64), Contiguous, Intent(Out) :: Fx_(:, :, :)
+    Real(Int64), Contiguous, Intent(Out) :: Fy_(:, :, :)
+    Real(Int64), Contiguous, Intent(Out) :: Fz_(:, :, :)
+    Integer(Int32) :: i, j, k
+
+    Fx_ = 0d0
+    Fy_ = 0d0
+    Fz_ = 0d0
+
+    ib_surface_scalar_work = nu * dudn_jump_(1 : nb) * normals(1 : nb) ** 2
+    Call regu(U_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = nu * dudn_jump_(1 : nb) * normals(nb + 1 : 2 * nb) ** 2
+    Call regv(V_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = nu * dudn_jump_(1 : nb) * normals(2 * nb + 1 : 3 * nb) ** 2
+    Call regw(W_ib_tmp, ib_surface_scalar_work)
+    Call apply_boundary_conditions(U_ib_tmp, V_ib_tmp, W_ib_tmp)
+    Do k = 2, nzg - 1
+      Do j = 2, nyg - 1
+        Do i = 2, nx - 1
+          Fx_(i, j, k) = 0.25d0 * (U_ib_tmp(i - 1, j, k) + 2d0 * U_ib_tmp(i, j, k) + U_ib_tmp(i + 1, j, k)) &
+                       + 0.25d0 * (V_ib_tmp(i, j - 1, k) + V_ib_tmp(i + 1, j - 1, k) &
+                                 + V_ib_tmp(i, j, k) + V_ib_tmp(i + 1, j, k)) &
+                       + 0.25d0 * (W_ib_tmp(i, j, k - 1) + W_ib_tmp(i + 1, j, k - 1) &
+                                 + W_ib_tmp(i, j, k) + W_ib_tmp(i + 1, j, k))
+        End Do
+      End Do
+    End Do
+
+    ib_surface_scalar_work = nu * dudn_jump_(nb + 1 : 2 * nb) * normals(1 : nb) ** 2
+    Call regu(U_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = nu * dudn_jump_(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb) ** 2
+    Call regv(V_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = nu * dudn_jump_(nb + 1 : 2 * nb) * normals(2 * nb + 1 : 3 * nb) ** 2
+    Call regw(W_ib_tmp, ib_surface_scalar_work)
+    Call apply_boundary_conditions(U_ib_tmp, V_ib_tmp, W_ib_tmp)
+    Do k = 2, nzg - 1
+      Do j = 2, ny - 1
+        Do i = 2, nxg - 1
+          Fy_(i, j, k) = 0.25d0 * (U_ib_tmp(i - 1, j, k) + U_ib_tmp(i - 1, j + 1, k) &
+                                 + U_ib_tmp(i, j, k) + U_ib_tmp(i, j + 1, k)) &
+                       + 0.25d0 * (V_ib_tmp(i, j - 1, k) + 2d0 * V_ib_tmp(i, j, k) + V_ib_tmp(i, j + 1, k)) &
+                       + 0.25d0 * (W_ib_tmp(i, j, k - 1) + W_ib_tmp(i, j + 1, k - 1) &
+                                 + W_ib_tmp(i, j, k) + W_ib_tmp(i, j + 1, k))
+        End Do
+      End Do
+    End Do
+
+    ib_surface_scalar_work = nu * dudn_jump_(2 * nb + 1 : 3 * nb) * normals(1 : nb) ** 2
+    Call regu(U_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = nu * dudn_jump_(2 * nb + 1 : 3 * nb) * normals(nb + 1 : 2 * nb) ** 2
+    Call regv(V_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = nu * dudn_jump_(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb) ** 2
+    Call regw(W_ib_tmp, ib_surface_scalar_work)
+    Call apply_boundary_conditions(U_ib_tmp, V_ib_tmp, W_ib_tmp)
+    Do k = 2, nz - 1
+      Do j = 2, nyg - 1
+        Do i = 2, nxg - 1
+          Fz_(i, j, k) = 0.25d0 * (U_ib_tmp(i - 1, j, k) + U_ib_tmp(i - 1, j, k + 1) &
+                                 + U_ib_tmp(i, j, k) + U_ib_tmp(i, j, k + 1)) &
+                       + 0.25d0 * (V_ib_tmp(i, j - 1, k) + V_ib_tmp(i, j - 1, k + 1) &
+                                 + V_ib_tmp(i, j, k) + V_ib_tmp(i, j, k + 1)) &
+                       + 0.25d0 * (W_ib_tmp(i, j, k - 1) + 2d0 * W_ib_tmp(i, j, k) + W_ib_tmp(i, j, k + 1))
+        End Do
+      End Do
+    End Do
+
+    Call accumulate_DR1n_forcing(Fx_, Fy_, Fz_, dudn_jump_)
+
+    ib_surface_scalar_work = -p_jump_ * normals(1 : nb)
+    Call regu(U_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = -p_jump_ * normals(nb + 1 : 2 * nb)
+    Call regv(V_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = -p_jump_ * normals(2 * nb + 1 : 3 * nb)
+    Call regw(W_ib_tmp, ib_surface_scalar_work)
+    Fx_ = Fx_ + U_ib_tmp
+    Fy_ = Fy_ + V_ib_tmp
+    Fz_ = Fz_ + W_ib_tmp
+    Call apply_boundary_conditions(Fx_, Fy_, Fz_)
+
+  End Subroutine apply_momentum_forcing
+
+  Subroutine apply_continuity_forcing(F_, dudn_jump_)
+    Implicit None
+    Real(Int64), Contiguous, Intent(In) :: dudn_jump_(:)
+    Real(Int64), Contiguous, Intent(Out) :: F_(2:, 2:, 2:)
+    Integer(Int32) :: i, j, k
+
+    ib_surface_scalar_work = dudn_jump_(1 : nb) * normals(1 : nb)
+    Call regu_1n(U_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = dudn_jump_(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb)
+    Call regv_1n(V_ib_tmp, ib_surface_scalar_work)
+    ib_surface_scalar_work = dudn_jump_(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb)
+    Call regw_1n(W_ib_tmp, ib_surface_scalar_work)
+    Call apply_boundary_conditions(U_ib_tmp, V_ib_tmp, W_ib_tmp)
+
+    F_ = 0d0
+    Do k = 2, nzg - 1
+      Do j = 2, nyg - 1
+        Do i = 2, nxg - 1
+          F_(i, j, k) = 0.5d0 * (U_ib_tmp(i - 1, j, k) + U_ib_tmp(i, j, k)) &
+                       + 0.5d0 * (V_ib_tmp(i, j - 1, k) + V_ib_tmp(i, j, k)) &
+                       + 0.5d0 * (W_ib_tmp(i, j, k - 1) + W_ib_tmp(i, j, k))
+        End Do
+      End Do
+    End Do
+
+  End Subroutine apply_continuity_forcing
+
+  Integer(Int32) Function wrap_x_ib(i)
+    Implicit None
+    Integer(Int32), Intent(In) :: i
+
+    wrap_x_ib = Modulo(i - 2, nx_global - 2) + 2
+
+  End Function wrap_x_ib
+
+  Integer(Int32) Function wrap_z_ib(k)
+    Implicit None
+    Integer(Int32), Intent(In) :: k
+
+    wrap_z_ib = Modulo(k - 2, nz_global - 2) + 2
+
+  End Function wrap_z_ib
+
+  Subroutine accumulate_DR1n_forcing(Fx_, Fy_, Fz_, dudn_jump_)
+    Implicit None
+    Real(Int64), Contiguous, Intent(In) :: dudn_jump_(:)
+    Real(Int64), Contiguous, Intent(InOut) :: Fx_(:, :, :)
+    Real(Int64), Contiguous, Intent(InOut) :: Fy_(:, :, :)
+    Real(Int64), Contiguous, Intent(InOut) :: Fz_(:, :, :)
+    Integer(Int32), Parameter :: nlx = 2 * suppx + 4
+    Integer(Int32), Parameter :: nly = 2 * suppy + 4
+    Integer(Int32), Parameter :: nlz = 2 * suppz + 4
+    Real(Int64) :: Ru(nlx, nly, nlz), Rv(nlx, nly, nlz), Rw(nlx, nly, nlz)
+    Real(Int64) :: T1u(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
+    Real(Int64) :: T2u(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
+    Real(Int64) :: T3u(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
+    Real(Int64) :: T1v(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
+    Real(Int64) :: T2v(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
+    Real(Int64) :: T3v(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
+    Real(Int64) :: T1w(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
+    Real(Int64) :: T2w(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
+    Real(Int64) :: T3w(0:nlx + 1, 0:nly + 1, 0:nlz + 1)
+    Real(Int64) :: nxf(nlx + 1), nxc(nlx + 1), nxfm(nlx), nxcm(nlx)
+    Real(Int64) :: nyf(nly + 1), nyc(nly + 1), nyfm(nly), nycm(nly)
+    Real(Int64) :: nzf(nlz + 1), nzc(nlz + 1), nzfm(nlz), nzcm(nlz)
+    Integer(Int32) :: ig(nlx), kg(nlz)
+    Integer(Int32) :: marker, l, m, n, count, p, q, r, pn, qn, rn, pm, rm
+    Integer(Int32) :: i0, j0, k0, dxoff, dyoff, dzoff, Lx, Lz, pmax, qmax, rmax
+    Integer(Int32) :: pu, qu, su, pv, qv, sv, pw, qw, sw, ii, jj, kk, kl
+    Integer(Int32) :: ii_periodic, kk_periodic, x_periodic_shifts, z_periodic_shifts
+    Logical(Int32) :: marker_is_local
+    Real(Int64) :: dvol, sbk, nrmx, nrmy, nrmz, bu, bv, bw
+    Real(Int64) :: IxRu, IyRu, IzRu, IxRv, IyRv, IzRv, IxRw, IyRw, IzRw
+    Real(Int64) :: IxDu, IyDu, IzDu, IxDv, IyDv, IzDv, IxDw, IyDw, IzDw
+
+    dvol = dx * dymin * dz
+    Lx = Min(nlx, nx_global - 2)
+    Lz = Min(nlz, nz_global - 2)
+
+    Do marker = 1, nb
+      dxoff = xm_pivot_index(marker) + 1 - x_pivot_index(marker)
+      dyoff = ym_pivot_index(marker) + 1 - y_pivot_index(marker)
+      dzoff = zm_pivot_index(marker) - z_pivot_index(marker)
+      i0 = x_pivot_index(marker) - suppx - 2
+      j0 = y_pivot_index(marker) - suppy - 2
+      k0 = z_pivot_index(marker) - suppz - 2
+
+      Do p = 1, Lx
+        ig(p) = wrap_x_ib(i0 + p)
+      End Do
+      Do r = 1, Lz
+        kg(r) = wrap_z_ib(k0 + r)
+      End Do
+
+      rmax = Min(2 * suppz + 2 + dzoff, Lz)
+      marker_is_local = .False.
+      Do r = 1, Min(rmax + 1, Lz)
+        kk = kg(r)
+        If ((kk >= kg1_global(myid) + 1 .And. kk <= kg2_global(myid) - 1) .Or. &
+            (kk >= k1_global(myid) + 1 .And. kk <= k2_global(myid) - 1)) Then
+          marker_is_local = .True.
+          Exit
+        End If
+      End Do
+      If (.Not. marker_is_local) Cycle
+
+      sbk = sb(marker)
+      nrmx = normals(marker)
+      nrmy = normals(nb + marker)
+      nrmz = normals(2 * nb + marker)
+      bu = nu * dudn_jump_(marker)
+      bv = nu * dudn_jump_(nb + marker)
+      bw = nu * dudn_jump_(2 * nb + marker)
+
+      Ru = 0d0
+      Rv = 0d0
+      Rw = 0d0
+      count = 0
+      Do l = -suppz, suppz
+        Do m = -suppy, suppy
+          Do n = -suppx, suppx
+            count = count + 1
+            pu = Modulo(n + suppx + 1, Lx) + 1
+            pv = Modulo(n + suppx + 1 + dxoff, Lx) + 1
+            pw = pv
+            qu = m + suppy + 2 + dyoff
+            qv = m + suppy + 2
+            qw = qu
+            su = Modulo(l + suppz + 1 + dzoff, Lz) + 1
+            sv = su
+            sw = Modulo(l + suppz + 1, Lz) + 1
+            Ru(pu, qu, su) = Ru(pu, qu, su) + u_weights(count, marker) * sbk * nrmx / dvol
+            Rv(pv, qv, sv) = Rv(pv, qv, sv) + v_weights(count, marker) * sbk * nrmy / dvol
+            Rw(pw, qw, sw) = Rw(pw, qw, sw) + w_weights(count, marker) * sbk * nrmz / dvol
+          End Do
+        End Do
+      End Do
+
+      pmax = Min(2 * suppx + 2 + dxoff, Lx)
+      qmax = 2 * suppy + 2 + dyoff
+
+      Do p = 1, pmax + 1
+        ii = i0 + p
+        x_periodic_shifts = Floor(Real(ii - 2, Int64) / Real(nx_global - 2, Int64))
+        ii_periodic = ii - x_periodic_shifts * (nx_global - 2)
+        nxf(p) = nrmx * (x_global(ii_periodic) + Real(x_periodic_shifts, Int64) * Lxp - xb(marker))
+        nxc(p) = nrmx * (xg_global(ii_periodic) + Real(x_periodic_shifts, Int64) * Lxp - xb(marker))
+      End Do
+      Do p = 1, pmax
+        nxfm(p) = nxc(p + 1)
+        nxcm(p) = nxf(p)
+      End Do
+
+      Do q = 1, qmax + 1
+        jj = j0 + q
+        nyf(q) = nrmy * (y_global(jj) - yb(marker))
+        nyc(q) = nrmy * (yg_global(jj) - yb(marker))
+      End Do
+      Do q = 1, qmax
+        jj = j0 + q
+        nyfm(q) = nyc(q + 1)
+        nycm(q) = nrmy * (0.5d0 * (yg_global(jj) + yg_global(jj + 1)) - yb(marker))
+      End Do
+
+      Do r = 1, rmax + 1
+        kk = k0 + r
+        z_periodic_shifts = Floor(Real(kk - 2, Int64) / Real(nz_global - 2, Int64))
+        kk_periodic = kk - z_periodic_shifts * (nz_global - 2)
+        nzf(r) = nrmz * (z_global(kk_periodic) + Real(z_periodic_shifts, Int64) * Lzp - zb(marker))
+        nzc(r) = nrmz * (zg_global(kk_periodic) + Real(z_periodic_shifts, Int64) * Lzp - zb(marker))
+      End Do
+      Do r = 1, rmax
+        nzfm(r) = nzc(r + 1)
+        nzcm(r) = nzf(r)
+      End Do
+
+      T1u = 0d0
+      T2u = 0d0
+      T3u = 0d0
+      T1v = 0d0
+      T2v = 0d0
+      T3v = 0d0
+      T1w = 0d0
+      T2w = 0d0
+      T3w = 0d0
+
+      Do r = 1, rmax
+        rn = Modulo(r, Lz) + 1
+        Do q = 1, qmax
+          qn = q + 1
+          Do p = 1, pmax
+            pn = Modulo(p, Lx) + 1
+            IxRu = 0.5d0 * (Ru(p, q, r) + Ru(pn, q, r))
+            IyRu = 0.5d0 * (Ru(p, q, r) + Ru(p, qn, r))
+            IzRu = 0.5d0 * (Ru(p, q, r) + Ru(p, q, rn))
+            IxRv = 0.5d0 * (Rv(p, q, r) + Rv(pn, q, r))
+            IyRv = 0.5d0 * (Rv(p, q, r) + Rv(p, qn, r))
+            IzRv = 0.5d0 * (Rv(p, q, r) + Rv(p, q, rn))
+            IxRw = 0.5d0 * (Rw(p, q, r) + Rw(pn, q, r))
+            IyRw = 0.5d0 * (Rw(p, q, r) + Rw(p, qn, r))
+            IzRw = 0.5d0 * (Rw(p, q, r) + Rw(p, q, rn))
+            IxDu = bu * (nxfm(p) + nyc(q) + nzc(r))
+            IyDu = bu * (nxf(p) + nycm(q) + nzc(r))
+            IzDu = bu * (nxf(p) + nyc(q) + nzcm(r))
+            IxDv = bv * (nxcm(p) + nyf(q) + nzc(r))
+            IyDv = bv * (nxc(p) + nyfm(q) + nzc(r))
+            IzDv = bv * (nxc(p) + nyf(q) + nzcm(r))
+            IxDw = bw * (nxcm(p) + nyc(q) + nzf(r))
+            IyDw = bw * (nxc(p) + nycm(q) + nzf(r))
+            IzDw = bw * (nxc(p) + nyc(q) + nzfm(r))
+            T1u(p, q, r) = IxRu * IxDu
+            T2u(p, q, r) = IxRv * IyDu
+            T3u(p, q, r) = IxRw * IzDu
+            T1v(p, q, r) = IyRu * IxDv
+            T2v(p, q, r) = IyRv * IyDv
+            T3v(p, q, r) = IyRw * IzDv
+            T1w(p, q, r) = IzRu * IxDw
+            T2w(p, q, r) = IzRv * IyDw
+            T3w(p, q, r) = IzRw * IzDw
+          End Do
+        End Do
+      End Do
+
+      Do r = 1, Min(rmax + 1, Lz)
+        rm = Modulo(r - 2, Lz) + 1
+        kk = kg(r)
+        Do q = 1, qmax + 1
+          jj = j0 + q
+          Do p = 1, Min(pmax + 1, Lx)
+            pm = Modulo(p - 2, Lx) + 1
+            ii = ig(p)
+            If (kk >= kg1_global(myid) + 1 .And. kk <= kg2_global(myid) - 1) Then
+              kl = kk - kg1_global(myid) + 1
+              If (jj >= 2 .And. jj <= nyg - 1) Then
+                Fx_(ii, jj, kl) = Fx_(ii, jj, kl) &
+                  + (T1u(p, q, r) - T1u(pm, q, r)) / (xg_global(ii + 1) - xg_global(ii)) &
+                  + (T2u(p, q, r) - T2u(p, q - 1, r)) / (y_global(jj) - y_global(jj - 1)) &
+                  + (T3u(p, q, r) - T3u(p, q, rm)) / (z_global(kk) - z_global(kk - 1))
+              End If
+              If (jj >= 2 .And. jj <= ny - 1) Then
+                Fy_(ii, jj, kl) = Fy_(ii, jj, kl) &
+                  + (T1v(p, q, r) - T1v(pm, q, r)) / (x_global(ii) - x_global(ii - 1)) &
+                  + (T2v(p, q, r) - T2v(p, q - 1, r)) / (yg_global(jj + 1) - yg_global(jj)) &
+                  + (T3v(p, q, r) - T3v(p, q, rm)) / (z_global(kk) - z_global(kk - 1))
+              End If
+            End If
+            If (kk >= k1_global(myid) + 1 .And. kk <= k2_global(myid) - 1) Then
+              kl = kk - k1_global(myid) + 1
+              If (jj >= 2 .And. jj <= nyg - 1) Then
+                Fz_(ii, jj, kl) = Fz_(ii, jj, kl) &
+                  + (T1w(p, q, r) - T1w(pm, q, r)) / (x_global(ii) - x_global(ii - 1)) &
+                  + (T2w(p, q, r) - T2w(p, q - 1, r)) / (y_global(jj) - y_global(jj - 1)) &
+                  + (T3w(p, q, r) - T3w(p, q, rm)) / (zg_global(kk + 1) - zg_global(kk))
+              End If
+            End If
+          End Do
+        End Do
+      End Do
+    End Do
+
+  End Subroutine accumulate_DR1n_forcing
 
   !-------------------------------------------------------------------------------
   !  global_to_local_face

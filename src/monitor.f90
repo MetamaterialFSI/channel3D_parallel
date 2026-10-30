@@ -8,6 +8,7 @@ Module monitor
   Use global
   Use mpi
   Use immersed_boundary_operators
+  Use immersed_boundary_geometry, Only : compute_average_pressure_per_body
   Use differential_operators
 
   ! prevent implicit typing
@@ -22,8 +23,12 @@ Contains
 
     Real(Int64) ::  maxU,  maxV,  maxW, local_sum
     Real(Int64) :: meanU, meanV, meanW
-    Real(Int64) :: max_divergence, max_slip
-    Integer(Int32) :: nsolves
+    Real(Int64) :: max_divergence
+    Real(Int64) :: corrected_divergence_max
+    Real(Int64) :: raw_wall_error(4), corrected_wall_error(4), wall_velocity_scale(2)
+    Real(Int64), Allocatable :: gauge_mean(:)
+    Integer(Int32) :: body, nsolves
+    Logical :: report_physical_constraints
 
     If ( Mod(istep,nmonitor)==0 ) Then
 
@@ -47,16 +52,21 @@ Contains
       local_sum = Maxval ( W(2:nxg-1,2:nyg-1,2:nz-1) )
       Call MPI_Reduce (local_sum,maxW,1,MPI_real8,MPI_max,0,MPI_COMM_WORLD,ierr)
 
-      Call check_divergence(max_divergence)
+      nsolves = cg_nsolves
+      report_physical_constraints = trim(body_type) /= 'none' .And. nsolves > 0
+      Call check_divergence(max_divergence, corrected_divergence_max, report_physical_constraints)
       
       If ( trim(body_type) /= 'none' ) Then
-        Call check_slip(max_slip)
+        If (report_physical_constraints) Then
+          Allocate(gauge_mean(nbodies))
+          Call compute_wall_condition(raw_wall_error, corrected_wall_error, wall_velocity_scale)
+          Call compute_average_pressure_per_body(gauge_mean, fb(2 * nb + 1 : 3 * nb))
+        End If
       End If
 
       ! compute average number of bicgstab iterations over the solves that
       ! actually ran since the last monitor output, rather than assuming a
       ! fixed number of solves per time step
-      nsolves = cg_nsolves
       If ( nsolves > 0 ) Then
         cg_mean_iter = Real(cg_accum_iter, 8) / Real(nsolves, 8)
       Else
@@ -99,7 +109,30 @@ Contains
         Write(*,*) ' '
         write(*,*) 'Maximum divergence               :', max_divergence
         If ( trim(body_type) /= 'none' ) Then
-          write(*,*) 'Maximum IB slip                  :', max_slip
+          If (report_physical_constraints) Then
+            Write(*,*) 'Maximum divergence minus IB source :', corrected_divergence_max
+            Write(*,'(A)') ' wall condition   (rel = fraction of the velocity scale below)'
+            Write(*,'(A,ES11.3,A,F6.4,A,ES11.3,A,F6.4,A)') '   raw no-pen       : max ', &
+              raw_wall_error(1), ' (rel ', raw_wall_error(1) / wall_velocity_scale(1), &
+              ')   rms ', raw_wall_error(2), ' (rel ', raw_wall_error(2) / wall_velocity_scale(2), ')'
+            Write(*,'(A,ES11.3,A,F6.4,A,ES11.3,A,F6.4,A)') '   raw slip         : max ', &
+              raw_wall_error(3), ' (rel ', raw_wall_error(3) / wall_velocity_scale(1), &
+              ')   rms ', raw_wall_error(4), ' (rel ', raw_wall_error(4) / wall_velocity_scale(2), ')'
+            Write(*,'(A,ES11.3,A,F6.4,A,ES11.3,A,F6.4,A)') '   corrected no-pen : max ', &
+              corrected_wall_error(1), ' (rel ', corrected_wall_error(1) / wall_velocity_scale(1), &
+              ')   rms ', corrected_wall_error(2), ' (rel ', &
+              corrected_wall_error(2) / wall_velocity_scale(2), ')'
+            Write(*,'(A,ES11.3,A,F6.4,A,ES11.3,A,F6.4,A)') '   corrected slip   : max ', &
+              corrected_wall_error(3), ' (rel ', corrected_wall_error(3) / wall_velocity_scale(1), &
+              ')   rms ', corrected_wall_error(4), ' (rel ', &
+              corrected_wall_error(4) / wall_velocity_scale(2), ')'
+            Write(*,'(A,ES11.3,A,ES11.3)') '   velocity scale   : max ', wall_velocity_scale(1), &
+              '                rms ', wall_velocity_scale(2)
+            Write(*,'(A)') ' pressure-jump gauge offset'
+            Do body = 1, nbodies
+              Write(*,'(A,I0,A,ES11.3)') '   body ', body, ' : ', gauge_mean(body)
+            End Do
+          End If
           If ( nsolves > 0 ) Then
             write(*,'(A,F10.3)') ' Average BiCGSTAB iteration count :', cg_mean_iter
           End If
@@ -109,6 +142,10 @@ Contains
         Write(*,*) '------------------------------------------------------'
 
       End If
+
+      If (Allocated(gauge_mean)) Deallocate(gauge_mean)
+
+      cg_report_count = 0
 
       ! start measure time per step
       time1 = MPI_WTIME()
@@ -222,27 +259,90 @@ Contains
   ! Output: div, max_divergence                        !
   !                                                    !
   !----------------------------------------------------!
-  Subroutine check_divergence(max_divergence)
+  Subroutine check_divergence(max_divergence, corrected_max, compute_corrected)
 
-    Real(Int64), Intent(Out) :: max_divergence
+    Real(Int64), Intent(Out) :: max_divergence, corrected_max
+    Logical, Intent(In) :: compute_corrected
     Real(Int64) :: max_divergence_local
+    Real(Int64) :: corrected_max_local
 
     rhs_p = 0d0
     Call divergence(rhs_p, U, V, W)
-    max_divergence_local = Maxval( Abs(rhs_p) )
+    max_divergence_local = Maxval(Abs(rhs_p(2:nxg-1, 2:nyg-1, 2:nzg-1)))
 
     Call MPI_Reduce(max_divergence_local, max_divergence, 1, MPI_real8, MPI_max, 0, MPI_COMM_WORLD,ierr)
 
+    corrected_max = 0d0
+    If (compute_corrected) Then
+      corrected_max_local = Maxval(Abs(rhs_p(2:nxg-1, 2:nyg-1, 2:nzg-1) &
+        - con_F(2:nxg-1, 2:nyg-1, 2:nzg-1)))
+      Call MPI_Reduce(corrected_max_local, corrected_max, 1, MPI_real8, MPI_max, 0, MPI_COMM_WORLD, ierr)
+    End If
+
   End Subroutine check_divergence
 
-  Subroutine check_slip(max_slip)
+  Subroutine compute_wall_condition(raw_error, corrected_error, velocity_scale)
 
-    Real(Int64), Intent(Out) :: max_slip
+    Real(Int64), Intent(Out) :: raw_error(4), corrected_error(4), velocity_scale(2)
+    Integer(Int32) :: k
+    Real(Int64) :: raw_x, raw_y, raw_z, corrected_x, corrected_y, corrected_z
+    Real(Int64) :: raw_normal, raw_tangent_squared, corrected_normal, corrected_tangent_squared
+    Real(Int64) :: raw_normal_squared, raw_tangent_sum
+    Real(Int64) :: corrected_normal_squared, corrected_tangent_sum
+    Real(Int64) :: fluid_speed, wall_speed, marker_velocity_scale, velocity_scale_squared
 
     Call regT(Eu, U, V, W)
     aux_surface_vector = Eu - E1nH_exterior * dudn_jump - ub
-    max_slip = Maxval( Abs(aux_surface_vector) )
 
-  end subroutine check_slip
+    raw_error = 0d0
+    corrected_error = 0d0
+    velocity_scale = 0d0
+    raw_normal_squared = 0d0
+    raw_tangent_sum = 0d0
+    corrected_normal_squared = 0d0
+    corrected_tangent_sum = 0d0
+    velocity_scale_squared = 0d0
+
+    Do k = 1, nb
+      raw_x = Eu(k) - ub(k)
+      raw_y = Eu(nb + k) - ub(nb + k)
+      raw_z = Eu(2 * nb + k) - ub(2 * nb + k)
+      corrected_x = aux_surface_vector(k)
+      corrected_y = aux_surface_vector(nb + k)
+      corrected_z = aux_surface_vector(2 * nb + k)
+
+      raw_normal = raw_x * normals(k) + raw_y * normals(nb + k) + raw_z * normals(2 * nb + k)
+      raw_tangent_squared = Max(raw_x**2 + raw_y**2 + raw_z**2 - raw_normal**2, 0d0)
+
+      corrected_normal = corrected_x * normals(k) + corrected_y * normals(nb + k) + &
+        corrected_z * normals(2 * nb + k)
+      corrected_tangent_squared = Max(corrected_x**2 + corrected_y**2 + corrected_z**2 &
+        - corrected_normal**2, 0d0)
+
+      fluid_speed = Sqrt(Eu(k)**2 + Eu(nb + k)**2 + Eu(2 * nb + k)**2)
+      wall_speed = Sqrt(ub(k)**2 + ub(nb + k)**2 + ub(2 * nb + k)**2)
+      marker_velocity_scale = Max(fluid_speed, wall_speed)
+
+      raw_error(1) = Max(raw_error(1), Abs(raw_normal))
+      raw_error(3) = Max(raw_error(3), Sqrt(raw_tangent_squared))
+      corrected_error(1) = Max(corrected_error(1), Abs(corrected_normal))
+      corrected_error(3) = Max(corrected_error(3), Sqrt(corrected_tangent_squared))
+      velocity_scale(1) = Max(velocity_scale(1), marker_velocity_scale)
+
+      raw_normal_squared = raw_normal_squared + raw_normal**2
+      raw_tangent_sum = raw_tangent_sum + raw_tangent_squared
+      corrected_normal_squared = corrected_normal_squared + corrected_normal**2
+      corrected_tangent_sum = corrected_tangent_sum + corrected_tangent_squared
+      velocity_scale_squared = velocity_scale_squared + marker_velocity_scale**2
+    End Do
+
+    raw_error(2) = Sqrt(raw_normal_squared / Real(nb, 8))
+    raw_error(4) = Sqrt(raw_tangent_sum / Real(nb, 8))
+    corrected_error(2) = Sqrt(corrected_normal_squared / Real(nb, 8))
+    corrected_error(4) = Sqrt(corrected_tangent_sum / Real(nb, 8))
+    velocity_scale(1) = Max(velocity_scale(1), 1d-30)
+    velocity_scale(2) = Max(Sqrt(velocity_scale_squared / Real(nb, 8)), 1d-30)
+
+  End Subroutine compute_wall_condition
 
 End Module monitor

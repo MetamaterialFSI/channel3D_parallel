@@ -6,7 +6,7 @@ Module equations
   ! Modules
   Use iso_fortran_env, Only : error_unit, Int32, Int64
   Use global,          Only : x, xm, xg, y, ym, yg, z, zm, zg, term_1, & 
-                              term_2, nx, nxg, ny, nyg, nz, nzg, nu,   & 
+                              term_2, uv_flux, uw_flux, vw_flux, nx, nxg, ny, nyg, nz, nzg, nu, &
                               dPdx, dPdy, dPdz, yg_m, exterior_pressure_gradient, &
                               Hu_interior, Hv_interior, Hw_interior
   Use interpolation
@@ -15,6 +15,26 @@ Module equations
   Implicit None
   
 Contains
+
+  Subroutine prepare_cross_fluxes(U_, V_, W_)
+
+    Real(Int64), Contiguous, Intent(In) :: U_(:, :, :)
+    Real(Int64), Contiguous, Intent(In) :: V_(:, :, :)
+    Real(Int64), Contiguous, Intent(In) :: W_(:, :, :)
+
+    Call interpolate_y(U_, uv_flux)
+    Call interpolate_x(V_, term_2(1:nx, 1:ny, 1:nzg))
+    uv_flux = uv_flux * term_2(1:nx, 1:ny, 1:nzg)
+
+    Call interpolate_z(U_, uw_flux)
+    Call interpolate_x(W_, term_2(1:nx, 1:nyg, 1:nz))
+    uw_flux = uw_flux * term_2(1:nx, 1:nyg, 1:nzg-1)
+
+    Call interpolate_z(V_, vw_flux)
+    Call interpolate_y(W_, term_2(1:nxg, 1:ny, 1:nz))
+    vw_flux = vw_flux * term_2(1:nxg, 1:ny, 1:nzg-1)
+
+  End Subroutine prepare_cross_fluxes
 
   !--------------------------------------------------------------------!
   !                      Compute RHS for du/dt                         !
@@ -58,20 +78,11 @@ Contains
 
     ! 2)-----------compute -duv/dy--------------
 
-    ! interpolate u in y (centers to faces)
-    Call interpolate_y(U_,term_1(1:nx,1:ny,1:nzg)) 
-
-    ! interpolate v in x (centers to faces)
-    Call interpolate_x(V_,term_2(1:nx,1:ny,1:nzg)) 
-
-    ! uv at faces
-    term_1 = term_1*term_2
-
     ! -duv/dy (this derivative goes to ym)
     Do k=2,nzg-1
        Do j=2,nyg-1
           Do i=2,nx-1
-             term_2(i,j,k) = -( term_1(i,j,k) - term_1(i,j-1,k) )/( y(j) - y(j-1) )
+             term_2(i,j,k) = -( uv_flux(i,j,k) - uv_flux(i,j-1,k) )/( y(j) - y(j-1) )
           End Do
        End Do
     End Do
@@ -80,20 +91,11 @@ Contains
 
     ! 3)--------------compute -duw/dz--------------
 
-    ! interpolate u in z (centers to faces)
-    Call interpolate_z(U_,term_1(1:nx,1:nyg,1:nz)) 
- 
-    ! interpolate w in x (centers to faces)
-    Call interpolate_x(W_,term_2(1:nx,1:nyg,1:nz)) 
-
-    ! uw at faces
-    term_1 = term_1*term_2
-
     ! -duw/dz
     Do k=2,nzg-1
        Do j=2,nyg-1
           Do i=2,nx-1       
-             term_2(i,j,k) = -( term_1(i,j,k) - term_1(i,j,k-1) )/( z(k) - z(k-1) )
+             term_2(i,j,k) = -( uw_flux(i,j,k) - uw_flux(i,j,k-1) )/( z(k) - z(k-1) )
           End Do
        End Do
     End Do
@@ -194,20 +196,11 @@ Contains
 
     ! 2)-----------compute -duv/dx--------------
 
-    ! interpolate u in y (centers to faces)
-    Call interpolate_y(U_,term_1(1:nx,1:ny,1:nzg)) 
-
-    ! interpolate v in x (centers to faces)
-    Call interpolate_x(V_,term_2(1:nx,1:ny,1:nzg)) 
-
-    ! uv
-    term_1 = term_1*term_2
-
     ! -duv/dx
     Do k=2,nzg-1
        Do j=2,ny-1
           Do i=2,nxg-1
-             term_2(i,j,k) = -( term_1(i,j,k) - term_1(i-1,j,k) )/( x(i) - x(i-1) )
+             term_2(i,j,k) = -( uv_flux(i,j,k) - uv_flux(i-1,j,k) )/( x(i) - x(i-1) )
           End Do
        End Do
     End Do
@@ -216,20 +209,11 @@ Contains
 
     ! 3)--------------compute -dvw/dz--------------
 
-    ! interpolate v in z (centers to faces)
-    Call interpolate_z(V_,term_1(1:nxg,1:ny,1:nz)) 
-
-    ! interpolate w in y (centers to faces)
-    Call interpolate_y(W_,term_2(1:nxg,1:ny,1:nz)) 
-
-    ! vw
-    term_1 = term_1*term_2
-
     ! -dvw/dz
     Do k=2,nzg-1
        Do j=2,ny-1
           Do i=2,nxg-1
-             term_2(i,j,k) = -( term_1(i,j,k) - term_1(i,j,k-1) )/( z(k) - z(k-1) )
+             term_2(i,j,k) = -( vw_flux(i,j,k) - vw_flux(i,j,k-1) )/( z(k) - z(k-1) )
           End Do
        End Do
     End Do
@@ -329,20 +313,11 @@ Contains
 
     ! 2)-----------compute -duw/dx--------------
 
-    ! interpolate u in z (centers to faces)
-    Call interpolate_z(U_,term_1(1:nx,1:nyg,1:nz)) 
-
-    ! interpolate w in x (centers to faces)
-    Call interpolate_x(W_,term_2(1:nx,1:nyg,1:nz)) 
-
-    ! uw
-    term_1 = term_1*term_2
-
     ! -duw/dx
     Do k=2,nz-1
        Do j=2,nyg-1
           Do i=2,nxg-1
-             term_2(i,j,k) = -( term_1(i,j,k) - term_1(i-1,j,k) )/( x(i) - x(i-1) )
+             term_2(i,j,k) = -( uw_flux(i,j,k) - uw_flux(i-1,j,k) )/( x(i) - x(i-1) )
           End Do
        End Do
     End Do
@@ -351,20 +326,11 @@ Contains
 
     ! 3)--------------compute -dvw/dy--------------
 
-    ! interpolate v in z (centers to faces)
-    Call interpolate_z(V_,term_1(1:nxg,1:ny,1:nz)) 
-
-    ! interpolate w in y (centers to faces)
-    Call interpolate_y(W_,term_2(1:nxg,1:ny,1:nz)) 
-
-    ! vw at faces
-    term_1 = term_1*term_2
-
     ! -dvw/dy (this derivative goes to ym)
     Do k=2,nz-1
        Do j=2,nyg-1
           Do i=2,nxg-1
-             term_2(i,j,k) = -( term_1(i,j,k) - term_1(i,j-1,k) )/( y(j) - y(j-1) )
+             term_2(i,j,k) = -( vw_flux(i,j,k) - vw_flux(i,j-1,k) )/( y(j) - y(j-1) )
           End Do
        End Do
     End Do

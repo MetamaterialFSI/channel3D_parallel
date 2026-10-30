@@ -68,6 +68,31 @@ By default, CMake builds the `Release` version, which compiles with `-O3` and en
 
 To pick a specific compiler, set `FC` when configuring, e.g. `FC=gfortran cmake -B build`.
 
+## Immersed-boundary delta kernel
+
+The default kernel remains Yang3. To select the Bao five-point C3 kernel,
+add this setting to the `&params` input namelist:
+
+```fortran
+use_bao5_ddf = .true.
+```
+
+The flag defaults to `.false.`. Bao5 has support radius 2.5 grid spacings
+instead of 2, so its physical support is 25% wider in each direction.
+Both kernels use the existing 5×5×5 stencil (`suppx = suppy = suppz = 2`);
+the wider kernel uses the nearest grid point as its pivot. Kernel selection
+occurs while building the cached weights, with no additional selection in
+the interpolation, spreading, or Krylov solver loops.
+
+The wider kernel reduces the fast pressure-gradient ripple in reduced
+traveling-wave restart tests, but changes near-interface errors. Its center-wall
+convergence tests use a finer grid pair to resolve the wider support; the
+original coarse pair gives a lower near-support convergence order. Fixed-bulk
+convergence remains approximately second order. Switching kernels at restart
+can also introduce a transient while the stored flow adjusts.
+
+Kernel definition: [Bao, Kaiser, Kaye, and Peskin](https://arxiv.org/html/1505.07529v4).
+
 ## Running tests
 
 To run the built-in tests, configure CMake to build the test framework:

@@ -37,7 +37,8 @@ Contains
       init_type, grid_type, body_type, exterior_pressure_gradient, &
       read_input_IB_data, read_input_time, read_input_dpdx, &
       body_param_3, body_param_1, body_param_2, body_ramp_up_time, &
-      min_buffer_width, cg_tol, cg_max_iter, perturb_scale
+      min_buffer_width, cg_tol, cg_abs_tol, cg_max_iter, perturb_scale, &
+      use_rk3, use_bao5_ddf
 
     ! default values
     alpha_stretch = 2.6d0
@@ -46,6 +47,7 @@ Contains
     Ly_channel = 2d0
     min_buffer_width = 0d0
     cg_tol = 1e-8
+    cg_abs_tol = 1d-12
     cg_max_iter = 50
     t_init = 0d0
     body_type = 'none'
@@ -63,6 +65,8 @@ Contains
     read_input_IB_data = .False.
     read_input_time = .False.
     read_input_dpdx = .False.
+    use_rk3 = .False.
+    use_bao5_ddf = .False.
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
@@ -78,6 +82,8 @@ Contains
           Print *, "Error reading namelist. IOSTAT =", ioerr, " IOMSG = ", msg
           Stop 1
       End If
+      If (cg_tol <= 0d0) Error Stop 'CG_TOL must be positive'
+      If (cg_abs_tol <= 0d0) Error Stop 'CG_ABS_TOL must be positive'
 
       utau_    = dPdx ** 0.5d0
       dPdx_ref = dPdx
@@ -131,6 +137,7 @@ Contains
     Call Mpi_bcast ( min_buffer_width,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( cg_max_iter,1,MPI_integer,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( cg_tol,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast ( cg_abs_tol,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast ( perturb_scale,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
 
     Call Mpi_bcast (   body_param_1,1,MPI_real8,0,MPI_COMM_WORLD,ierr )
@@ -142,6 +149,8 @@ Contains
     Call Mpi_bcast (   read_input_IB_data,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   read_input_dpdx,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   new_binary_version,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   use_rk3,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   use_bao5_ddf,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
 
   End Subroutine read_input_parameters
 
@@ -153,9 +162,7 @@ Contains
   !--------------------------------------!
   Subroutine create_grid
 
-    Integer(Int32) :: i, n_uniform_fine
-
-    n_uniform_fine = 1
+    Integer(Int32) :: i
 
     Do i = 1, nx_global
       x_global(i) = Real(i-1,8)
@@ -196,6 +203,7 @@ Contains
 
         ! Loop until buffer condition is met
         write(*,*) 'creating stretched grid using ny_global = ', ny_global
+        n_uniform = 1
         Do
           Call create_stretched_grid(y_global, Ly_channel, ny_global, n_uniform, alpha_stretch)
 
@@ -204,9 +212,9 @@ Contains
 
           If ( myid==0 ) Write(*,'(A,I4,A,F12.6)') ' Number of buffer cells on each side = ', n_uniform, ' -> dymin = ', dymin 
           If ( myid==0 ) Write(*,'(A,F12.6,A,F12.6,A)') ' Buffer width = ', n_uniform * dymin, ' (minimum requirement = ', &
-            min_buffer_width + (2 * suppy + 2) * dymin, ')'
+            min_buffer_width + (2 * suppy + 4) * dymin, ')'
           ! TODO: check if 2 * suppy + 2 is the correct amount
-          If (n_uniform * dymin >= min_buffer_width + (2 * suppy + 2) * dymin) Exit
+          If (n_uniform * dymin >= min_buffer_width + (2 * suppy + 4) * dymin) Exit
 
           n_uniform = n_uniform + 1
 

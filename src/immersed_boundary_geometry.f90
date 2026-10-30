@@ -83,7 +83,12 @@ Contains
 
   Subroutine setup_IB_geometry
     Integer(Int32) :: i, j, k, l, nxb1, nxb2
-    Real   (Int64) :: a1, a2, r, r1, r2, xc, yc, theta, dsb, dsb1, dsb2, phi, amp, slope_bottom, slope_top, phase, damp_dt, tau
+    Real   (Int64) :: a1, a2, r, r1, r2, xc, yc, theta, dsb, dsb1, dsb2, phi, amp, slope_bottom, slope_top, phase, damp_dt, d2amp_dt2, tau
+
+    ab = 0d0
+    ring_start = 1
+    ring_len = 1
+    ramp_is_zero = .False.
 
     Select Case (trim(body_type))
       Case ('none') ! No IB
@@ -117,6 +122,7 @@ Contains
           If (zb(j * nxb) < z(nz-1) .and. nb_end < j * nxb) then
             nb_end = j * nxb
           End If
+          Call mark_ring((j - 1) * nxb + 1, nxb)
         End Do
         
         sb = dxb * dzb
@@ -155,6 +161,8 @@ Contains
             zb(i + (j - 1) * nxb) = (Real(j,8) - 0.5d0) * dzb
             ub(i + (j - 1) * nxb) = -sin(theta) * body_param_3
             ub(nb + i + (j - 1) * nxb) = cos(theta) * body_param_3
+            ab(i + (j - 1) * nxb) = -body_param_3 ** 2 / r1 * cos(theta)
+            ab(nb + i + (j - 1) * nxb) = -body_param_3 ** 2 / r1 * sin(theta)
             sb(i + (j - 1) * nxb) = dsb1 * dzb
             normals(i + (j - 1) * nxb) = -cos(theta)
             normals(nb + i + (j - 1) * nxb) = -sin(theta)
@@ -185,6 +193,8 @@ Contains
           If (zb(j * nxb) < z(nz-1) .and. nb_end < j * nxb) then
             nb_end = j * nxb
           End If
+          Call mark_ring((j - 1) * nxb + 1, nxb1)
+          Call mark_ring((j - 1) * nxb + nxb1 + 1, nxb2)
         End Do
 
       Case ('single_cylinder_z')
@@ -198,15 +208,18 @@ Contains
         if (t < body_ramp_up_time .and. body_ramp_up_time > 0d0) then
           tau = t / body_ramp_up_time
           amp = body_param_2 * 0.5d0 * (1d0 - cos(pi * tau))
+          damp_dt = body_param_2 * 0.5d0 * (pi / body_ramp_up_time) * sin(pi * tau)
           ! integrate ramped velocity: integral of 0.5*(1-cos(pi*t/t))dt
           yc = 0.5d0 * Ly_channel + body_param_2 * 0.5d0 * &
                (t - (body_ramp_up_time / pi) * sin(pi * tau))
         else
           amp = body_param_2
+          damp_dt = 0d0
           ! ramp displacement at t=t, then constant velocity after
           yc = 0.5d0 * Ly_channel + body_param_2 * 0.5d0 * body_ramp_up_time &
                + body_param_2 * (t - body_ramp_up_time)
         end if
+        ramp_is_zero = body_ramp_up_time <= 0d0
 
         ! arc length between circle points equals dxb
         r = body_param_1
@@ -221,6 +234,7 @@ Contains
             yb(i + (j - 1) * nxb) = r * sin(theta) + yc
             zb(i + (j - 1) * nxb) = (real(j,8) - 0.5d0) * dzb
             ub(nb + i + (j - 1) * nxb) = amp
+            ab(nb + i + (j - 1) * nxb) = damp_dt
             sb(i + (j - 1) * nxb) = dsb * dzb
             normals(i + (j - 1) * nxb) = cos(theta)
             normals(nb + i + (j - 1) * nxb) = sin(theta)
@@ -236,6 +250,7 @@ Contains
             nb_end = j * nxb
           End If
 
+          Call mark_ring((j - 1) * nxb + 1, nxb)
         end do
         do k = 1, nb
           tangents_2(2*nb + k) = 1d0
@@ -285,6 +300,7 @@ Contains
             k = i + nxb * (j - 1)
             phase = 2d0 * pi * body_param_3 * xb(k) / Lxp
             ub(nb + k)       = -body_param_1 * body_param_2 * sin(phase) * sin(body_param_2 * t)
+            ab(nb + k)       = -body_param_1 * body_param_2 ** 2 * sin(phase) * cos(body_param_2 * t)
 
             slope_bottom = body_param_1 * 2d0 * pi * body_param_3 / Lxp * cos(phase) * cos(body_param_2 * t)
 
@@ -298,6 +314,7 @@ Contains
             normals(k)            = tangents_1(nb + k)
             normals(nb + k)       = -tangents_1(k)
           End Do
+          Call mark_ring(nxb * (j - 1) + 1, nxb)
         End Do
         ! For now, make a naive sb calculation that assumes no variation in z
         Do j = 1, nzb
@@ -339,18 +356,18 @@ Contains
             y_ref_index(k) = 1
             y_ref_index(k + nxb) = ny_global
 
-            If (yb(k) < y(1 + suppy)) Then
+            If (yb(k) < y(2 + suppy)) Then
               If ( myid==0 ) Then
                 write(*,'(A,I3,A,F13.6,A,F13.6)') "yb(", k, ") = ", yb(k), &
-                  " is smaller than y(1 + suppy) = ", y(1 + suppy)
+                  " is smaller than y(2 + suppy) = ", y(2 + suppy)
                 write(*,*) "Error: body points support exceeds grid dimensions"
               End If
               Stop
             End If
-            If (yb(k + nxb) > y(ny_global - suppy)) Then
+            If (yb(k + nxb) > y(ny_global - suppy - 1)) Then
               If ( myid==0 ) Then
                 write(*,'(A,I3,A,F13.6,A,F13.6)') "yb(", k + nxb, ") = ", yb(k + nxb), &
-                  " is greater than y(ny_global - suppy) = ", y(ny_global - suppy)
+                  " is greater than y(ny_global - suppy - 1) = ", y(ny_global - suppy - 1)
                 write(*,*) "Error: body points support exceeds grid dimensions"
               End If
               Stop
@@ -373,6 +390,8 @@ Contains
             phase = 2d0 * pi * body_param_3 * xb(k) / Lxp
             ub(nb + k)       = -body_param_1 * body_param_2 * sin(phase) * sin(body_param_2 * t)
             ub(nb + k + nxb) = -body_param_1 * body_param_2 * sin(phase) * sin(body_param_2 * t)
+            ab(nb + k)       = -body_param_1 * body_param_2 ** 2 * sin(phase) * cos(body_param_2 * t)
+            ab(nb + k + nxb) = -body_param_1 * body_param_2 ** 2 * sin(phase) * cos(body_param_2 * t)
 
             slope_bottom = body_param_1 * 2d0 * pi * body_param_3 / Lxp * cos(phase) * cos(body_param_2 * t)
             slope_top    = body_param_1 * 2d0 * pi * body_param_3 / Lxp * cos(phase) * cos(body_param_2 * t)
@@ -392,6 +411,8 @@ Contains
             normals(nb + k)       = -tangents_1(k)
             normals(nb + k + nxb) = tangents_1(k + nxb)
           End Do
+          Call mark_ring(2 * nxb * (j - 1) + 1, nxb)
+          Call mark_ring(2 * nxb * (j - 1) + nxb + 1, nxb)
         End Do
         ! For now, make a naive sb calculation that assumes no variation in z
         Do j = 1, nzb
@@ -421,10 +442,13 @@ Contains
           tau = t / body_ramp_up_time
           amp = body_param_1 * 0.5d0 * (1d0 - cos(pi * tau))
           damp_dt = body_param_1 * 0.5d0 * (pi / body_ramp_up_time) * sin(pi * tau)
+          d2amp_dt2 = body_param_1 * 0.5d0 * (pi / body_ramp_up_time) ** 2 * cos(pi * tau)
         else
           amp = body_param_1
           damp_dt = 0d0
+          d2amp_dt2 = 0d0
         end if
+        ramp_is_zero = body_ramp_up_time <= 0d0
         ! Phase difference between top and bottom wave motion
         phi = pi
 
@@ -446,18 +470,18 @@ Contains
             y_ref_index(k) = 1
             y_ref_index(k + nxb) = ny_global
 
-            If (yb(k) < y(1 + suppy)) Then
+            If (yb(k) < y(2 + suppy)) Then
               If ( myid==0 ) Then
                 write(*,'(A,I3,A,F13.6,A,F13.6)') "yb(", k, ") = ", yb(k), &
-                  " is smaller than y(1 + suppy) = ", y(1 + suppy)
+                  " is smaller than y(2 + suppy) = ", y(2 + suppy)
                 write(*,*) "Error: body points support exceeds grid dimensions"
               End If
               Stop
             End If
-            If (yb(k + nxb) > y(ny_global - suppy)) Then
+            If (yb(k + nxb) > y(ny_global - suppy - 1)) Then
               If ( myid==0 ) Then
                 write(*,'(A,I3,A,F13.6,A,F13.6)') "yb(", k + nxb, ") = ", yb(k + nxb), &
-                  " is greater than y(ny_global - suppy) = ", y(ny_global - suppy)
+                  " is greater than y(ny_global - suppy - 1) = ", y(ny_global - suppy - 1)
                 write(*,*) "Error: body points support exceeds grid dimensions"
               End If
               Stop
@@ -483,6 +507,8 @@ Contains
 
             ub(nb + k) = - amp * cos(phase) + (damp_dt / (body_param_2 * body_param_3)) * sin(phase)
             ub(nb + k + nxb) = - amp * cos(phase + phi) + (damp_dt / (body_param_2 * body_param_3)) * sin(phase + phi)
+            ab(nb + k) = (d2amp_dt2 / (body_param_2 * body_param_3) - amp * body_param_2 * body_param_3) * sin(phase) - 2d0 * damp_dt * cos(phase)
+            ab(nb + k + nxb) = (d2amp_dt2 / (body_param_2 * body_param_3) - amp * body_param_2 * body_param_3) * sin(phase + phi) - 2d0 * damp_dt * cos(phase + phi)
 
             slope_bottom = amp / body_param_2 * cos(phase)
             slope_top    = amp / body_param_2 * cos(phase + phi)
@@ -502,6 +528,8 @@ Contains
             normals(nb + k)       = -tangents_1(k)
             normals(nb + k + nxb) = tangents_1(k + nxb)
           End Do
+          Call mark_ring(2 * nxb * (j - 1) + 1, nxb)
+          Call mark_ring(2 * nxb * (j - 1) + nxb + 1, nxb)
         End Do
         ! For now, make a naive sb calculation that assumes no variation in z
         Do j = 1, nzb
@@ -541,7 +569,82 @@ Contains
 
     End Select
 
+    If (ramp_is_zero .And. init_type == 1 .And. n_accel_adv == 1 .And. dt_ub > 0d0) Then
+      pn_mean = -(ub(1 : nb) * normals(1 : nb) + ub(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb) &
+        + ub(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb)) / dt_ub
+    Else
+      pn_mean = -(ab(1 : nb) * normals(1 : nb) + ab(nb + 1 : 2 * nb) * normals(nb + 1 : 2 * nb) &
+        + ab(2 * nb + 1 : 3 * nb) * normals(2 * nb + 1 : 3 * nb))
+    End If
+
   End Subroutine setup_IB_geometry
+
+  Subroutine advance_accel_clock
+    dt_ub = t - t_ub
+    t_ub = t
+    n_accel_adv = n_accel_adv + 1
+  End Subroutine advance_accel_clock
+
+  Subroutine mark_ring(first, m)
+    Integer(Int32), Intent(In) :: first, m
+
+    If (first < 1 .Or. m < 1 .Or. first + m - 1 > nb) Return
+    ring_start(first : first + m - 1) = first
+    ring_len(first : first + m - 1) = m
+  End Subroutine mark_ring
+
+  Subroutine compute_average_pressure_per_body(pavg_, p_)
+    Real(Int64), Dimension(nbodies), Intent(Out) :: pavg_
+    Real(Int64), Dimension(nb), Intent(In) :: p_
+    Integer(Int32) :: j, nxb1, nxb2
+
+    pavg_ = 0d0
+    Select Case (trim(body_type))
+      Case ('double_cylinders_z')
+        nxb1 = Int(2 * 3.14159 * body_param_1 / dxb)
+        nxb2 = Int(2 * 3.14159 * body_param_2 / dxb)
+        Do j = 1, nzb
+          pavg_(1) = pavg_(1) + Sum(p_((j - 1) * nxb + 1 : (j - 1) * nxb + nxb1))
+          pavg_(2) = pavg_(2) + Sum(p_((j - 1) * nxb + nxb1 + 1 : j * nxb))
+        End Do
+        pavg_(1) = pavg_(1) / (nxb1 * nzb)
+        pavg_(2) = pavg_(2) / (nxb2 * nzb)
+      Case ('standing_wave_x', 'traveling_wave_x')
+        Do j = 1, nzb
+          pavg_(1) = pavg_(1) + Sum(p_((j - 1) * 2 * nxb + 1 : (j - 1) * 2 * nxb + nxb))
+          pavg_(2) = pavg_(2) + Sum(p_((j - 1) * 2 * nxb + nxb + 1 : j * 2 * nxb))
+        End Do
+        pavg_ = pavg_ / (nxb * nzb)
+      Case Default
+        pavg_ = Sum(p_) / nb
+    End Select
+  End Subroutine compute_average_pressure_per_body
+
+  Subroutine add_per_body_constant(f_, const_)
+    Real(Int64), Dimension(nb), Intent(InOut) :: f_
+    Real(Int64), Dimension(nbodies), Intent(In) :: const_
+    Integer(Int32) :: j, nxb1
+
+    Select Case (trim(body_type))
+      Case ('double_cylinders_z')
+        nxb1 = Int(2 * 3.14159 * body_param_1 / dxb)
+        Do j = 1, nzb
+          f_((j - 1) * nxb + 1 : (j - 1) * nxb + nxb1) = &
+            f_((j - 1) * nxb + 1 : (j - 1) * nxb + nxb1) + const_(1)
+          f_((j - 1) * nxb + nxb1 + 1 : j * nxb) = &
+            f_((j - 1) * nxb + nxb1 + 1 : j * nxb) + const_(2)
+        End Do
+      Case ('standing_wave_x', 'traveling_wave_x')
+        Do j = 1, nzb
+          f_((j - 1) * 2 * nxb + 1 : (j - 1) * 2 * nxb + nxb) = &
+            f_((j - 1) * 2 * nxb + 1 : (j - 1) * 2 * nxb + nxb) + const_(1)
+          f_((j - 1) * 2 * nxb + nxb + 1 : j * 2 * nxb) = &
+            f_((j - 1) * 2 * nxb + nxb + 1 : j * 2 * nxb) + const_(2)
+        End Do
+      Case Default
+        f_ = f_ + const_(1)
+    End Select
+  End Subroutine add_per_body_constant
 
   Subroutine remove_mean_per_body(f_)
     Implicit None

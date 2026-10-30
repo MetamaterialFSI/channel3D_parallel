@@ -30,7 +30,6 @@ Contains
     n2 = n(2)
     n3 = n(3)
 
-    ui = 0d0
     ui( 1:n1-1, 1:n2, 1:n3) = 0.5d0*( u(1:n1-1,:,:) + u(2:n1,:,:) )
 
   End Subroutine interpolate_x
@@ -53,7 +52,6 @@ Contains
     n2 = n(2)
     n3 = n(3)
 
-    ui = 0d0
     ui(1:n1, 1:n2-1, 1:n3) = 0.5d0*( u(:,1:n2-1,:) + u(:,2:n2,:) ) 
    
   End Subroutine interpolate_y
@@ -77,7 +75,6 @@ Contains
     n2 = n(2)
     n3 = n(3)
 
-    ui = 0d0
     ui(1:n1, 1:n2, 1:n3-1) = 0.5d0*( u(:,:,1:n3-1) + u(:,:,2:n3) )
     
   End Subroutine interpolate_z
