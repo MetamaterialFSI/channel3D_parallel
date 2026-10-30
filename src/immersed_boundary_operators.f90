@@ -28,6 +28,16 @@ Contains
     E2n1c = 0d0
     M2dir = 0d0
 
+    If (use_bao5_ddf) Then
+      Do l = 1, nb
+        x_pivot_index(l) = Nint(xb(l) / dx) + 1
+        xm_pivot_index(l) = Nint((xb(l) + 0.5 * dx) / dx)
+        y_pivot_index(l) = Nint((yb(l) - y(y_ref_index(l))) / dymin) + y_ref_index(l)
+        ym_pivot_index(l) = Nint((yb(l) - (y(y_ref_index(l)) + 0.5 * dymin)) / dymin) + y_ref_index(l)
+        z_pivot_index(l) = Nint(zb(l) / dz) + 1
+        zm_pivot_index(l) = Nint((zb(l) + 0.5 * dz) / dz) + 1
+      End Do
+    Else
     Do l = 1, nb
       ! index of largest x value that is smaller than xb(l)
       x_pivot_index(l) = Floor(xb(l) / dx) + 1
@@ -43,6 +53,7 @@ Contains
       ! index of largest zm value that is smaller than zb(l), not accounting for periodicity. Can be zero
       zm_pivot_index(l) = Floor((zb(l) + 0.5 * dz) / dz)+1
     End Do
+    End If
 
     !----Find the flow grid indices and corresponding DDF weights within the support of the DDF at each body point----!
     ! u velocity locations
@@ -283,6 +294,11 @@ Contains
 
     Real(Int64) :: x1, x2, r, dr, deltafnc, r1, r2
 
+    If (use_bao5_ddf) Then
+      deltafnc = deltafnc_bao5(x1, x2, dr)
+      Return
+    End If
+
     r = abs(x1 - x2)
 
     r1 = r / dr
@@ -304,6 +320,37 @@ Contains
     deltafnc = deltafnc / dr
 
   End Function deltafnc
+
+  Pure Function deltafnc_bao5(x1, x2, dr) Result(value)
+    Real(Int64), Intent(In) :: x1, x2, dr
+    Real(Int64), Parameter :: moment = (38d0 - Sqrt(69d0)) / 60d0
+    Real(Int64) :: value, r, s, s2, beta, gamma, phi
+    Integer(Int32) :: offset
+
+    r = Abs(x1 - x2) / dr
+    value = 0d0
+    If (r >= 2.5d0) Return
+    offset = Nint(r)
+    s = r - offset
+    s2 = s * s
+    beta = -12600d0 * moment**2 * s2 + 3600d0 * moment**2 - 8400d0 * moment * s2**2 &
+      + 25680d0 * moment * s2 - 6840d0 * moment + 3123d0
+    gamma = -40d0 * s2 * (35d0 * s2**2 - 202d0 * s2 + 311d0)
+    phi = (-40d0 * moment - 40d0 * s2 + 136d0 + Sqrt(Max(0d0, 2d0 * (beta + gamma)))) / 280d0
+    Select Case (offset)
+    Case (0)
+      value = phi / dr
+    Case (1)
+      value = (-4d0 * phi + 3d0 * moment * s - moment + s**3 - s2 - 4d0 * s + 4d0) / (6d0 * dr)
+    Case (2)
+      value = (2d0 * phi - 3d0 * moment * s + 2d0 * moment - s**3 + 2d0 * s2 + s - 2d0) / (12d0 * dr)
+    End Select
+  End Function deltafnc_bao5
+
+  Real(Int64) Function ddf_support_radius()
+    ddf_support_radius = 2d0
+    If (use_bao5_ddf) ddf_support_radius = 2.5d0
+  End Function ddf_support_radius
 
   Real(Int64) Function dxw(a, b)
     Integer(Int32), Intent(In) :: a, b

@@ -38,7 +38,7 @@ Contains
       read_input_IB_data, read_input_time, read_input_dpdx, &
       body_param_3, body_param_1, body_param_2, body_ramp_up_time, &
       min_buffer_width, cg_tol, cg_abs_tol, cg_max_iter, perturb_scale, &
-      use_rk3
+      use_rk3, use_bao5_ddf
 
     ! default values
     alpha_stretch = 2.6d0
@@ -66,6 +66,7 @@ Contains
     read_input_time = .False.
     read_input_dpdx = .False.
     use_rk3 = .False.
+    use_bao5_ddf = .False.
 
     ! processor 0 reads the data
     If ( myid==0 ) Then
@@ -149,6 +150,7 @@ Contains
     Call Mpi_bcast (   read_input_dpdx,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   new_binary_version,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
     Call Mpi_bcast (   use_rk3,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
+    Call Mpi_bcast (   use_bao5_ddf,1,MPI_logical,0,MPI_COMM_WORLD,ierr )
 
   End Subroutine read_input_parameters
 

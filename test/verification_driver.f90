@@ -4,7 +4,7 @@ program channel3d_verification
   use input_output, only : read_input_parameters
   use initialization, only : initialize, initialize_ib_arrays
   use immersed_boundary_geometry, only : setup_IB_geometry
-  use immersed_boundary_operators, only : setup_IB_operators
+  use immersed_boundary_operators, only : setup_IB_operators, ddf_support_radius
   use heaviside, only : compute_heaviside
   use boundary_conditions, only : apply_boundary_conditions
   use mass_flow, only : compute_mean_mass_flow_U, compute_mean_mass_flow_V, compute_mean_mass_flow_W
@@ -199,7 +199,7 @@ contains
 
     select case (case_name)
       case ('center_wall_x')
-        native_support_clearance = real(suppy + 1, int64) * dymin
+        native_support_clearance = (ddf_support_radius() + 1d0) * dymin
         bulk_clearance = native_support_clearance
         if (requested_bulk_clearance > 0d0) bulk_clearance = requested_bulk_clearance
         do k = 2, center_k_end
@@ -217,7 +217,7 @@ contains
         velocity_scale = abs(dPdx) * Ly_channel * Ly_channel / (32d0 * nu)
 
       case ('center_wall_z')
-        native_support_clearance = real(suppy + 1, int64) * dymin
+        native_support_clearance = (ddf_support_radius() + 1d0) * dymin
         bulk_clearance = native_support_clearance
         if (requested_bulk_clearance > 0d0) bulk_clearance = requested_bulk_clearance
         do k = 2, nz - 1

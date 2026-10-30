@@ -92,6 +92,11 @@ target_link_libraries(test_bicgstab_metrics PRIVATE channel_lib)
 add_test(NAME unit_bicgstab_metrics COMMAND test_bicgstab_metrics)
 set_tests_properties(unit_bicgstab_metrics PROPERTIES LABELS "unit;solver")
 
+add_executable(test_ddf_kernels test_ddf_kernels.f90)
+target_link_libraries(test_ddf_kernels PRIVATE channel_lib)
+add_test(NAME unit_ddf_kernels COMMAND test_ddf_kernels)
+set_tests_properties(unit_ddf_kernels PROPERTIES LABELS "unit;immersed_boundary")
+
 set(channel3d_mpi_flag_args)
 foreach(flag IN LISTS MPIEXEC_PREFLAGS)
     list(APPEND channel3d_mpi_flag_args "--mpi-preflag=${flag}")
@@ -252,5 +257,56 @@ add_channel3d_convergence_test(
         --max-fine-l2 4.0e-3
         --max-fine-linf 3.0e-2
     LABELS double_cylinder
+    TIMEOUT 600
+)
+
+add_channel3d_convergence_test(
+    NAME verification_center_wall_x_bao5
+    CASE center_wall_x
+    COARSE inputs/center_wall_x_fine.nml
+    FINE inputs/center_wall_x_bao5_fine.nml
+    CHECKS
+        --bao5-ddf
+        --min-linf-bulk-order 1.8
+        --min-linf-support-order 1.6
+        --max-fine-l1 1.5e-3
+        --max-fine-l2 5.0e-3
+        --max-fine-linf 3.0e-2
+        --max-fine-linf-bulk 1.2e-3
+        --max-fine-linf-support 1.5e-3
+    LABELS center_wall bao5
+)
+
+add_channel3d_convergence_test(
+    NAME verification_center_wall_z_bao5
+    CASE center_wall_z
+    COARSE inputs/center_wall_z_fine.nml
+    FINE inputs/center_wall_z_bao5_fine.nml
+    CHECKS
+        --bao5-ddf
+        --min-linf-bulk-order 1.8
+        --min-linf-support-order 1.6
+        --max-fine-l1 1.5e-3
+        --max-fine-l2 5.0e-3
+        --max-fine-linf 3.0e-2
+        --max-fine-linf-bulk 1.2e-3
+        --max-fine-linf-support 1.5e-3
+    LABELS center_wall bao5
+)
+
+add_channel3d_convergence_test(
+    NAME verification_double_cylinder_bao5
+    CASE double_cylinder
+    COARSE inputs/double_cylinder_coarse.nml
+    FINE inputs/double_cylinder_fine.nml
+    CHECKS
+        --bao5-ddf
+        --min-l1-order 1.5
+        --min-l2-order 1.3
+        --min-linf-order 0.8
+        --max-fine-l1 1.5e-3
+        --max-fine-l2 4.0e-3
+        --max-fine-linf 3.0e-2
+    LABELS double_cylinder bao5
     TIMEOUT 600
 )

@@ -23,6 +23,13 @@ METRIC_NAMES = (
 def run_grid(args, input_path, label, bulk_clearance=None):
     workdir = pathlib.Path.cwd() / label
     workdir.mkdir(parents=True, exist_ok=True)
+    input_path = pathlib.Path(input_path).resolve()
+    if args.bao5_ddf:
+        input_text = input_path.read_text()
+        if "&params" not in input_text:
+            raise RuntimeError(f"missing &params namelist in {input_path}")
+        input_path = workdir / "input_bao5.nml"
+        input_path.write_text(input_text.replace("&params", "&params\n  use_bao5_ddf = .true.", 1))
     command = [args.mpiexec, args.numproc_flag, str(args.nprocs)]
     command.extend(args.mpi_preflag)
     command.append(args.driver)
@@ -74,6 +81,7 @@ def main():
     parser.add_argument("--case", required=True)
     parser.add_argument("--coarse", required=True)
     parser.add_argument("--fine", required=True)
+    parser.add_argument("--bao5-ddf", action="store_true")
     parser.add_argument("--min-l1-order", type=float)
     parser.add_argument("--min-l2-order", type=float)
     parser.add_argument("--min-linf-order", type=float)
