@@ -10,6 +10,11 @@ target_link_libraries(test_bicgstab_metrics PRIVATE channel_lib)
 add_test(NAME unit_bicgstab_metrics COMMAND test_bicgstab_metrics)
 set_tests_properties(unit_bicgstab_metrics PROPERTIES LABELS "unit;solver")
 
+add_executable(test_ddf_kernels test_ddf_kernels.f90)
+target_link_libraries(test_ddf_kernels PRIVATE channel_lib)
+add_test(NAME unit_ddf_kernels COMMAND test_ddf_kernels)
+set_tests_properties(unit_ddf_kernels PROPERTIES LABELS "unit;immersed_boundary")
+
 set(channel3d_mpi_flag_args)
 foreach(flag IN LISTS MPIEXEC_PREFLAGS)
     list(APPEND channel3d_mpi_flag_args "--mpi-preflag=${flag}")
@@ -20,13 +25,18 @@ endforeach()
 
 function(add_bicgstab_diagnostic_test)
     set(one_value_args NAME INPUT CASE INTEGRATOR)
-    cmake_parse_arguments(DIAGNOSTIC "" "${one_value_args}" "" ${ARGN})
+    cmake_parse_arguments(DIAGNOSTIC "BAO5" "${one_value_args}" "" ${ARGN})
 
     set(input_source "${CMAKE_CURRENT_SOURCE_DIR}/${DIAGNOSTIC_INPUT}")
     set(work_dir "${CMAKE_CURRENT_BINARY_DIR}/work/${DIAGNOSTIC_NAME}")
     file(MAKE_DIRECTORY "${work_dir}")
     get_filename_component(input_name "${input_source}" NAME)
     configure_file("${input_source}" "${work_dir}/${input_name}" COPYONLY)
+    if(DIAGNOSTIC_BAO5)
+        file(READ "${input_source}" input_text)
+        string(REPLACE "&params" "&params\n  use_bao5_ddf = .true." input_text "${input_text}")
+        file(WRITE "${work_dir}/${input_name}" "${input_text}")
+    endif()
 
     add_test(
         NAME "${DIAGNOSTIC_NAME}"
@@ -67,4 +77,28 @@ add_bicgstab_diagnostic_test(
     INPUT inputs/bicgstab_euler_diagnostic.nml
     CASE center_wall
     INTEGRATOR euler
+)
+
+add_bicgstab_diagnostic_test(
+    NAME diagnostic_bicgstab_output_bao5
+    INPUT inputs/bicgstab_diagnostic.nml
+    CASE center_wall
+    INTEGRATOR rk3
+    BAO5
+)
+
+add_bicgstab_diagnostic_test(
+    NAME diagnostic_bicgstab_double_output_bao5
+    INPUT inputs/bicgstab_double_diagnostic.nml
+    CASE double_cylinder
+    INTEGRATOR rk3
+    BAO5
+)
+
+add_bicgstab_diagnostic_test(
+    NAME diagnostic_bicgstab_euler_output_bao5
+    INPUT inputs/bicgstab_euler_diagnostic.nml
+    CASE center_wall
+    INTEGRATOR euler
+    BAO5
 )

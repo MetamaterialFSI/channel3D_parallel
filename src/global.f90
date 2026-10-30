@@ -51,6 +51,7 @@ Module global
   Integer(Int32) :: nsteps, nstep_init
   Real   (Int64) :: dt, t, t_init, kdt
   Logical(Int32) :: use_rk3
+  Logical(Int32) :: use_bao5_ddf = .False.
 
   ! grid stretching factor
   Real(Int64) :: alpha_stretch
